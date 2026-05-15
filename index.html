@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistencias — Redes & TICs</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- docx.js CDN -->
+  <script src="https://unpkg.com/docx@8.2.0/build/index.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-Dw6nHffl.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DT3SrsFh.css">
+</head>
+
+<body>
+
+  <!-- ══ LOGIN OVERLAY ══ -->
+  <div class="login-overlay" id="loginScreen" style="display: flex;">
+    <div class="login-box">
+      <div class="login-logo">Redes &amp; TICs</div>
+      <div class="login-desc">Sistema de Asistencias Privado.<br>Inicia sesión para continuar.</div>
+      <button class="btn-google" onclick="loginWithGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+        Entrar con Google
+      </button>
+      <div id="loginError" style="display:none">Acceso denegado. Este correo no está autorizado.</div>
+    </div>
+  </div>
+
+  <div class="layout" id="mainLayout" style="display: none;">
+
+    <!-- ══ LOADER OVERLAY ══ -->
+    <div class="loader-overlay" id="fbLoaderOverlay">
+      <div class="loader-spinner"></div>
+      <div style="margin-top:12px;font-weight:600">Sincronizando Módulo...</div>
+    </div>
+
+    <!-- ══ SIDEBAR OVERLAY ══ -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ══ SIDEBAR ══════════════════════════════════════════════════════ -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark" id="logoMark">Redes &amp; TICs</div>
+        <small>Sistema de Asistencias</small>
+      </div>
+
+      <!-- Selector de grupo -->
+      <div class="grupo-selector" id="grupoSelector"></div>
+
+      <!-- Carreras separadas visualmente -->
+      <div class="carreras-list" id="carrerasList"></div>
+
+      <!-- Nav dinámico -->
+      <div id="navDinamico">
+        <div class="nav-section">
+          <div class="sidebar-category">General</div>
+          <button class="nav-item sidebar-static-btn active" onclick="goPage('dashboard')">
+            <span class="sidebar-icon">📊</span> Resumen General
+          </button>
+          <button class="nav-item sidebar-static-btn" onclick="goPage('mensual')">
+            <span class="sidebar-icon">📅</span> Resumen Mensual
+          </button>
+          <button class="nav-item sidebar-static-btn" onclick="goPage('historial')">
+            <span class="sidebar-icon">🕒</span> Historial de Cambios
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="sidebar-category">Docente</div>
+          <button class="nav-item sidebar-static-btn" onclick="goPage('horas')">
+            <span class="sidebar-icon">⏱️</span> Registro de Horas
+          </button>
+        </div>
+        <div class="nav-section">
+          <div class="sidebar-category">Individual</div>
+          <button class="nav-item sidebar-static-btn" onclick="goPage('personalizados')">
+            <span class="sidebar-icon">👤</span> Clases Personalizadas
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-green" style="width:100%;margin-bottom:6px" onclick="showExportModal()">⬇️ Exportar
+          Excel</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" style="flex:1;font-size:.71rem;padding:5px 0" onclick="exportarBackupJSON()"
+            title="Guardar copia de seguridad JSON">💾 Backup</button>
+          <button class="btn btn-outline" style="flex:1;font-size:.71rem;padding:5px 0" onclick="importarBackupJSON()"
+            title="Restaurar desde backup JSON">📂 Restaurar</button>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+          <span id="themeLabel">🌙 Modo oscuro</span>
+          <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ══ CONTENT ══════════════════════════════════════════════════════ -->
+    <div class="content">
+      <div class="topbar">
+        <button class="hamburger" onclick="toggleSidebar()" title="Menú">☰</button>
+        <div class="topbar-title" id="topbarTitle">Resumen General</div>
+        <!-- Global Search -->
+        <div class="global-search-wrap">
+          <span class="global-search-icon">🔍</span>
+          <input class="inp" id="globalSearchInput" placeholder="Buscar alumno en todos los módulos..."
+            oninput="globalSearch(this.value)" onblur="setTimeout(()=>closeGlobalSearch(),200)">
+          <div id="globalResults"></div>
+        </div>
+        <div id="syncIndicator"></div>
+        <button class="btn btn-outline" style="font-size:.72rem;padding:5px 10px" onclick="showFirebaseConfig()"
+          title="Configurar Firebase">🔥 Firebase</button>
+        <div class="topbar-date" id="topbarDate"></div>
+      </div>
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="v amber" id="d-total">0</div>
+            <div class="l">Alumnos totales</div>
+          </div>
+          <div class="stat">
+            <div class="v green" id="d-pres">0</div>
+            <div class="l">Presentes hoy</div>
+          </div>
+          <div class="stat">
+            <div class="v red" id="d-falt">0</div>
+            <div class="l">Faltas hoy</div>
+          </div>
+          <div class="stat">
+            <div class="v yellow" id="d-alert">0</div>
+            <div class="l">Con alertas</div>
+          </div>
+          <div class="stat">
+            <div class="v blue" id="d-pers">0</div>
+            <div class="l">Personalizados</div>
+          </div>
+        </div>
+        <div class="dash-grid" id="dashCards"></div>
+
+        <!-- ── NUEVO LAYOUT DASHBOARD ── -->
+        <div class="dashboard-layout">
+          <!-- Columna Principal -->
+          <div class="dashboard-main">
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>📈 Tendencia de Asistencia Semanal</h3>
+                <select class="inp" style="padding:4px 8px;font-size:.75rem">
+                  <option>Esta semana</option>
+                  <option>Semana pasada</option>
+                </select>
+              </div>
+              <div class="chart-container" style="height:250px;width:100%;margin-top:14px;position:relative;">
+                <canvas id="mainDashChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Lateral -->
+          <div class="dashboard-side">
+            <!-- Alertas -->
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>⚠️ Alumnos con Alertas</h3>
+              </div>
+              <div class="alert-list" id="dashboardAlertList">
+                <div style="text-align:center;padding:10px;color:var(--muted);font-size:.8rem">Cargando alertas...</div>
+              </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>⚡ Acciones Rápidas</h3>
+              </div>
+              <div class="quick-actions">
+                <button class="qa-btn qa-primary" onclick="goPage('dashboard')"><span class="qa-icon">✅</span> Resumen
+                  General</button>
+                <button class="qa-btn qa-secondary" onclick="goPage('admin_carreras')"><span class="qa-icon">⚙️</span>
+                  Administrar Carreras</button>
+                <button class="qa-btn qa-secondary" onclick="goPage('horas')"><span class="qa-icon">⏱️</span>
+                  Registro
+                  de Horas</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Componente Abajo Ancho Completo -->
+          <div class="dashboard-bottom">
+            <div class="dash-panel">
+              <div class="dash-panel-header">
+                <h3>🔥 Actividad Reciente (En Vivo)</h3>
+              </div>
+              <div class="table-wrap" style="margin-top:12px;margin-bottom:0">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Hora</th>
+                      <th>Usuario / Alumno</th>
+                      <th>Acción</th>
+                      <th>Curso / Módulo</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboardActividadList">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── RESUMEN MENSUAL ── -->
+      <div class="page" id="page-mensual">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <h2 style="font-size:1rem;font-weight:700;">📅 Resumen Mensual</h2>
+          <select class="inp" id="mensualKey" onchange="renderMensual()" style="min-width:160px;">
+            <!-- Se llena dinámicamente -->
+          </select>
+          <input type="month" class="inp" id="mensualMes" onchange="renderMensual()">
+        </div>
+        <div id="mensualContent"></div>
+      </div>
+
+      <!-- ── ADMIN CARRERAS ── -->
+      <div class="page" id="page-admin_carreras">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <h2 style="font-size:1.1rem;font-weight:800;">⚙️ Gestión de Carreras y Aulas</h2>
+          <button class="btn btn-violet" style="margin-left:auto;" onclick="showAddCarreraModal()">➕ Nueva
+            Carrera</button>
+        </div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:20px;">
+          Configura libremente tus carreras y distribúyelas en clases o aulas como prefieras.
+        </div>
+        <div id="adminCarrerasList" style="display:flex;flex-direction:column;gap:16px;"></div>
+      </div>
+
+      <!-- ── HISTORIAL DE CAMBIOS ── -->
+      <div class="page" id="page-historial">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <h2 style="font-size:1rem;font-weight:700;">🕒 Historial de Cambios</h2>
+          <button class="btn btn-outline" style="font-size:.72rem;margin-left:auto;" onclick="clearHistorial()">🗑
+            Limpiar historial</button>
+        </div>
+        <div id="historialFullList"></div>
+      </div>
+
+      <!-- ── MÓDULOS (se generan dinámicamente) ── -->
+
+      <!-- ── PERSONALIZADOS ── -->
+      <div class="page" id="page-personalizados">
+        <div class="panel">
+          <div class="panel-title">➕ <span>Agregar alumno personalizado</span></div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr">
+            <div class="fgroup" style="grid-column:1/-1">
+              <div class="flabel">Apellidos y Nombres *</div><input class="finp" id="pNombre"
+                placeholder="Ej: García López Ana">
+            </div>
+            <div class="fgroup">
+              <div class="flabel">Celular *</div><input class="finp" id="pTel" placeholder="999 999 999" type="tel">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-amber" onclick="agregarPersonalizado()">Agregar alumno</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-h">Alumnos Personalizados</div>
+          <div class="search-w">
+            <span class="search-ico">🔍</span>
+            <input class="inp" id="persSearch" placeholder="Buscar..." oninput="renderPersonalizados()"
+              style="padding-left:28px;width:170px;">
+          </div>
+        </div>
+        <div id="persList"></div>
+      </div>
+
+      <!-- ── REGISTRO DE HORAS ── -->
+      <div class="page" id="page-horas">
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-title">🔄 <span>Fuentes de horas</span></div>
+          <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Las horas se jalán automáticamente de los <strong style="color:var(--text)">módulos</strong>
+            (Mañana/Tarde)
+            y las <strong style="color:var(--text)">clases personalizadas</strong>.
+            Puedes editar las horas de cada registro directamente en la tabla.
+          </div>
+          <div
+            style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:14px"
+            id="horasFuentesGrid"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-amber" onclick="sincronizarHorasLog()">🔄 Sincronizar ahora</button>
+            <button class="btn btn-outline" onclick="showAgregarHoraManual()" style="font-size:.75rem">➕ Agregar
+              entrada
+              manual</button>
+            <span style="font-size:.72rem;color:var(--muted)" id="horasSyncStatus"></span>
+          </div>
+        </div>
+
+        <!-- ── PANEL NÚMERO DE CLASE DE REFERENCIA ── -->
+        <div class="panel"
+          style="margin-bottom:18px;border-color:rgba(124,58,237,.25);background:linear-gradient(135deg,rgba(124,58,237,.04),rgba(245,158,11,.03))">
+          <div class="panel-title">🔢 <span>Número de clase de referencia</span></div>
+          <div style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Ingresa el número de clase de <strong style="color:var(--text)">hoy</strong> para un curso y el sistema
+            calculará automáticamente el número del resto de clases (pasadas y futuras).
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div class="fgroup" style="flex:2;min-width:200px">
+              <div class="flabel">Curso</div>
+              <select class="finp" id="claseBaseCurso" style="width:100%"></select>
+            </div>
+            <div class="fgroup" style="min-width:100px">
+              <div class="flabel">Fecha de referencia</div>
+              <input class="finp" type="date" id="claseBaseFecha">
+            </div>
+            <div class="fgroup" style="min-width:80px">
+              <div class="flabel">N° de clase en esa fecha</div>
+              <input class="finp" type="number" id="claseBaseNumero" min="1" step="1" placeholder="Ej: 4"
+                style="width:90px">
+            </div>
+            <button class="btn btn-violet" onclick="setClaseBase()" style="margin-bottom:1px">✅ Aplicar</button>
+          </div>
+          <div id="claseBaseStatus" style="margin-top:10px"></div>
+        </div>
+
+        <!-- Resumen mensual -->
+        <div id="horasMensualWrap"></div>
+
+        <!-- Tabla detalle -->
+        <div class="toolbar" style="margin-top:18px">
+          <div class="toolbar-h">📋 Detalle de clases</div>
+          <select class="inp" id="horasFiltroMes" onchange="renderHoras()" style="font-size:.78rem">
+            <option value="">Todos los meses</option>
+          </select>
+        </div>
+
+        <!-- Módulos -->
+        <div
+          style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          📚 Módulos <span id="horasModTotal"
+            style="font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:700"></span></div>
+        <div class="table-wrap" style="margin-bottom:20px">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px">#</th>
+                <th style="width:28px"></th>
+                <th>Día</th>
+                <th>Fecha</th>
+                <th>Módulo</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th>Firma</th>
+                <th>N° Al.</th>
+                <th>Horas</th>
+                <th>Obsv.</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="horasTbodyMod"></tbody>
+          </table>
+        </div>
+
+        <!-- Personalizados -->
+        <div
+          style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--teal);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          👤 Clases Personalizadas <span id="horasPersTotal"
+            style="font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:700"></span></div>
+        <div class="table-wrap" style="margin-bottom:20px">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34px">#</th>
+                <th style="width:28px"></th>
+                <th>Día</th>
+                <th>Fecha</th>
+                <th>Alumno</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th>Firma</th>
+                <th>N° Al.</th>
+                <th>Horas</th>
+                <th>Obsv.</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="horasTbodyPers"></tbody>
+          </table>
+        </div>
+
+        <!-- Entradas manuales (si hay) -->
+        <div id="horasManualesWrap" style="display:none">
+          <div
+            style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px">
+            ✏️ Otras entradas</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:34px">#</th>
+                  <th style="width:28px"></th>
+                  <th>Día</th>
+                  <th>Fecha</th>
+                  <th>Descripción</th>
+                  <th>Entrada</th>
+                  <th>Salida</th>
+                  <th>Firma</th>
+                  <th>N° Al.</th>
+                  <th>Horas</th>
+                  <th>Obsv.</th>
+                  <th style="width:36px"></th>
+                </tr>
+              </thead>
+              <tbody id="horasTbodyMan"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Total global oculto para compatibilidad -->
+        <table style="display:none">
+          <tbody id="horasTbody"></tbody>
+        </table>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /layout -->
+
+  <div class="toast" id="toast"></div>
+
+  <!-- MODAL FICHA DE ESTUDIANTE -->
+  <div class="overlay" id="overlayFichaAlumno" onclick="cerrarFichaAlumno()"
+    style="display:none; align-items:center; justify-content:center; z-index:301;">
+    <div class="modal" id="modalFichaAlumno" onclick="event.stopPropagation()">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding: 20px 24px;">
+        <h3 style="padding:0; margin:0; font-size:1.1rem;" id="fichaNombre"></h3>
+        <button onclick="cerrarFichaAlumno()"
+          style="background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer;"
+          title="Cerrar">✕</button>
+      </div>
+      <div class="modal-body-scroll" style="padding-top:20px;">
+        <div style="margin-bottom:15px; color:var(--text2); font-size:0.9rem; line-height: 1.5;">
+          <strong>Carrera/Sección:</strong> <span id="fichaCarrera"></span><br>
+          <strong>Teléfono:</strong> <span id="fichaTelefono"></span>
+        </div>
+        <div style="margin-bottom:20px;">
+          <button class="btn btn-green" id="btnContactarTwilio"
+            style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding: 10px;">
+            <span>📱 Contactar por WhatsApp</span>
+          </button>
+        </div>
+        <div>
+          <h4
+            style="font-size:0.85rem; color:var(--muted); text-transform:uppercase; margin-bottom:10px; letter-spacing: 0.5px;">
+            Últimas inasistencias</h4>
+          <div id="fichaInasistenciasList"
+            style="background:var(--s2); border-radius:8px; border:1px solid var(--border); overflow:hidden;">
+            <!-- inasistencias -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal" id="modalBox">
+      <h3 id="mTitle"></h3>
+      <div class="modal-body-scroll">
+        <p id="mBody"></p>
+        <div id="mExtra"></div>
+      </div>
+      <div class="modal-btns">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-amber" id="mOk">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
