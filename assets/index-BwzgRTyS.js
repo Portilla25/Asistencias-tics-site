@@ -676,114 +676,290 @@ Instituto Redes & TICs`;ft("correo",e,"",t,l,o,s)}function ft(e,t,o,s,n,a,r){con
         <p>5. Agrega tu correo a la lista de autorizados en el código</p>
       </div>
     </div>`;C("🔥 Configurar Firebase","",()=>{const s=document.getElementById("fbConfigInput").value.trim();if(!s){f("⚠️ Pega la configuración");return}try{const n=ht(s);gt(n),_(),f("✅ Firebase configurado")}catch(n){f("⚠️ Config inválida: "+n.message)}},o),document.getElementById("mOk").textContent="Guardar y conectar"}function is(){ue&&firebase.auth(ue).onAuthStateChanged(e=>{const t=document.getElementById("loginScreen"),o=document.getElementById("mainLayout");e?as.includes(e.email)?(t.style.display="none",o.style.display="flex"):(document.getElementById("loginError").style.display="block",firebase.auth(ue).signOut()):(t.style.display="flex",o.style.display="none")})}function rs(){if(!ue){const t=localStorage.getItem("fb_config");if(t)try{gt(ht(t))}catch(o){console.error("Config inválida guardada:",o),Xe();return}else{Xe();return}}const e=new firebase.auth.GoogleAuthProvider;firebase.auth(ue).signInWithPopup(e).then(t=>{const o=t.user;document.getElementById("loginScreen").style.display="none",document.getElementById("mainLayout").style.display="flex",console.log("Login exitoso:",o.email)}).catch(t=>{console.error("Error en login:",t),t.code==="auth/popup-blocked"?alert("El navegador bloqueó la ventana emergente. Permite popups para este sitio."):alert("Error al iniciar sesión: "+t.message)})}function ls(){firebase.auth(ue).signOut().then(()=>{document.getElementById("loginScreen").style.display="flex",document.getElementById("mainLayout").style.display="none"})}const cs={loginWithGoogle:rs,logoutGoogle:ls,applyTheme:Ke,toggleTheme:to,showToast:f,showModal:C,closeModal:_,goPage:Re,switchGrupoAndPage:Jo,switchGrupo:Rt,toggleSidebar:oo,toggleCarreraBlock:Go,globalSearch:no,closeGlobalSearch:so,showFirebaseConfig:Xe,showExportModal:Yt,exportarBackupJSON:Bo,importarBackupJSON:Po,showAddCarreraModal:$o,cargarAsistencia:Xo,importExcel:Yo,showGoogleSheetsSyncModal:jt,showAddAlumnoModal:On,propagarAlumnos:Fn,showMoverModuloCompleto:Tn,setDateQuick:rn,onDateChange:Ut,setAsist:cn,setAsistConMotivo:mn,marcarTodos:Pn,showPerfil:fn,enviarWhatsApp:Qt,enviarCorreo:Qn,showMensajeModal:ft,showEditarAlumno:zn,showMoverAlumno:bn,eliminarAlumno:Ln,retirarAlumno:hn,reactivarAlumno:vn,quitarFechaModulo:Bn,renderPersonalizados:he,agregarPersonalizado:Rn,editarPersonalizado:Jn,eliminarPersonalizado:Gn,showRegistrarClaseModal:Hn,registrarClasePersonalizada:Xt,quitarClasePersonalizada:jn,selectRcVal:Kt,rcAutoHoras:Dn,showAddNotaModal:Un,toggleNotasTema:Wn,setNota:qn,eliminarTema:Vn,renderParticipacion:pt,setParticipacion:Xn,showSumarParticipacionModal:Kn,renderMensual:yo,renderHistorialMini:xo,renderAdminCarreras:Bt,clearHistorial:No,renderHoras:ge,initHorasForm:Ot,sincronizarHorasLog:rt,showAgregarHoraManual:un,setClaseBase:Co,actualizarHora:Ao,eliminarHora:To,showPromptClaseInfo:Ue,abrirFichaAlumno:kn,cerrarFichaAlumno:es,renderExportForm,renderWordMapping,renderExcelMapping,generarExportacion:kt,exportarTodo:ss,fmtFechaMeta:Ae,syncSheetTicsSabados:nt,eliminarCarrera:Eo};Object.entries(cs).forEach(([e,t])=>{window[e]=t});
+/* ═══════════════════════════════════════════════════════════════
+   MIGRACIÓN REDES — Tecnologías de la Información y Redes
+   Sábados · Turnos Mañana (09:00-13:00) y Tarde (14:00-18:00)
+   ═══════════════════════════════════════════════════════════════ */
 (function migrarRedes(){
-  // Flag to ensure one‑time execution
-  if (localStorage.getItem('redes_migracion_v1')) return;
-  console.debug('🔧 Iniciando migración de módulos Redes');
+  const LOG='[REDES_MIGRACION]';
 
-  // Backup current state to localStorage and file log
-  const backupKey = 'asist_state_backup_redes_v1';
-  const snapshot = JSON.stringify(h);
-  localStorage.setItem(backupKey, snapshot);
-  // Also write a JSON backup file (if server supports PUT via fetch)
-  try {
-    const ts = new Date().toISOString().replace(/[:.]/g,'-');
-    fetch(`/assets/logs/redes_migration/backup_${ts}.json`,{
-      method:'PUT',
-      body:snapshot,
-      headers:{'Content-Type':'application/json'}
-    });
-  } catch(e){ console.warn('⚠️ No se pudo crear backup de archivo',e); }
+  // ── 1. Bandera de ejecución única ──────────────────────────
+  if(localStorage.getItem('redes_migracion_v1')){
+    console.debug(LOG,'Migración ya ejecutada, saltando.');
+    return;
+  }
+  console.debug(LOG,'Iniciando migración de módulos Redes…');
 
-  // Fixed module identifiers
-  const moduloIds = [
-    'redes_S_M1','redes_S_M2','redes_S_M3','redes_S_M4',
-    'redes_S_T1','redes_S_T2','redes_S_T3','redes_S_T4'
+  // ── 2. Snapshot / Backup ───────────────────────────────────
+  const backupKey='asist_state_backup_redes_v1';
+  const snapshot=JSON.stringify(h);
+  localStorage.setItem(backupKey,snapshot);
+  console.debug(LOG,'Backup guardado en localStorage:',backupKey);
+
+  // ── 3. Nomenclatura fija ───────────────────────────────────
+  const MODULOS_MANANA=['redes_S_M1','redes_S_M2','redes_S_M3','redes_S_M4'];
+  const MODULOS_TARDE =['redes_S_T1','redes_S_T2','redes_S_T3','redes_S_T4'];
+  const ALL_MODULOS=[...MODULOS_MANANA,...MODULOS_TARDE];
+
+  // ── 4. Crear módulos faltantes ─────────────────────────────
+  ALL_MODULOS.forEach(id=>{
+    if(!h[id]){
+      h[id]={alumnos:[],retirados:[],asistencias:{},fechas:[],motivos:{},notas:{},participacion:{}};
+      console.debug(LOG,'Módulo creado:',id);
+    }
+  });
+
+  // ── 5. Recolectar alumnos existentes de módulos redes_* ────
+  const todosAlumnos=[];
+  Object.keys(h).forEach(key=>{
+    if(!key.startsWith('redes_'))return;
+    if(key==='redes_retirados')return;
+    const mod=h[key];
+    if(!mod||!Array.isArray(mod.alumnos))return;
+    mod.alumnos.forEach(a=>todosAlumnos.push({...a,_origen:key}));
+  });
+  console.debug(LOG,'Total alumnos recolectados:',todosAlumnos.length);
+
+  // ── 6. Filtrar: válidos, retirados, corruptos ──────────────
+  const vistos=new Set();
+  const validos=[];
+  const retirados=[];
+  const corruptos=[];
+  let dupCount=0;
+
+  todosAlumnos.forEach(a=>{
+    const id=a.id!==undefined&&a.id!==null?String(a.id):'';
+    const nombre=(a.nombre||'').trim();
+    if(!id||!nombre){corruptos.push({...a,_razon:'sin_id_o_nombre'});return;}
+    if(vistos.has(id)){dupCount++;return;}
+    vistos.add(id);
+    const st=(a.status||'').toLowerCase();
+    if(st==='retirado'||st==='inactivo'){
+      retirados.push({id:a.id,nombre,status:a.status||'retirado'});
+      return;
+    }
+    validos.push({id:a.id,nombre,status:'activo'});
+  });
+  console.debug(LOG,'Válidos:',validos.length,'| Retirados:',retirados.length,
+                '| Duplicados ignorados:',dupCount,'| Corruptos:',corruptos.length);
+
+  // ── 7. Distribución determinista (alfabética) ──────────────
+  validos.sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+  const porModulo=ALL_MODULOS.length>0?Math.ceil(validos.length/ALL_MODULOS.length):0;
+  let idx=0;
+  ALL_MODULOS.forEach(id=>{
+    const slice=validos.slice(idx,idx+porModulo);
+    h[id].alumnos=slice.map(a=>({id:a.id,nombre:a.nombre,status:a.status}));
+    idx+=porModulo;
+    console.debug(LOG,id,'→',h[id].alumnos.length,'alumnos asignados');
+  });
+
+  // ── 8. Guardar retirados y corruptos (no se pierden) ───────
+  if(!h['redes_retirados'])h['redes_retirados']={alumnos:[],retirados:[],asistencias:{},fechas:[],motivos:{},notas:{},participacion:{}};
+  h['redes_retirados'].alumnos=[
+    ...retirados.map(a=>({...a,_etiqueta:'retirado del curso'})),
+    ...corruptos.map(a=>({id:a.id||'corrupto_'+Date.now(),nombre:a.nombre||'(sin nombre)',status:'corrupto',_etiqueta:'registro corrupto',_razon:a._razon}))
   ];
+  console.debug(LOG,'Retirados+corruptos guardados en redes_retirados:',h['redes_retirados'].alumnos.length);
 
-  // Ensure modules exist
-  const crearModulosFaltantes = () => {
-    if (!h.asist_state) h.asist_state = {};
-    moduloIds.forEach(id => {
-      if (!h.asist_state[id]) {
-        h.asist_state[id] = { alumnos: [], notas: {}, fechas: [], asistencias: {} };
-        console.debug(`📦 Módulo creado: ${id}`);
-      }
+  // ── 9. Validación: no duplicados entre módulos ─────────────
+  const idsDistribuidos=new Set();
+  let hayDuplicadosPost=false;
+  ALL_MODULOS.forEach(id=>{
+    (h[id].alumnos||[]).forEach(a=>{
+      const aid=String(a.id);
+      if(idsDistribuidos.has(aid)){hayDuplicadosPost=true;console.error(LOG,'¡DUPLICADO detectado post-distribución!',aid,id);}
+      idsDistribuidos.add(aid);
     });
+  });
+
+  // ── 10. Rollback si hay error ──────────────────────────────
+  if(hayDuplicadosPost){
+    console.error(LOG,'Validación FALLIDA. Ejecutando rollback…');
+    try{
+      const restored=JSON.parse(localStorage.getItem(backupKey));
+      Object.keys(h).forEach(k=>delete h[k]);
+      Object.assign(h,restored);
+      z();
+    }catch(e){console.error(LOG,'Error en rollback:',e);}
+    return;
+  }
+
+  // ── 11. Generar reporte comparativo ────────────────────────
+  const reporte={
+    fecha:new Date().toISOString(),
+    totalOriginal:todosAlumnos.length,
+    totalValidos:validos.length,
+    totalDistribuido:idsDistribuidos.size,
+    retirados:retirados.length,
+    corruptos:corruptos.length,
+    duplicadosIgnorados:dupCount,
+    faltantes:validos.length-idsDistribuidos.size,
+    detalle:{}
   };
-  crearModulosFaltantes();
+  ALL_MODULOS.forEach(id=>{reporte.detalle[id]=(h[id].alumnos||[]).length;});
+  reporte.detalle['redes_retirados']=(h['redes_retirados'].alumnos||[]).length;
+  localStorage.setItem('reporteComparativoRedes',JSON.stringify(reporte));
+  console.debug(LOG,'Reporte guardado:',reporte);
 
-  // Gather existing alumnos de los módulos actuales (redes_*)
-  const obtenerAlumnos = () => {
-    const alumnos = [];
-    moduloIds.forEach(id => {
-      const mod = h.asist_state[id];
-      if (mod && Array.isArray(mod.alumnos)) {
-        mod.alumnos.forEach(a => alumnos.push({ ...a, origen:id }));
-      }
-    });
-    return alumnos;
-  };
-
-  // Filtrar alumnos válidos y marcar retirados/inactivos
-  const filtrarAlumnosValidos = (lista) => {
-    const vistos = new Set();
-    const validos = [];
-    const retirados = [];
-    lista.forEach(a => {
-      const id = a.id?.toString();
-      const nombre = a.nombre?.trim();
-      const status = (a.status||'').toLowerCase();
-      if (!id || !nombre) return; // registro corrupto
-      if (vistos.has(id)) return; // duplicado
-      vistos.add(id);
-      if (status === 'retirado' || status === 'inactivo') {
-        retirados.push({ ...a, status });
-        return;
-      }
-      a.status = 'activo';
-      validos.push(a);
-    });
-    return { validos, retirados };
-  };
-
-  const { validos, retirados } = filtrarAlumnosValidos(obtenerAlumnos());
-
-  // Distribución determinista (alfabética)
-  const distribuirAlumnos = (alumnos) => {
-    alumnos.sort((a,b)=> a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
-    const porModulo = Math.ceil(alumnos.length / moduloIds.length);
-    let idx = 0;
-    moduloIds.forEach(id => {
-      const slice = alumnos.slice(idx, idx+porModulo);
-      h.asist_state[id].alumnos = slice.map(a=> ({ id:a.id, nombre:a.nombre, status:a.status }));
-      idx += porModulo;
-    });
-  };
-  distribuirAlumnos(validos);
-
-  // Guardar alumnos retirados en sección separada (no se pierden)
-  const guardarRetirados = () => {
-    const key = 'redes_retirados';
-    if (!h.asist_state[key]) h.asist_state[key] = { alumnos: [] };
-    h.asist_state[key].alumnos = retirados.map(a=>({ id:a.id, nombre:a.nombre, status:a.status }));
-    console.debug(`⚙️ ${retirados.length} alumnos retirados guardados en ${key}`);
-  };
-  guardarRetirados();
-
-  // Generar reporte comparativo y guardarlo en localStorage
-  const reporte = {
-    totalOriginal: validos.length + retirados.length,
-    totalDistribuido: validos.length,
-    retirados: retirados.length,
-    duplicados: 0,
-    faltantes: 0
-  };
-  localStorage.setItem('reporteComparativoRedes', JSON.stringify(reporte));
-  console.debug('📊 Reporte de migración', reporte);
-
-  // Persistir estado y marcar bandera
-  if (typeof z === 'function') z();
-  localStorage.setItem('redes_migracion_v1', 'true');
-  console.debug('✅ Migración completada');
+  // ── 12. Persistir y marcar bandera ─────────────────────────
+  z();
+  localStorage.setItem('redes_migracion_v1','true');
+  console.debug(LOG,'✅ Migración completada exitosamente');
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   PÁGINA SPA: reporte_redes
+   ═══════════════════════════════════════════════════════════════ */
+(function registrarPaginaReporteRedes(){
+  // Crear la página en el DOM
+  const page=document.createElement('div');
+  page.className='page';
+  page.id='page-reporte_redes';
+  page.innerHTML=`
+    <div style="max-width:900px;margin:0 auto;padding:20px 0">
+      <h2 style="font-size:1.4rem;font-weight:800;margin-bottom:16px;color:var(--text)">
+        📊 Reporte de Migración — Redes &amp; TICs
+      </h2>
+      <div id="reporteRedesContent" style="font-size:.85rem;color:var(--text)">
+        <div class="empty"><div class="ei">📋</div>No hay reporte disponible. La migración no se ha ejecutado aún.</div>
+      </div>
+    </div>
+  `;
+  const content=document.querySelector('.content');
+  if(content)content.appendChild(page);
+
+  // Función para renderizar el reporte
+  function renderReporteRedes(){
+    const raw=localStorage.getItem('reporteComparativoRedes');
+    const container=document.getElementById('reporteRedesContent');
+    if(!container)return;
+    if(!raw){container.innerHTML='<div class="empty"><div class="ei">📋</div>No hay reporte disponible.</div>';return;}
+    try{
+      const r=JSON.parse(raw);
+      let html='';
+
+      // Tabla resumen
+      html+=\`<div class="redes-report-card">
+        <div class="redes-report-title">📋 Resumen de migración</div>
+        <div class="redes-report-date">Ejecutada: \${r.fecha?new Date(r.fecha).toLocaleString('es-ES'):'—'}</div>
+        <table class="redes-report-table">
+          <thead><tr><th>Concepto</th><th>Cantidad</th></tr></thead>
+          <tbody>
+            <tr><td>Total original de registros</td><td>\${r.totalOriginal||0}</td></tr>
+            <tr><td>Alumnos válidos (activos)</td><td class="rr-green">\${r.totalValidos||0}</td></tr>
+            <tr><td>Alumnos distribuidos</td><td class="rr-green">\${r.totalDistribuido||0}</td></tr>
+            <tr><td>Retirados / Inactivos</td><td class="rr-amber">\${r.retirados||0}</td></tr>
+            <tr><td>Registros corruptos</td><td class="rr-red">\${r.corruptos||0}</td></tr>
+            <tr><td>Duplicados ignorados</td><td class="rr-amber">\${r.duplicadosIgnorados||0}</td></tr>
+            <tr><td>Faltantes</td><td class="rr-red">\${r.faltantes||0}</td></tr>
+          </tbody>
+        </table>
+      </div>\`;
+
+      // Detalle por módulo
+      if(r.detalle){
+        html+=\`<div class="redes-report-card" style="margin-top:16px">
+          <div class="redes-report-title">📦 Distribución por módulo</div>
+          <table class="redes-report-table">
+            <thead><tr><th>Módulo</th><th>Turno</th><th>Horario</th><th>Alumnos</th></tr></thead>
+            <tbody>\`;
+        const turnos={
+          redes_S_M1:{turno:'Mañana',hora:'09:00 - 10:00'},
+          redes_S_M2:{turno:'Mañana',hora:'10:00 - 11:00'},
+          redes_S_M3:{turno:'Mañana',hora:'11:00 - 12:00'},
+          redes_S_M4:{turno:'Mañana',hora:'12:00 - 13:00'},
+          redes_S_T1:{turno:'Tarde',hora:'14:00 - 15:00'},
+          redes_S_T2:{turno:'Tarde',hora:'15:00 - 16:00'},
+          redes_S_T3:{turno:'Tarde',hora:'16:00 - 17:00'},
+          redes_S_T4:{turno:'Tarde',hora:'17:00 - 18:00'},
+          redes_retirados:{turno:'—',hora:'—'}
+        };
+        Object.entries(r.detalle).forEach(([id,count])=>{
+          const info=turnos[id]||{turno:'—',hora:'—'};
+          const label=id==='redes_retirados'?'⚠️ Retirados/Corruptos':id;
+          html+=\`<tr><td>\${label}</td><td>\${info.turno}</td><td>\${info.hora}</td><td>\${count}</td></tr>\`;
+        });
+        html+='</tbody></table></div>';
+      }
+
+      // Lista de retirados con dropdown
+      const retData=h['redes_retirados'];
+      if(retData&&retData.alumnos&&retData.alumnos.length>0){
+        html+=\`<div class="redes-report-card" style="margin-top:16px">
+          <div class="redes-report-title">👤 Alumnos retirados / inactivos / corruptos</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Selecciona el estado correcto para cada alumno. Los cambios se guardan automáticamente.</div>
+          <table class="redes-report-table">
+            <thead><tr><th>#</th><th>Nombre</th><th>Etiqueta</th><th>Estado</th></tr></thead>
+            <tbody>\`;
+        retData.alumnos.forEach((a,i)=>{
+          const st=a.status||'retirado';
+          html+=\`<tr>
+            <td>\${i+1}</td>
+            <td>\${a.nombre||'(sin nombre)'}</td>
+            <td>\${a._etiqueta||'—'}</td>
+            <td><select class="finp redes-status-select" data-redes-ret-idx="\${i}" onchange="window._redesCambiarEstado(this)">
+              <option value="activo"\${st==='activo'?' selected':''}>Activo</option>
+              <option value="inactivo"\${st==='inactivo'?' selected':''}>Inactivo</option>
+              <option value="retirado"\${st==='retirado'?' selected':''}>Retirado</option>
+              <option value="corrupto"\${st==='corrupto'?' selected':''}>Corrupto</option>
+            </select></td>
+          </tr>\`;
+        });
+        html+='</tbody></table></div>';
+      }
+
+      container.innerHTML=html;
+    }catch(e){
+      container.innerHTML='<div class="empty"><div class="ei">❌</div>Error al leer el reporte: '+e.message+'</div>';
+    }
+  }
+
+  // Función global para cambiar estado de alumno retirado
+  window._redesCambiarEstado=function(sel){
+    const idx=parseInt(sel.getAttribute('data-redes-ret-idx'));
+    if(h['redes_retirados']&&h['redes_retirados'].alumnos&&h['redes_retirados'].alumnos[idx]){
+      h['redes_retirados'].alumnos[idx].status=sel.value;
+      z();
+      if(typeof f==='function')f('✅ Estado actualizado: '+h['redes_retirados'].alumnos[idx].nombre+' → '+sel.value);
+    }
+  };
+
+  // Registrar en la lógica de goPage
+  const _originalJo=typeof jo==='function'?jo:null;
+  const _originalDo=typeof Do==='function'?Do:null;
+
+  // Inyectar en goPage: interceptar la página reporte_redes
+  const _origRe=Re;
+  window.goPage=function(e){
+    if(e==='reporte_redes'){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      const pg=document.getElementById('page-reporte_redes');
+      if(pg)pg.classList.add('active');
+      T='reporte_redes';
+      document.getElementById('topbarTitle').textContent='📊 Reporte Redes — Migración';
+      if(window.innerWidth<900){
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('sidebarOverlay').classList.remove('show');
+      }
+      renderReporteRedes();
+      return;
+    }
+    _origRe(e);
+  };
+  // Re-export
+  Re=window.goPage;
+
+  // Añadir botón en sidebar
+  const sidebar=document.getElementById('carrerasList');
+  if(sidebar){
+    const btn=document.createElement('button');
+    btn.className='btn-nueva-carrera';
+    btn.style.cssText='margin-top:8px;background:var(--amber);color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:.8rem;font-weight:700;cursor:pointer;width:100%;text-align:left;';
+    btn.textContent='📊 Reporte Redes';
+    btn.onclick=()=>window.goPage('reporte_redes');
+    sidebar.appendChild(btn);
+  }
+})();
+
