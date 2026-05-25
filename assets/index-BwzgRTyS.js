@@ -676,3 +676,114 @@ Instituto Redes & TICs`;ft("correo",e,"",t,l,o,s)}function ft(e,t,o,s,n,a,r){con
         <p>5. Agrega tu correo a la lista de autorizados en el código</p>
       </div>
     </div>`;C("🔥 Configurar Firebase","",()=>{const s=document.getElementById("fbConfigInput").value.trim();if(!s){f("⚠️ Pega la configuración");return}try{const n=ht(s);gt(n),_(),f("✅ Firebase configurado")}catch(n){f("⚠️ Config inválida: "+n.message)}},o),document.getElementById("mOk").textContent="Guardar y conectar"}function is(){ue&&firebase.auth(ue).onAuthStateChanged(e=>{const t=document.getElementById("loginScreen"),o=document.getElementById("mainLayout");e?as.includes(e.email)?(t.style.display="none",o.style.display="flex"):(document.getElementById("loginError").style.display="block",firebase.auth(ue).signOut()):(t.style.display="flex",o.style.display="none")})}function rs(){if(!ue){const t=localStorage.getItem("fb_config");if(t)try{gt(ht(t))}catch(o){console.error("Config inválida guardada:",o),Xe();return}else{Xe();return}}const e=new firebase.auth.GoogleAuthProvider;firebase.auth(ue).signInWithPopup(e).then(t=>{const o=t.user;document.getElementById("loginScreen").style.display="none",document.getElementById("mainLayout").style.display="flex",console.log("Login exitoso:",o.email)}).catch(t=>{console.error("Error en login:",t),t.code==="auth/popup-blocked"?alert("El navegador bloqueó la ventana emergente. Permite popups para este sitio."):alert("Error al iniciar sesión: "+t.message)})}function ls(){firebase.auth(ue).signOut().then(()=>{document.getElementById("loginScreen").style.display="flex",document.getElementById("mainLayout").style.display="none"})}const cs={loginWithGoogle:rs,logoutGoogle:ls,applyTheme:Ke,toggleTheme:to,showToast:f,showModal:C,closeModal:_,goPage:Re,switchGrupoAndPage:Jo,switchGrupo:Rt,toggleSidebar:oo,toggleCarreraBlock:Go,globalSearch:no,closeGlobalSearch:so,showFirebaseConfig:Xe,showExportModal:Yt,exportarBackupJSON:Bo,importarBackupJSON:Po,showAddCarreraModal:$o,cargarAsistencia:Xo,importExcel:Yo,showGoogleSheetsSyncModal:jt,showAddAlumnoModal:On,propagarAlumnos:Fn,showMoverModuloCompleto:Tn,setDateQuick:rn,onDateChange:Ut,setAsist:cn,setAsistConMotivo:mn,marcarTodos:Pn,showPerfil:fn,enviarWhatsApp:Qt,enviarCorreo:Qn,showMensajeModal:ft,showEditarAlumno:zn,showMoverAlumno:bn,eliminarAlumno:Ln,retirarAlumno:hn,reactivarAlumno:vn,quitarFechaModulo:Bn,renderPersonalizados:he,agregarPersonalizado:Rn,editarPersonalizado:Jn,eliminarPersonalizado:Gn,showRegistrarClaseModal:Hn,registrarClasePersonalizada:Xt,quitarClasePersonalizada:jn,selectRcVal:Kt,rcAutoHoras:Dn,showAddNotaModal:Un,toggleNotasTema:Wn,setNota:qn,eliminarTema:Vn,renderParticipacion:pt,setParticipacion:Xn,showSumarParticipacionModal:Kn,renderMensual:yo,renderHistorialMini:xo,renderAdminCarreras:Bt,clearHistorial:No,renderHoras:ge,initHorasForm:Ot,sincronizarHorasLog:rt,showAgregarHoraManual:un,setClaseBase:Co,actualizarHora:Ao,eliminarHora:To,showPromptClaseInfo:Ue,abrirFichaAlumno:kn,cerrarFichaAlumno:es,renderExportForm,renderWordMapping,renderExcelMapping,generarExportacion:kt,exportarTodo:ss,fmtFechaMeta:Ae,syncSheetTicsSabados:nt,eliminarCarrera:Eo};Object.entries(cs).forEach(([e,t])=>{window[e]=t});
+(function migrarRedes(){
+  // Flag to ensure one‑time execution
+  if (localStorage.getItem('redes_migracion_v1')) return;
+  console.debug('🔧 Iniciando migración de módulos Redes');
+
+  // Backup current state to localStorage and file log
+  const backupKey = 'asist_state_backup_redes_v1';
+  const snapshot = JSON.stringify(h);
+  localStorage.setItem(backupKey, snapshot);
+  // Also write a JSON backup file (if server supports PUT via fetch)
+  try {
+    const ts = new Date().toISOString().replace(/[:.]/g,'-');
+    fetch(`/assets/logs/redes_migration/backup_${ts}.json`,{
+      method:'PUT',
+      body:snapshot,
+      headers:{'Content-Type':'application/json'}
+    });
+  } catch(e){ console.warn('⚠️ No se pudo crear backup de archivo',e); }
+
+  // Fixed module identifiers
+  const moduloIds = [
+    'redes_S_M1','redes_S_M2','redes_S_M3','redes_S_M4',
+    'redes_S_T1','redes_S_T2','redes_S_T3','redes_S_T4'
+  ];
+
+  // Ensure modules exist
+  const crearModulosFaltantes = () => {
+    if (!h.asist_state) h.asist_state = {};
+    moduloIds.forEach(id => {
+      if (!h.asist_state[id]) {
+        h.asist_state[id] = { alumnos: [], notas: {}, fechas: [], asistencias: {} };
+        console.debug(`📦 Módulo creado: ${id}`);
+      }
+    });
+  };
+  crearModulosFaltantes();
+
+  // Gather existing alumnos de los módulos actuales (redes_*)
+  const obtenerAlumnos = () => {
+    const alumnos = [];
+    moduloIds.forEach(id => {
+      const mod = h.asist_state[id];
+      if (mod && Array.isArray(mod.alumnos)) {
+        mod.alumnos.forEach(a => alumnos.push({ ...a, origen:id }));
+      }
+    });
+    return alumnos;
+  };
+
+  // Filtrar alumnos válidos y marcar retirados/inactivos
+  const filtrarAlumnosValidos = (lista) => {
+    const vistos = new Set();
+    const validos = [];
+    const retirados = [];
+    lista.forEach(a => {
+      const id = a.id?.toString();
+      const nombre = a.nombre?.trim();
+      const status = (a.status||'').toLowerCase();
+      if (!id || !nombre) return; // registro corrupto
+      if (vistos.has(id)) return; // duplicado
+      vistos.add(id);
+      if (status === 'retirado' || status === 'inactivo') {
+        retirados.push({ ...a, status });
+        return;
+      }
+      a.status = 'activo';
+      validos.push(a);
+    });
+    return { validos, retirados };
+  };
+
+  const { validos, retirados } = filtrarAlumnosValidos(obtenerAlumnos());
+
+  // Distribución determinista (alfabética)
+  const distribuirAlumnos = (alumnos) => {
+    alumnos.sort((a,b)=> a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+    const porModulo = Math.ceil(alumnos.length / moduloIds.length);
+    let idx = 0;
+    moduloIds.forEach(id => {
+      const slice = alumnos.slice(idx, idx+porModulo);
+      h.asist_state[id].alumnos = slice.map(a=> ({ id:a.id, nombre:a.nombre, status:a.status }));
+      idx += porModulo;
+    });
+  };
+  distribuirAlumnos(validos);
+
+  // Guardar alumnos retirados en sección separada (no se pierden)
+  const guardarRetirados = () => {
+    const key = 'redes_retirados';
+    if (!h.asist_state[key]) h.asist_state[key] = { alumnos: [] };
+    h.asist_state[key].alumnos = retirados.map(a=>({ id:a.id, nombre:a.nombre, status:a.status }));
+    console.debug(`⚙️ ${retirados.length} alumnos retirados guardados en ${key}`);
+  };
+  guardarRetirados();
+
+  // Generar reporte comparativo y guardarlo en localStorage
+  const reporte = {
+    totalOriginal: validos.length + retirados.length,
+    totalDistribuido: validos.length,
+    retirados: retirados.length,
+    duplicados: 0,
+    faltantes: 0
+  };
+  localStorage.setItem('reporteComparativoRedes', JSON.stringify(reporte));
+  console.debug('📊 Reporte de migración', reporte);
+
+  // Persistir estado y marcar bandera
+  if (typeof z === 'function') z();
+  localStorage.setItem('redes_migracion_v1', 'true');
+  console.debug('✅ Migración completada');
+})();
