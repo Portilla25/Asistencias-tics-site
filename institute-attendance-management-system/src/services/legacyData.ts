@@ -103,6 +103,21 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
       { id: 'tics_S_4', label: 'Turno Sábado - Módulo 4', badge: 'Sáb M4' },
     ],
   },
+  {
+    id: 'redes_sabados',
+    nombre: 'Tecnologías de la Información y Redes',
+    color: '#e11d48',
+    secciones: [
+      { id: 'redes_S_M1', label: 'Sábado Mañana - Módulo 1', badge: 'Sáb Mañana M1' },
+      { id: 'redes_S_M2', label: 'Sábado Mañana - Módulo 2', badge: 'Sáb Mañana M2' },
+      { id: 'redes_S_M3', label: 'Sábado Mañana - Módulo 3', badge: 'Sáb Mañana M3' },
+      { id: 'redes_S_M4', label: 'Sábado Mañana - Módulo 4', badge: 'Sáb Mañana M4' },
+      { id: 'redes_S_T1', label: 'Sábado Tarde - Módulo 1', badge: 'Sáb Tarde T1' },
+      { id: 'redes_S_T2', label: 'Sábado Tarde - Módulo 2', badge: 'Sáb Tarde T2' },
+      { id: 'redes_S_T3', label: 'Sábado Tarde - Módulo 3', badge: 'Sáb Tarde T3' },
+      { id: 'redes_S_T4', label: 'Sábado Tarde - Módulo 4', badge: 'Sáb Tarde T4' },
+    ],
+  },
 ];
 
 const COLORS = ['#f59e0b', '#0d9488', '#2563eb', '#16a34a', '#dc2626', '#7c3aed', '#0284c7', '#f97316'];

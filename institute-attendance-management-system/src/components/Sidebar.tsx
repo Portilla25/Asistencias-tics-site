@@ -26,6 +26,7 @@ const Sidebar: React.FC = () => {
     { id: 'materias', label: 'Materias', icon: <BookOpen className="w-5 h-5" />, roles: ['admin', 'docente'] },
     { id: 'horarios', label: 'Horarios', icon: <Clock className="w-5 h-5" />, roles: ['admin', 'docente', 'alumno'] },
     { id: 'reportes', label: 'Reportes', icon: <BarChart3 className="w-5 h-5" />, roles: ['admin', 'docente'] },
+    { id: 'reporte-redes', label: 'Reporte Redes', icon: <BarChart3 className="w-5 h-5" />, roles: ['admin', 'docente'] },
     { id: 'calendario', label: 'Calendario', icon: <Calendar className="w-5 h-5" />, roles: ['admin', 'docente', 'alumno'] },
     { id: 'notificaciones', label: 'Notificaciones', icon: <Bell className="w-5 h-5" />, roles: ['admin', 'docente', 'alumno'], badge: unread },
     { id: 'configuracion', label: 'Configuración', icon: <Settings className="w-5 h-5" />, roles: ['admin'] },
