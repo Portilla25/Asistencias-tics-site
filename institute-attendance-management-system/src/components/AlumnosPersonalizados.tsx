@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2 } from 'lucide-react';
+import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X } from 'lucide-react';
 
 interface ClasePersonalizada {
   fecha: string;
@@ -50,7 +50,7 @@ const AlumnosPersonalizados: React.FC = () => {
   const [alumnos, setAlumnos] = useState<AlumnoPersonalizado[]>([]);
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
     try {
       const raw = localStorage.getItem('asist_personalizados');
       if (raw) {
@@ -88,20 +88,122 @@ const AlumnosPersonalizados: React.FC = () => {
     } catch (e) {
       console.error('Error parsing personalizados', e);
     }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  
+  const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
+  const [classForm, setClassForm] = useState({
+    fecha: new Date().toISOString().split('T')[0],
+    horaInicio: '',
+    horaFin: '',
+    horas: 1
+  });
+
+  const [studentForm, setStudentForm] = useState({
+    nombre: '',
+    tel: ''
+  });
+
+  const handleAddClass = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentId) return alert('Seleccione un alumno');
+    try {
+      const raw = localStorage.getItem('asist_personalizados');
+      const parsed = raw ? JSON.parse(raw) : [];
+      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(selectedStudentId));
+      if (studentIndex >= 0) {
+        if (!Array.isArray(parsed[studentIndex].clases)) {
+          parsed[studentIndex].clases = [];
+        }
+        parsed[studentIndex].clases.push({
+          fecha: classForm.fecha,
+          val: 'Presente',
+          horas: Number(classForm.horas),
+          horaInicio: classForm.horaInicio,
+          horaFin: classForm.horaFin
+        });
+        localStorage.setItem('asist_personalizados', JSON.stringify(parsed));
+        setIsClassModalOpen(false);
+        setClassForm({ fecha: new Date().toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
+        loadData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentForm.nombre) return alert('Ingrese un nombre');
+    try {
+      const raw = localStorage.getItem('asist_personalizados');
+      const parsed = raw ? JSON.parse(raw) : [];
+      parsed.push({
+        id: Date.now(),
+        nombre: studentForm.nombre,
+        tel: studentForm.tel,
+        clases: []
+      });
+      localStorage.setItem('asist_personalizados', JSON.stringify(parsed));
+      setIsStudentModalOpen(false);
+      setStudentForm({ nombre: '', tel: '' });
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (alumnos.length === 0) {
-    return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in duration-500">
         <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
           <UserSquare2 className="w-12 h-12 text-muted-foreground opacity-50" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Sin Alumnos Personalizados</h2>
-        <p className="text-muted-foreground max-w-md">
+        <p className="text-muted-foreground max-w-md mb-6">
           No se encontraron registros de alumnos personalizados en la base de datos local.
         </p>
+        <button
+          onClick={() => setIsStudentModalOpen(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Añadir Primer Alumno
+        </button>
+
+        {/* Modal Alumno (Empty State) */}
+        {isStudentModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-card text-left w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border">
+              <div className="flex justify-between items-center p-5 border-b border-border">
+                <h3 className="font-bold text-lg text-foreground">Nuevo Alumno Personalizado</h3>
+                <button onClick={() => setIsStudentModalOpen(false)} className="text-muted-foreground hover:bg-muted p-1.5 rounded-lg transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleAddStudent} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Nombre Completo</label>
+                  <input required value={studentForm.nombre} onChange={e => setStudentForm({...studentForm, nombre: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ej. Juan Pérez" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Teléfono (Opcional)</label>
+                  <input value={studentForm.tel} onChange={e => setStudentForm({...studentForm, tel: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ej. 987654321" />
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button type="button" onClick={() => setIsStudentModalOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancelar</button>
+                  <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Alumno</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
-    );
   }
 
   return (
@@ -119,14 +221,32 @@ const AlumnosPersonalizados: React.FC = () => {
           </p>
         </div>
         
-        <div className="flex items-center gap-4 bg-card border border-border rounded-xl p-3 shadow-sm">
-          <div className="flex items-center gap-3 px-4">
-            <Users className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Alumnos</p>
-              <p className="text-lg font-bold text-foreground leading-none">{alumnos.length}</p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 bg-card border border-border rounded-xl p-3 shadow-sm hidden sm:flex">
+            <div className="flex items-center gap-3 px-4">
+              <Users className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Total Alumnos</p>
+                <p className="text-lg font-bold text-foreground leading-none">{alumnos.length}</p>
+              </div>
             </div>
           </div>
+          
+          <button
+            onClick={() => setIsStudentModalOpen(true)}
+            className="flex items-center justify-center w-12 h-12 bg-card hover:bg-muted border border-border rounded-xl transition-colors shrink-0"
+            title="Añadir Alumno"
+          >
+            <UserSquare2 className="w-5 h-5 text-foreground" />
+          </button>
+          
+          <button
+            onClick={() => setIsClassModalOpen(true)}
+            className="flex items-center gap-2 px-4 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Añadir Clase</span>
+          </button>
         </div>
       </div>
 
@@ -220,6 +340,81 @@ const AlumnosPersonalizados: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Modal Alumno */}
+      {isStudentModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card text-left w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border">
+            <div className="flex justify-between items-center p-5 border-b border-border">
+              <h3 className="font-bold text-lg text-foreground">Nuevo Alumno Personalizado</h3>
+              <button onClick={() => setIsStudentModalOpen(false)} className="text-muted-foreground hover:bg-muted p-1.5 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddStudent} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Nombre Completo</label>
+                <input required value={studentForm.nombre} onChange={e => setStudentForm({...studentForm, nombre: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ej. Juan Pérez" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Teléfono (Opcional)</label>
+                <input value={studentForm.tel} onChange={e => setStudentForm({...studentForm, tel: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ej. 987654321" />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsStudentModalOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Alumno</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Clase */}
+      {isClassModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card text-left w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border">
+            <div className="flex justify-between items-center p-5 border-b border-border">
+              <h3 className="font-bold text-lg text-foreground">Añadir Registro de Horas</h3>
+              <button onClick={() => setIsClassModalOpen(false)} className="text-muted-foreground hover:bg-muted p-1.5 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddClass} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Alumno</label>
+                <select required value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="" disabled>Seleccione un alumno...</option>
+                  {alumnos.map(a => (
+                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Fecha</label>
+                <input type="date" required value={classForm.fecha} onChange={e => setClassForm({...classForm, fecha: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Hora Inicio</label>
+                  <input type="time" required value={classForm.horaInicio} onChange={e => setClassForm({...classForm, horaInicio: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5">Hora Fin</label>
+                  <input type="time" required value={classForm.horaFin} onChange={e => setClassForm({...classForm, horaFin: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-foreground mb-1.5">Total Horas</label>
+                <input type="number" step="0.5" min="0.5" required value={classForm.horas} onChange={e => setClassForm({...classForm, horas: Number(e.target.value)})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsClassModalOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Registro</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
