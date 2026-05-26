@@ -160,25 +160,33 @@ const AlumnosPersonalizados: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // 1. Read what's currently in localStorage
       const localRaw = localStorage.getItem('asist_personalizados');
       const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
-
-      // 2. Read from Firestore (if available)
       const firestoreData = await loadFromFirestore();
 
-      // 3. Smart-merge: static JSON + localStorage + Firestore
-      //    This ensures no data is ever lost regardless of where it was saved
-      let merged = smartMerge(
-        Array.isArray(mergedData) ? [...mergedData] : [],
-        Array.isArray(localData) ? localData : []
-      );
-      if (firestoreData && Array.isArray(firestoreData)) {
-        merged = smartMerge(merged, firestoreData);
+      const hasSeeded = localStorage.getItem('asist_personalizados_seeded_v4');
+      
+      let merged: any[] = [];
+      
+      if (!hasSeeded) {
+        // One-time merge with static JSON to ensure no historical data is lost
+        merged = smartMerge(
+          Array.isArray(mergedData) ? [...mergedData] : [],
+          Array.isArray(localData) ? localData : []
+        );
+        if (firestoreData && Array.isArray(firestoreData)) {
+          merged = smartMerge(merged, firestoreData);
+        }
+        localStorage.setItem('asist_personalizados_seeded_v4', 'true');
+        persistPersonalizados(merged);
+      } else {
+        // Normal load: just use Firestore as truth, fallback to localData
+        merged = (firestoreData && Array.isArray(firestoreData)) ? firestoreData : localData;
+        // Make sure local is synced with firestore
+        if (firestoreData) {
+          localStorage.setItem('asist_personalizados', JSON.stringify(firestoreData));
+        }
       }
-
-      // 4. Persist the merged result to both localStorage AND Firestore
-      persistPersonalizados(merged);
 
       const raw = localStorage.getItem('asist_personalizados');
       if (raw) {
