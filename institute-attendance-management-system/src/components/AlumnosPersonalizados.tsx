@@ -57,17 +57,112 @@ const getMonthLabel = (dateStr: string) => {
   return dateStr;
 };
 
+/* ─── Firebase helpers for personalizados ─── */
+const getFirestore = () => {
+  if (typeof window === 'undefined' || !(window as any).firebase?.firestore) return null;
+  const raw = window.localStorage.getItem('fb_config');
+  if (!raw) return null;
+  try {
+    const config = JSON.parse(raw);
+    if (!Object.keys(config).length) return null;
+    const fb = (window as any).firebase;
+    const app = fb.apps?.length ? fb.app() : fb.initializeApp(config);
+    return fb.firestore(app);
+  } catch { return null; }
+};
+
+const saveToFirestore = (data: any[]) => {
+  const db = getFirestore();
+  if (!db) return;
+  db.collection('personalizados').doc('datos').set({
+    alumnos: data,
+    updatedAt: (window as any).firebase.firestore.FieldValue.serverTimestamp()
+  }).catch((e: any) => console.warn('[Personalizados] Error guardando en Firestore', e));
+};
+
+const loadFromFirestore = async (): Promise<any[] | null> => {
+  const db = getFirestore();
+  if (!db) return null;
+  try {
+    const doc = await db.collection('personalizados').doc('datos').get();
+    if (doc.exists) {
+      const data = doc.data();
+      return data?.alumnos || null;
+    }
+  } catch (e) { console.warn('[Personalizados] Error leyendo Firestore', e); }
+  return null;
+};
+
+/** Smart-merge: combine two arrays of students, keeping the union of all clases */
+const smartMerge = (base: any[], incoming: any[]): any[] => {
+  const byName = new Map<string, any>();
+
+  // Add all from base first
+  base.forEach(a => {
+    const key = (a.nombre || '').trim().toLowerCase();
+    byName.set(key, { ...a, clases: Array.isArray(a.clases) ? [...a.clases] : [] });
+  });
+
+  // Merge incoming — add new students, and for existing ones merge clases
+  incoming.forEach(a => {
+    const key = (a.nombre || '').trim().toLowerCase();
+    if (!byName.has(key)) {
+      byName.set(key, { ...a, clases: Array.isArray(a.clases) ? [...a.clases] : [] });
+    } else {
+      const existing = byName.get(key)!;
+      // Deduplicate clases by fecha+horaInicio+horaFin
+      const existingKeys = new Set(
+        existing.clases.map((c: any) => {
+          if (typeof c === 'string') return c;
+          return `${c.fecha}|${c.horaInicio}|${c.horaFin}|${c.horas}`;
+        })
+      );
+      (Array.isArray(a.clases) ? a.clases : []).forEach((c: any) => {
+        const ck = typeof c === 'string' ? c : `${c.fecha}|${c.horaInicio}|${c.horaFin}|${c.horas}`;
+        if (!existingKeys.has(ck)) {
+          existing.clases.push(c);
+          existingKeys.add(ck);
+        }
+      });
+      // Keep the most complete tel
+      if (!existing.tel && a.tel) existing.tel = a.tel;
+    }
+  });
+
+  return Array.from(byName.values());
+};
+
+const persistPersonalizados = (data: any[]) => {
+  localStorage.setItem('asist_personalizados', JSON.stringify(data));
+  saveToFirestore(data);
+};
+
 const AlumnosPersonalizados: React.FC = () => {
   const [alumnos, setAlumnos] = useState<AlumnoPersonalizado[]>([]);
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     try {
-      if (!localStorage.getItem('asist_personalizados_merged_v3')) {
-        localStorage.setItem('asist_personalizados', JSON.stringify(mergedData));
-        localStorage.setItem('asist_personalizados_merged_v3', 'true');
+      // 1. Read what's currently in localStorage
+      const localRaw = localStorage.getItem('asist_personalizados');
+      const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
+
+      // 2. Read from Firestore (if available)
+      const firestoreData = await loadFromFirestore();
+
+      // 3. Smart-merge: static JSON + localStorage + Firestore
+      //    This ensures no data is ever lost regardless of where it was saved
+      let merged = smartMerge(
+        Array.isArray(mergedData) ? [...mergedData] : [],
+        Array.isArray(localData) ? localData : []
+      );
+      if (firestoreData && Array.isArray(firestoreData)) {
+        merged = smartMerge(merged, firestoreData);
       }
-      
+
+      // 4. Persist the merged result to both localStorage AND Firestore
+      persistPersonalizados(merged);
+
       const raw = localStorage.getItem('asist_personalizados');
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -144,7 +239,7 @@ const AlumnosPersonalizados: React.FC = () => {
           horaInicio: classForm.horaInicio,
           horaFin: classForm.horaFin
         });
-        localStorage.setItem('asist_personalizados', JSON.stringify(parsed));
+        persistPersonalizados(parsed);
         setIsClassModalOpen(false);
         setClassForm({ fecha: new Date().toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
         loadData();
@@ -166,7 +261,7 @@ const AlumnosPersonalizados: React.FC = () => {
         tel: studentForm.tel,
         clases: []
       });
-      localStorage.setItem('asist_personalizados', JSON.stringify(parsed));
+      persistPersonalizados(parsed);
       setIsStudentModalOpen(false);
       setStudentForm({ nombre: '', tel: '' });
       loadData();

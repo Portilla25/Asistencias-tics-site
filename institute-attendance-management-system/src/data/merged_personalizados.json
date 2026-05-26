@@ -17,6 +17,13 @@
         "horaFin": "13:00",
         "horas": "2.5",
         "val": "Presente"
+      },
+      {
+        "horaInicio": "10:00",
+        "horaFin": "13:00",
+        "horas": "3",
+        "fecha": "2026-05-26",
+        "val": "Presente"
       }
     ]
   },
