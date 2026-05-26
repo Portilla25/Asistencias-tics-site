@@ -96,12 +96,15 @@ const Horarios: React.FC = () => {
               .map(parseClase)
               .filter((c): c is ClasePersonalizada => c !== null && c.val.toLowerCase() === 'presente');
             
-            const horasPorMes: Record<string, number> = {};
+            const horasPorMes: Record<string, { horas: number; clases: number; fechas: string[] }> = {};
             parsedClases.forEach(c => {
               const parts = c.fecha.split('-');
               if (parts.length >= 2) {
                 const mesKey = `${parts[0]}-${parts[1]}`;
-                horasPorMes[mesKey] = (horasPorMes[mesKey] || 0) + c.horas;
+                if (!horasPorMes[mesKey]) horasPorMes[mesKey] = { horas: 0, clases: 0, fechas: [] };
+                horasPorMes[mesKey].horas += c.horas;
+                horasPorMes[mesKey].clases += 1;
+                horasPorMes[mesKey].fechas.push(parts[2] ? parts[2].substring(0, 2) : c.fecha);
               }
             });
             return {
@@ -151,7 +154,7 @@ const Horarios: React.FC = () => {
   /* ─── Horas dictadas por mes ─── */
   const horasPorMes = useMemo(() => {
     // For each materia, count unique dates where attendance was recorded per month
-    const result: Record<string, Record<string, { clases: number; horas: number }>> = {};
+    const result: Record<string, Record<string, { clases: number; horas: number; fechas: string[] }>> = {};
 
     materias.forEach(m => {
       if (!misMateriaIds.has(m.id)) return;
@@ -159,11 +162,11 @@ const Horarios: React.FC = () => {
       const datesByMonth: Record<string, Set<string>> = {};
 
       materiaAsistencias.forEach(a => {
-        const [year, month] = a.fecha.split('-');
+        const [year, month, day] = a.fecha.split('-');
         if (Number(year) !== selectedYear) return;
         const key = `${year}-${month}`;
         if (!datesByMonth[key]) datesByMonth[key] = new Set();
-        datesByMonth[key].add(a.fecha);
+        datesByMonth[key].add(day ? day.substring(0,2) : a.fecha);
       });
 
       const horasModulo = getHoursForModule(m.id);
@@ -172,6 +175,7 @@ const Horarios: React.FC = () => {
         result[m.id][monthKey] = {
           clases: dates.size,
           horas: dates.size * horasModulo,
+          fechas: Array.from(dates).sort()
         };
       });
     });
@@ -360,9 +364,13 @@ const Horarios: React.FC = () => {
                             return (
                               <td key={mo} className="px-3 py-3 text-center">
                                 {data ? (
-                                  <div>
+                                  <div className="flex flex-col items-center justify-center gap-0.5">
                                     <span className="text-sm font-bold text-foreground">{data.horas}h</span>
-                                    <p className="text-[10px] text-muted-foreground">{data.clases} clase{data.clases !== 1 ? 's' : ''}</p>
+                                    {data.fechas && data.fechas.length > 0 && (
+                                      <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50" title={`Días: ${data.fechas.join(', ')}`}>
+                                        {data.fechas.join(', ')}
+                                      </span>
+                                    )}
                                   </div>
                                 ) : (
                                   <span className="text-xs text-gray-300">—</span>
@@ -439,7 +447,7 @@ const Horarios: React.FC = () => {
                         const [y, mm] = mo.split('-');
                         return Number(y) === selectedYear && Number(mm) >= 5;
                       });
-                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (p.horasPorMes[mo] || 0), 0);
+                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (p.horasPorMes[mo]?.horas || 0), 0);
                       
                       return (
                         <tr key={p.id} className="hover:bg-background">
@@ -449,11 +457,18 @@ const Horarios: React.FC = () => {
                             </div>
                           </td>
                           {relevantMonths.map(mo => {
-                            const horas = p.horasPorMes[mo] || 0;
+                            const data = p.horasPorMes[mo];
                             return (
                               <td key={mo} className="px-3 py-3 text-center">
-                                {horas > 0 ? (
-                                  <span className="text-sm font-bold text-foreground">{horas}h</span>
+                                {data && data.horas > 0 ? (
+                                  <div className="flex flex-col items-center justify-center gap-0.5">
+                                    <span className="text-sm font-bold text-foreground">{data.horas}h</span>
+                                    {data.fechas && data.fechas.length > 0 && (
+                                      <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50" title={`Días: ${data.fechas.join(', ')}`}>
+                                        {data.fechas.join(', ')}
+                                      </span>
+                                    )}
+                                  </div>
                                 ) : (
                                   <span className="text-xs text-gray-300">—</span>
                                 )}
@@ -473,7 +488,7 @@ const Horarios: React.FC = () => {
                         const [y, mm] = m.split('-');
                         return Number(y) === selectedYear && Number(mm) >= 5;
                       }).map(mo => {
-                        const total = personalizados.reduce((sum, p) => sum + (p.horasPorMes[mo] || 0), 0);
+                        const total = personalizados.reduce((sum, p) => sum + (p.horasPorMes[mo]?.horas || 0), 0);
                         return (
                           <td key={mo} className="px-3 py-3 text-center text-sm text-foreground">
                             {total > 0 ? `${total}h` : '—'}
@@ -486,7 +501,7 @@ const Horarios: React.FC = () => {
                             return sum + allMonths.filter(mo => {
                               const [y, mm] = mo.split('-');
                               return Number(y) === selectedYear && Number(mm) >= 5;
-                            }).reduce((s, mo) => s + (p.horasPorMes[mo] || 0), 0);
+                            }).reduce((s, mo) => s + (p.horasPorMes[mo]?.horas || 0), 0);
                           }, 0)}h
                         </span>
                       </td>
