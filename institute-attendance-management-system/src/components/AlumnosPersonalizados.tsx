@@ -224,6 +224,7 @@ const AlumnosPersonalizados: React.FC = () => {
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<{ studentId: string | number, clase: ClasePersonalizada } | null>(null);
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
@@ -300,24 +301,27 @@ const AlumnosPersonalizados: React.FC = () => {
     }
   };
 
-  const handleDeleteClass = (studentId: string | number, claseIdx: number) => {
-    if (!confirm('¿Eliminar este registro de clase?')) return;
+  const confirmDeleteClass = () => {
+    if (!classToDelete) return;
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
-      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(studentId));
+      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(classToDelete.studentId));
       if (studentIndex >= 0 && Array.isArray(parsed[studentIndex].clases)) {
         const rawClases = parsed[studentIndex].clases;
-        // Map visible claseIdx back to raw index (since we filter for 'presente' only)
-        const presentClases = rawClases
-          .map((c: any, i: number) => ({ c, i }))
-          .filter(({ c }: any) => {
-            const p = parseClase(c);
-            return p !== null && p.val.toLowerCase() === 'presente';
-          });
         
-        if (presentClases[claseIdx]) {
-          parsed[studentIndex].clases.splice(presentClases[claseIdx].i, 1);
+        // Find by matching the exact properties
+        const rawIndex = rawClases.findIndex((c: any) => {
+          const p = parseClase(c);
+          if (!p) return false;
+          return p.fecha === classToDelete.clase.fecha && 
+                 p.horaInicio === classToDelete.clase.horaInicio && 
+                 p.horaFin === classToDelete.clase.horaFin &&
+                 p.horas === classToDelete.clase.horas;
+        });
+        
+        if (rawIndex >= 0) {
+          parsed[studentIndex].clases.splice(rawIndex, 1);
           persistPersonalizados(parsed);
           loadData();
         }
@@ -325,6 +329,7 @@ const AlumnosPersonalizados: React.FC = () => {
     } catch (err) {
       console.error(err);
     }
+    setClassToDelete(null);
   };
 
   if (alumnos.length === 0) {
@@ -501,7 +506,7 @@ const AlumnosPersonalizados: React.FC = () => {
                             </div>
                           </div>
                           <button
-                            onClick={() => handleDeleteClass(alumno.id, idx)}
+                            onClick={() => setClassToDelete({ studentId: alumno.id, clase })}
                             className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
                             title="Eliminar este registro"
                           >
@@ -591,6 +596,35 @@ const AlumnosPersonalizados: React.FC = () => {
                 <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Registro</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Eliminar */}
+      {classToDelete && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card text-left w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border p-6 text-center">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h3 className="font-bold text-lg text-foreground mb-2">¿Eliminar registro?</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Estás a punto de eliminar la clase del <strong className="text-foreground">{classToDelete.clase.fecha}</strong> ({classToDelete.clase.horas} hrs). Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-center gap-3 w-full">
+              <button 
+                onClick={() => setClassToDelete(null)} 
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteClass} 
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+              >
+                Sí, eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
