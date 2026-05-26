@@ -76,14 +76,14 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
     nombre: 'Redes & TICs',
     color: '#f59e0b',
     secciones: [
-      { id: 'redes_M_1', label: 'Turno Mañana - Módulo 1', badge: 'Mañana M1' },
-      { id: 'redes_M_2', label: 'Turno Mañana - Módulo 2', badge: 'Mañana M2' },
-      { id: 'redes_M_3', label: 'Turno Mañana - Módulo 3', badge: 'Mañana M3' },
-      { id: 'redes_M_4', label: 'Turno Mañana - Módulo 4', badge: 'Mañana M4' },
-      { id: 'redes_T_1', label: 'Turno Tarde - Módulo 1', badge: 'Tarde M1' },
-      { id: 'redes_T_2', label: 'Turno Tarde - Módulo 2', badge: 'Tarde M2' },
-      { id: 'redes_T_3', label: 'Turno Tarde - Módulo 3', badge: 'Tarde M3' },
-      { id: 'redes_T_4', label: 'Turno Tarde - Módulo 4', badge: 'Tarde M4' },
+      { id: 'redes_M_1', label: 'Mañana - Módulo 1 (09:00–10:00)', badge: 'Mañana M1' },
+      { id: 'redes_M_2', label: 'Mañana - Módulo 2 (10:00–11:00)', badge: 'Mañana M2' },
+      { id: 'redes_M_3', label: 'Mañana - Módulo 3 (11:00–12:00)', badge: 'Mañana M3' },
+      { id: 'redes_M_4', label: 'Mañana - Módulo 4 (12:00–13:00)', badge: 'Mañana M4' },
+      { id: 'redes_T_1', label: 'Tarde - Módulo 1 (14:00–15:00)', badge: 'Tarde M1' },
+      { id: 'redes_T_2', label: 'Tarde - Módulo 2 (15:00–16:00)', badge: 'Tarde M2' },
+      { id: 'redes_T_3', label: 'Tarde - Módulo 3 (16:00–17:00)', badge: 'Tarde M3' },
+      { id: 'redes_T_4', label: 'Tarde - Módulo 4 (17:00–18:00)', badge: 'Tarde M4' },
     ],
   },
   {
@@ -450,7 +450,87 @@ const buildNotifications = (alumnos: Alumno[], asistencias: Asistencia[]): Notif
   return notifications;
 };
 
+/* ─── One-time migration: move Redes students from Mañana to Tarde ─── */
+const MIGRATION_FLAG_TURNO = 'redes_turno_migration_v1';
+
+const runMigrations = () => {
+  if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem(MIGRATION_FLAG_TURNO)) return;
+
+  const raw = window.localStorage.getItem(STORAGE_STATE_KEY);
+  if (!raw) return;
+
+  try {
+    const state = JSON.parse(raw) as Record<string, LegacyModule>;
+    const MORNING_TO_AFTERNOON: Record<string, string> = {
+      redes_M_1: 'redes_T_1',
+      redes_M_2: 'redes_T_2',
+      redes_M_3: 'redes_T_3',
+      redes_M_4: 'redes_T_4',
+    };
+
+    let changed = false;
+    Object.entries(MORNING_TO_AFTERNOON).forEach(([morningId, afternoonId]) => {
+      const morning = state[morningId];
+      if (!morning?.alumnos?.length) return;
+
+      // Initialize afternoon module if needed
+      if (!state[afternoonId]) {
+        state[afternoonId] = { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+      }
+      const afternoon = state[afternoonId];
+
+      // Copy students (avoid duplicates by id)
+      const existingIds = new Set((afternoon.alumnos || []).map(a => String(a.id)));
+      morning.alumnos.forEach(student => {
+        if (!existingIds.has(String(student.id))) {
+          afternoon.alumnos = afternoon.alumnos || [];
+          afternoon.alumnos.push({ ...student });
+        }
+      });
+
+      // Copy attendance records
+      Object.entries(morning.asistencias || {}).forEach(([studentId, byDate]) => {
+        afternoon.asistencias = afternoon.asistencias || {};
+        if (!afternoon.asistencias[studentId]) {
+          afternoon.asistencias[studentId] = { ...byDate };
+        }
+      });
+
+      // Copy motivos
+      Object.entries(morning.motivos || {}).forEach(([studentId, byDate]) => {
+        afternoon.motivos = afternoon.motivos || {};
+        if (!afternoon.motivos[studentId]) {
+          afternoon.motivos[studentId] = { ...byDate };
+        }
+      });
+
+      // Merge dates
+      const allDates = new Set([...(afternoon.fechas || []), ...(morning.fechas || [])]);
+      afternoon.fechas = [...allDates].sort();
+
+      // Clear morning students (keep module for historical record)
+      morning.alumnos = [];
+      changed = true;
+      console.log(`[REDES_MIGRACION] ${morningId} → ${afternoonId}: alumnos migrados`);
+    });
+
+    if (changed) {
+      // Backup before writing
+      window.localStorage.setItem('asist_state_backup_turno_v1', raw);
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      console.log('[REDES_MIGRACION] Migración Mañana→Tarde completada. Backup guardado.');
+    }
+    window.localStorage.setItem(MIGRATION_FLAG_TURNO, new Date().toISOString());
+  } catch (e) {
+    console.error('[REDES_MIGRACION] Error en migración:', e);
+  }
+};
+
 export const loadInitialAppData = (): InitialAppData => {
+  // Run one-time migrations first
+  runMigrations();
+
   const state = safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
   const hasLegacyState = Object.keys(state).length > 0;
   if (!hasLegacyState) {

@@ -1,115 +1,351 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, MapPin } from 'lucide-react';
+import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
 
-const dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'] as const;
-const diasLabel: Record<string, string> = {
-  lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes'
+/* ─── Schedule definitions for each module ─── */
+const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: string }> = {
+  // Redes Mañana
+  redes_M_1: { turno: 'Mañana', hora: '09:00 – 10:00', dia: 'Lun a Vie' },
+  redes_M_2: { turno: 'Mañana', hora: '10:00 – 11:00', dia: 'Lun a Vie' },
+  redes_M_3: { turno: 'Mañana', hora: '11:00 – 12:00', dia: 'Lun a Vie' },
+  redes_M_4: { turno: 'Mañana', hora: '12:00 – 13:00', dia: 'Lun a Vie' },
+  // Redes Tarde
+  redes_T_1: { turno: 'Tarde', hora: '14:00 – 15:00', dia: 'Lun a Vie' },
+  redes_T_2: { turno: 'Tarde', hora: '15:00 – 16:00', dia: 'Lun a Vie' },
+  redes_T_3: { turno: 'Tarde', hora: '16:00 – 17:00', dia: 'Lun a Vie' },
+  redes_T_4: { turno: 'Tarde', hora: '17:00 – 18:00', dia: 'Lun a Vie' },
+  // Gastronomía Lunes
+  info_gastro_L_1: { turno: 'Mañana', hora: '10:30 – 12:20', dia: 'Lunes' },
+  // TICs Sábados
+  tics_S_1: { turno: 'Mañana', hora: '09:00 – 10:00', dia: 'Sábado' },
+  tics_S_2: { turno: 'Mañana', hora: '10:00 – 11:00', dia: 'Sábado' },
+  tics_S_3: { turno: 'Mañana', hora: '11:00 – 12:00', dia: 'Sábado' },
+  tics_S_4: { turno: 'Mañana', hora: '12:00 – 13:00', dia: 'Sábado' },
+  // Redes Sábados Mañana
+  redes_S_M1: { turno: 'Mañana', hora: '09:00 – 10:00', dia: 'Sábado' },
+  redes_S_M2: { turno: 'Mañana', hora: '10:00 – 11:00', dia: 'Sábado' },
+  redes_S_M3: { turno: 'Mañana', hora: '11:00 – 12:00', dia: 'Sábado' },
+  redes_S_M4: { turno: 'Mañana', hora: '12:00 – 13:00', dia: 'Sábado' },
+  // Redes Sábados Tarde
+  redes_S_T1: { turno: 'Tarde', hora: '14:00 – 15:00', dia: 'Sábado' },
+  redes_S_T2: { turno: 'Tarde', hora: '15:00 – 16:00', dia: 'Sábado' },
+  redes_S_T3: { turno: 'Tarde', hora: '16:00 – 17:00', dia: 'Sábado' },
+  redes_S_T4: { turno: 'Tarde', hora: '17:00 – 18:00', dia: 'Sábado' },
 };
 
+/* Hours per module (1h per module, except Gastronomía = 2h) */
+const HOURS_PER_MODULE: Record<string, number> = {
+  info_gastro_L_1: 2,
+};
+const getHoursForModule = (id: string) => HOURS_PER_MODULE[id] || 1;
+
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+type Tab = 'horarios' | 'horas';
+
 const Horarios: React.FC = () => {
-  const { horarios, materias, currentUser, alumnos } = useApp();
+  const { materias, asistencias, alumnos, currentUser } = useApp();
+  const [activeTab, setActiveTab] = useState<Tab>('horarios');
+  const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const alumnoActual = alumnos.find(a => a.email === currentUser?.email);
-  const misHorarios = currentUser?.rol === 'alumno' && alumnoActual
-    ? horarios.filter(h => alumnoActual.materias.includes(h.materiaId))
-    : currentUser?.rol === 'docente'
-    ? horarios.filter(h => materias.find(m => m.id === h.materiaId && m.docenteId === currentUser.id))
-    : horarios;
+  const misMateriaIds = useMemo(() => {
+    if (currentUser?.rol === 'alumno' && alumnoActual) {
+      return new Set(alumnoActual.materias);
+    }
+    if (currentUser?.rol === 'docente') {
+      return new Set(materias.filter(m => m.docenteId === currentUser.id).map(m => m.id));
+    }
+    return new Set(materias.map(m => m.id));
+  }, [materias, currentUser, alumnoActual]);
 
-  const getMateria = (id: string) => materias.find(m => m.id === id);
+  // Group materias by career
+  const careerGroups = useMemo(() => {
+    const groups: { career: LegacyCareer; materias: typeof materias }[] = [];
+    DEFAULT_CAREERS.forEach((career) => {
+      const ids = new Set(career.secciones.map(s => s.id));
+      const careerMaterias = materias.filter(m => ids.has(m.id) && misMateriaIds.has(m.id));
+      if (careerMaterias.length > 0) {
+        groups.push({ career, materias: careerMaterias });
+      }
+    });
+    return groups;
+  }, [materias, misMateriaIds]);
 
-  const horarioGrid: Record<string, typeof horarios> = {};
-  dias.forEach(dia => {
-    horarioGrid[dia] = misHorarios
-      .filter(h => h.dia === dia)
-      .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
-  });
+  const toggleCareer = (id: string) => {
+    setExpandedCareers(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
-  const horas = ['07:30', '08:00', '09:30', '10:00', '11:30', '12:00', '13:30', '14:00', '15:30'];
+  /* ─── Horas dictadas por mes ─── */
+  const horasPorMes = useMemo(() => {
+    // For each materia, count unique dates where attendance was recorded per month
+    const result: Record<string, Record<string, { clases: number; horas: number }>> = {};
+
+    materias.forEach(m => {
+      if (!misMateriaIds.has(m.id)) return;
+      const materiaAsistencias = asistencias.filter(a => a.materiaId === m.id);
+      const datesByMonth: Record<string, Set<string>> = {};
+
+      materiaAsistencias.forEach(a => {
+        const [year, month] = a.fecha.split('-');
+        if (Number(year) !== selectedYear) return;
+        const key = `${year}-${month}`;
+        if (!datesByMonth[key]) datesByMonth[key] = new Set();
+        datesByMonth[key].add(a.fecha);
+      });
+
+      const horasModulo = getHoursForModule(m.id);
+      result[m.id] = {};
+      Object.entries(datesByMonth).forEach(([monthKey, dates]) => {
+        result[m.id][monthKey] = {
+          clases: dates.size,
+          horas: dates.size * horasModulo,
+        };
+      });
+    });
+
+    return result;
+  }, [materias, asistencias, misMateriaIds, selectedYear]);
+
+  // Get all months that have data
+  const allMonths = useMemo(() => {
+    const months = new Set<string>();
+    Object.values(horasPorMes).forEach(byMonth => {
+      Object.keys(byMonth).forEach(k => months.add(k));
+    });
+    return [...months].sort();
+  }, [horasPorMes]);
 
   return (
     <div className="p-6 space-y-5">
-      {/* Vista Semanal - Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800">Horario Semanal</h3>
-          <p className="text-xs text-gray-500 mt-0.5">2025 — Segundo Trimestre</p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <div className="min-w-[700px]">
-            {/* Header días */}
-            <div className="grid grid-cols-6 border-b border-gray-100 bg-gray-50">
-              <div className="p-3 text-xs font-semibold text-gray-500 uppercase">Hora</div>
-              {dias.map(d => (
-                <div key={d} className="p-3 text-center text-xs font-semibold text-gray-600 uppercase">{diasLabel[d]}</div>
-              ))}
-            </div>
-
-            {/* Horas */}
-            {horas.map(hora => (
-              <div key={hora} className="grid grid-cols-6 border-b border-gray-50 min-h-[56px]">
-                <div className="p-3 text-xs text-gray-400 font-mono flex items-center">{hora}</div>
-                {dias.map(dia => {
-                  const clase = misHorarios.find(h => h.dia === dia && h.horaInicio === hora);
-                  const materia = clase ? getMateria(clase.materiaId) : null;
-                  return (
-                    <div key={dia} className="p-1.5 border-l border-gray-50">
-                      {clase && materia && (
-                        <div className="h-full rounded-lg p-2.5 text-white text-xs" style={{ backgroundColor: materia.color }}>
-                          <p className="font-semibold leading-tight truncate">{materia.nombre}</p>
-                          <div className="flex items-center gap-1 mt-1 opacity-80">
-                            <MapPin className="w-2.5 h-2.5" />
-                            <span>{clase.aula}</span>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-80">
-                            <Clock className="w-2.5 h-2.5" />
-                            <span>{clase.horaInicio}-{clase.horaFin}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Tab bar */}
+      <div className="flex items-center gap-2 bg-white rounded-xl p-1.5 shadow-sm border border-gray-100 w-fit">
+        <button
+          onClick={() => setActiveTab('horarios')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'horarios' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          Horarios
+        </button>
+        <button
+          onClick={() => setActiveTab('horas')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'horas' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" />
+          Horas Dictadas
+        </button>
       </div>
 
-      {/* Lista de materias con horario */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {materias
-          .filter(m => misHorarios.some(h => h.materiaId === m.id))
-          .map(materia => {
-            const horariosMateria = misHorarios.filter(h => h.materiaId === materia.id);
+      {/* ═══════ TAB: Horarios ═══════ */}
+      {activeTab === 'horarios' && (
+        <div className="space-y-4">
+          {careerGroups.map(({ career, materias: careerMaterias }) => {
+            const isExpanded = expandedCareers.has(career.id);
             return (
-              <div key={materia.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${materia.color}20` }}>
-                    <span className="text-sm font-bold" style={{ color: materia.color }}>{materia.nombre[0]}</span>
+              <div key={career.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => toggleCareer(career.id)}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+                >
+                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: career.color }} />
+                  <span className="font-bold text-gray-800 text-sm flex-1 text-left">{career.nombre}</span>
+                  <span className="text-xs text-gray-400 font-mono">{careerMaterias.length} módulo{careerMaterias.length !== 1 ? 's' : ''}</span>
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-gray-100">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 text-left">
+                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Módulo</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Día</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Turno</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Horario</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase text-right">Alumnos</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {careerMaterias.map(m => {
+                          const sched = MODULE_SCHEDULES[m.id];
+                          const alumnoCount = alumnos.filter(a => a.materias.includes(m.id)).length;
+                          return (
+                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
+                                  <span className="font-medium text-sm text-gray-900">{m.codigo}</span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3 text-sm text-gray-600">{sched?.dia || '—'}</td>
+                              <td className="px-5 py-3">
+                                {sched ? (
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    sched.turno === 'Mañana'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-indigo-100 text-indigo-800'
+                                  }`}>
+                                    {sched.turno === 'Mañana' ? '☀️' : '🌙'} {sched.turno}
+                                  </span>
+                                ) : '—'}
+                              </td>
+                              <td className="px-5 py-3 font-mono text-sm text-gray-600">{sched?.hora || '—'}</td>
+                              <td className="px-5 py-3 text-right">
+                                <span className="inline-flex items-center gap-1 text-sm text-gray-700">
+                                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                                  {alumnoCount}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm">{materia.nombre}</h4>
-                    <p className="text-xs text-gray-500">{materia.codigo}</p>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  {horariosMateria.map(h => (
-                    <div key={h.id} className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="font-medium text-gray-800 w-20">{diasLabel[h.dia]}</span>
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      <span>{h.horaInicio} - {h.horaFin}</span>
-                      <MapPin className="w-3 h-3 text-gray-400 ml-auto" />
-                      <span>{h.aula}</span>
-                    </div>
-                  ))}
-                </div>
+                )}
               </div>
             );
           })}
-      </div>
+
+          {careerGroups.length === 0 && (
+            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+              <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No hay horarios asignados</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ TAB: Horas Dictadas ═══════ */}
+      {activeTab === 'horas' && (
+        <div className="space-y-4">
+          {/* Year selector */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">
+              <Calendar className="w-4 h-4 inline mr-1.5 text-gray-400" />Año:
+            </label>
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {[2024, 2025, 2026].map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          {careerGroups.map(({ career, materias: careerMaterias }) => (
+            <div key={career.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
+                <h3 className="font-bold text-gray-800 text-sm">{career.nombre}</h3>
+                <span className="text-xs text-gray-400">— Registro de horas {selectedYear}</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase text-left sticky left-0 bg-gray-50 min-w-[140px]">Módulo</th>
+                      {allMonths.filter(m => m.startsWith(String(selectedYear))).map(m => {
+                        const monthIdx = parseInt(m.split('-')[1], 10) - 1;
+                        return (
+                          <th key={m} className="px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase text-center min-w-[80px]">
+                            {MONTH_NAMES[monthIdx]?.slice(0, 3)}
+                          </th>
+                        );
+                      })}
+                      <th className="px-4 py-2.5 text-xs font-bold text-gray-700 uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {careerMaterias.map(m => {
+                      const monthData = horasPorMes[m.id] || {};
+                      const relevantMonths = allMonths.filter(mo => mo.startsWith(String(selectedYear)));
+                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.horas || 0), 0);
+                      const totalClases = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.clases || 0), 0);
+
+                      return (
+                        <tr key={m.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 sticky left-0 bg-white">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
+                              <span className="text-sm font-medium text-gray-900">{m.codigo}</span>
+                            </div>
+                          </td>
+                          {relevantMonths.map(mo => {
+                            const data = monthData[mo];
+                            return (
+                              <td key={mo} className="px-3 py-3 text-center">
+                                {data ? (
+                                  <div>
+                                    <span className="text-sm font-bold text-gray-800">{data.horas}h</span>
+                                    <p className="text-[10px] text-gray-400">{data.clases} clase{data.clases !== 1 ? 's' : ''}</p>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="px-4 py-3 text-center bg-indigo-50/50">
+                            <span className="text-sm font-bold text-indigo-700">{totalHoras}h</span>
+                            <p className="text-[10px] text-gray-500">{totalClases} clases</p>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Career totals row */}
+                    <tr className="bg-gray-50 font-bold">
+                      <td className="px-4 py-3 text-sm text-gray-800 sticky left-0 bg-gray-50">Total</td>
+                      {allMonths.filter(m => m.startsWith(String(selectedYear))).map(mo => {
+                        const total = careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
+                        return (
+                          <td key={mo} className="px-3 py-3 text-center text-sm text-gray-800">
+                            {total > 0 ? `${total}h` : '—'}
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-3 text-center bg-indigo-100/50">
+                        <span className="text-sm font-bold text-indigo-800">
+                          {careerMaterias.reduce((sum, m) => {
+                            return sum + allMonths
+                              .filter(mo => mo.startsWith(String(selectedYear)))
+                              .reduce((s, mo) => s + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
+                          }, 0)}h
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+
+          {allMonths.length === 0 && (
+            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+              <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">No hay registros de clases para {selectedYear}</p>
+              <p className="text-gray-400 text-sm mt-1">Las horas se calculan automáticamente a partir de la asistencia registrada</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
