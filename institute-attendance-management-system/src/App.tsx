@@ -14,6 +14,7 @@ import Notificaciones from './components/Notificaciones';
 import Horarios from './components/Horarios';
 import Configuracion from './components/Configuracion';
 import ReporteRedes from './components/ReporteRedes';
+import AlumnosPersonalizados from './components/AlumnosPersonalizados';
 
 const AppContent: React.FC = () => {
   const { currentUser, activeSection } = useApp();
@@ -30,6 +31,7 @@ const AppContent: React.FC = () => {
       case 'horarios': return <Horarios />;
       case 'reportes': return <Reportes />;
       case 'reporte-redes': return <ReporteRedes />;
+      case 'personalizados': return <AlumnosPersonalizados />;
       case 'calendario': return <Calendario />;
       case 'notificaciones': return <Notificaciones />;
       case 'configuracion': return <Configuracion />;
