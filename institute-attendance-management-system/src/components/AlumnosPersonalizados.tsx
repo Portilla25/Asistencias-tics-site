@@ -158,36 +158,8 @@ const AlumnosPersonalizados: React.FC = () => {
   const [alumnos, setAlumnos] = useState<AlumnoPersonalizado[]>([]);
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
 
-  const loadData = async () => {
+  const refreshLocalState = () => {
     try {
-      const localRaw = localStorage.getItem('asist_personalizados');
-      const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
-      const firestoreData = await loadFromFirestore();
-
-      const hasSeeded = localStorage.getItem('asist_personalizados_seeded_v4');
-      
-      let merged: any[] = [];
-      
-      if (!hasSeeded) {
-        // One-time merge with static JSON to ensure no historical data is lost
-        merged = smartMerge(
-          Array.isArray(mergedData) ? [...mergedData] : [],
-          Array.isArray(localData) ? localData : []
-        );
-        if (firestoreData && Array.isArray(firestoreData)) {
-          merged = smartMerge(merged, firestoreData);
-        }
-        localStorage.setItem('asist_personalizados_seeded_v4', 'true');
-        persistPersonalizados(merged);
-      } else {
-        // Normal load: just use Firestore as truth, fallback to localData
-        merged = (firestoreData && Array.isArray(firestoreData)) ? firestoreData : localData;
-        // Make sure local is synced with firestore
-        if (firestoreData) {
-          localStorage.setItem('asist_personalizados', JSON.stringify(firestoreData));
-        }
-      }
-
       const raw = localStorage.getItem('asist_personalizados');
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -226,8 +198,41 @@ const AlumnosPersonalizados: React.FC = () => {
     }
   };
 
+  const initializeData = async () => {
+    try {
+      const localRaw = localStorage.getItem('asist_personalizados');
+      const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
+      const firestoreData = await loadFromFirestore();
+
+      const hasSeeded = localStorage.getItem('asist_personalizados_seeded_v4');
+      
+      let merged: any[] = [];
+      
+      if (!hasSeeded) {
+        merged = smartMerge(
+          Array.isArray(mergedData) ? [...mergedData] : [],
+          Array.isArray(localData) ? localData : []
+        );
+        if (firestoreData && Array.isArray(firestoreData)) {
+          merged = smartMerge(merged, firestoreData);
+        }
+        localStorage.setItem('asist_personalizados_seeded_v4', 'true');
+        persistPersonalizados(merged);
+      } else {
+        merged = (firestoreData && Array.isArray(firestoreData)) ? firestoreData : localData;
+        if (firestoreData) {
+          localStorage.setItem('asist_personalizados', JSON.stringify(firestoreData));
+        }
+      }
+
+      refreshLocalState();
+    } catch (e) {
+      console.error('Error initializing personalizados', e);
+    }
+  };
+
   useEffect(() => {
-    loadData();
+    initializeData();
   }, []);
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -281,7 +286,7 @@ const AlumnosPersonalizados: React.FC = () => {
         persistPersonalizados(parsed);
         setIsClassModalOpen(false);
         setClassForm({ fecha: new Date().toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
-        loadData();
+        refreshLocalState();
       }
     } catch (err) {
       console.error(err);
@@ -303,7 +308,7 @@ const AlumnosPersonalizados: React.FC = () => {
       persistPersonalizados(parsed);
       setIsStudentModalOpen(false);
       setStudentForm({ nombre: '', tel: '' });
-      loadData();
+      refreshLocalState();
     } catch (err) {
       console.error(err);
     }
@@ -331,7 +336,7 @@ const AlumnosPersonalizados: React.FC = () => {
         if (rawIndex >= 0) {
           parsed[studentIndex].clases.splice(rawIndex, 1);
           persistPersonalizados(parsed);
-          loadData();
+          refreshLocalState();
         }
       }
     } catch (err) {
