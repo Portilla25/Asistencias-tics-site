@@ -132,17 +132,17 @@ const TomarAsistencia: React.FC = () => {
   const completados = alumnosMateria.filter(a => estados[a.id]).length;
 
   return (
-    <div className="flex h-full bg-slate-50/30">
+    <div className="flex h-full bg-background">
       {/* ====== LEFT SIDEBAR: Premium Course Selector ====== */}
-      <div className="w-[300px] flex-shrink-0 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-y-auto shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10">
-        <div className="p-6 border-b border-slate-100/80 bg-white/50 sticky top-0 z-20 backdrop-blur-md">
+      <div className="w-[300px] flex-shrink-0 bg-card/80 backdrop-blur-xl border-r border-border flex flex-col overflow-y-auto shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10">
+        <div className="p-6 border-b border-border bg-card/50 sticky top-0 z-20 backdrop-blur-md">
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+            <div className="p-2 bg-primary/10 text-primary rounded-lg">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-[15px] font-bold text-slate-800 tracking-tight">Mis Cursos</h2>
-              <p className="text-[13px] text-slate-500 font-medium">Gestión de asistencia</p>
+              <h2 className="text-[15px] font-bold text-foreground tracking-tight">Mis Cursos</h2>
+              <p className="text-[13px] text-muted-foreground font-medium">Gestión de asistencia</p>
             </div>
           </div>
         </div>
@@ -160,22 +160,22 @@ const TomarAsistencia: React.FC = () => {
                   onClick={() => toggleCareer(career.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
                     hasSelected
-                      ? 'bg-white shadow-[0_4px_20px_-4px_rgba(99,102,241,0.15)] border border-indigo-100/50 ring-1 ring-indigo-50'
-                      : 'hover:bg-white hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-transparent'
+                      ? 'bg-card shadow-[0_4px_20px_-4px_rgba(var(--primary),0.15)] border border-primary/20 ring-1 ring-primary/10'
+                      : 'hover:bg-card-hover hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-transparent'
                   }`}
                 >
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-lg text-lg transition-transform duration-300 ${hasSelected ? 'scale-110 bg-indigo-50/50' : 'bg-slate-50 group-hover:scale-105'}`}>
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-lg text-lg transition-transform duration-300 ${hasSelected ? 'scale-110 bg-primary/10' : 'bg-muted group-hover:scale-105'}`}>
                     {icon}
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className={`text-[14px] font-bold leading-tight ${hasSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                    <h3 className={`text-[14px] font-bold leading-tight ${hasSelected ? 'text-primary' : 'text-foreground'}`}>
                       {career.nombre}
                     </h3>
-                    <p className="text-[12px] font-medium text-slate-400 mt-0.5">
+                    <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
                       {careerMaterias.length} módulos
                     </p>
                   </div>
-                  <div className={`p-1 rounded-full transition-colors ${hasSelected ? 'bg-indigo-50 text-indigo-600' : 'text-slate-300'}`}>
+                  <div className={`p-1 rounded-full transition-colors ${hasSelected ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}>
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </div>
                 </button>
@@ -211,7 +211,7 @@ const TomarAsistencia: React.FC = () => {
                     return (
                       <div className="relative pl-6 pr-2 pb-2">
                         {/* Vertical connection line */}
-                        <div className="absolute left-[34px] top-2 bottom-6 w-px bg-gradient-to-b from-slate-200 via-slate-200 to-transparent"></div>
+                        <div className="absolute left-[34px] top-2 bottom-6 w-px bg-border"></div>
                         
                         {entries.map(([shiftName, mats], gIdx) => {
                           const meta = shiftMeta.get(shiftName);
@@ -219,7 +219,7 @@ const TomarAsistencia: React.FC = () => {
                             <div key={shiftName} className={`${gIdx > 0 ? 'mt-5' : 'mt-2'}`}>
                               {needsHeaders && (
                                 <div className="flex items-center gap-2 mb-3 relative z-10">
-                                  <div className={`w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center text-[10px] ${meta.border} shadow-sm`}>
+                                  <div className={`w-5 h-5 rounded-full bg-card border-2 flex items-center justify-center text-[10px] ${meta.border} shadow-sm`}>
                                     {meta.icon}
                                   </div>
                                   <span className={`text-[11px] font-bold uppercase tracking-widest ${meta.color}`}>
@@ -236,19 +236,19 @@ const TomarAsistencia: React.FC = () => {
                                       onClick={() => selectCareerAndMateria(career.id, m.id)}
                                       className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden group/btn ${
                                         isActive
-                                          ? 'text-white shadow-[0_8px_16px_-6px_rgba(99,102,241,0.4)] transform scale-[1.02]'
-                                          : 'text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-sm'
+                                          ? 'text-primary-foreground shadow-lg transform scale-[1.02]'
+                                          : 'text-muted-foreground hover:text-foreground hover:bg-card-hover hover:shadow-sm'
                                       }`}
                                     >
                                       {isActive && (
-                                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 opacity-100"></div>
+                                        <div className="absolute inset-0 bg-primary opacity-100"></div>
                                       )}
                                       
                                       <span
                                         className={`w-2.5 h-2.5 rounded-full flex-shrink-0 relative z-10 transition-transform ${isActive ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] scale-110' : 'opacity-70 group-hover/btn:scale-110 group-hover/btn:opacity-100'}`}
                                         style={!isActive ? { backgroundColor: m.color } : undefined}
                                       />
-                                      <span className={`text-[13px] font-semibold truncate relative z-10 ${isActive ? 'text-white' : ''}`}>
+                                      <span className={`text-[13px] font-semibold truncate relative z-10 ${isActive ? 'text-primary-foreground' : ''}`}>
                                         {m.codigo}
                                       </span>
                                     </button>
@@ -271,25 +271,25 @@ const TomarAsistencia: React.FC = () => {
       {/* ====== MAIN CONTENT ====== */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Date + materia info */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <div className="flex flex-wrap items-end gap-4">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                <Calendar className="w-4 h-4 inline mr-1.5 text-gray-400" />Fecha
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                <Calendar className="w-4 h-4 inline mr-1.5 text-muted-foreground" />Fecha
               </label>
               <input
                 type="date"
                 value={fecha}
                 onChange={e => setFecha(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="w-full px-3 py-2.5 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
             </div>
             {materia && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-muted">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: materia.color }} />
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{materia.nombre}</p>
-                  <p className="text-xs text-gray-500">{materia.codigo}</p>
+                  <p className="text-sm font-semibold text-foreground">{materia.nombre}</p>
+                  <p className="text-xs text-muted-foreground">{materia.codigo}</p>
                 </div>
               </div>
             )}
@@ -312,10 +312,10 @@ const TomarAsistencia: React.FC = () => {
             </div>
 
             {/* Acciones rápidas */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-muted-foreground" />
                   Marcar todos como:
                 </span>
                 {(Object.keys(estadoConfig) as Estado[]).map(e => (
@@ -328,12 +328,12 @@ const TomarAsistencia: React.FC = () => {
                   </button>
                 ))}
                 <div className="ml-auto flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {completados}/{alumnosMateria.length} completados
                   </span>
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                  <div className="w-24 bg-muted rounded-full h-2">
                     <div
-                      className="bg-indigo-600 h-2 rounded-full transition-all"
+                      className="bg-primary h-2 rounded-full transition-all"
                       style={{ width: `${alumnosMateria.length > 0 ? (completados / alumnosMateria.length) * 100 : 0}%` }}
                     />
                   </div>
@@ -342,16 +342,16 @@ const TomarAsistencia: React.FC = () => {
             </div>
 
             {/* Lista de alumnos */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+              <div className="px-5 py-3 border-b border-border bg-muted flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-800">{materia?.nombre}</h3>
-                  <p className="text-xs text-gray-500">{alumnosMateria.length} alumnos · {fecha}</p>
+                  <h3 className="font-semibold text-foreground">{materia?.nombre}</h3>
+                  <p className="text-xs text-muted-foreground">{alumnosMateria.length} alumnos · {fecha}</p>
                 </div>
                 <button
                   onClick={handleGuardar}
                   disabled={completados === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
                 >
                   <Save className="w-4 h-4" />
                   Guardar
@@ -365,22 +365,22 @@ const TomarAsistencia: React.FC = () => {
                 </div>
               )}
 
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-border">
                 {alumnosMateria.map((alumno, idx) => {
                   const estado = estados[alumno.id];
                   return (
-                    <div key={alumno.id} className={`px-5 py-4 ${estado ? '' : 'bg-gray-50/50'}`}>
+                    <div key={alumno.id} className={`px-5 py-4 ${estado ? '' : 'bg-muted/30'}`}>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         {/* Alumno info */}
                         <div className="flex items-center gap-3 flex-1">
-                          <span className="text-xs text-gray-400 w-5 text-center">{idx + 1}</span>
+                          <span className="text-xs text-muted-foreground w-5 text-center">{idx + 1}</span>
                           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
                             style={{ backgroundColor: materia?.color || '#6366f1' }}>
                             {alumno.nombre[0]}{alumno.apellido[0]}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900 text-sm">{alumno.apellido}, {alumno.nombre}</p>
-                            <p className="text-xs text-gray-500">DNI: {alumno.dni} · {alumno.curso}</p>
+                            <p className="font-medium text-foreground text-sm">{alumno.apellido}, {alumno.nombre}</p>
+                            <p className="text-xs text-muted-foreground">DNI: {alumno.dni} · {alumno.curso}</p>
                           </div>
                         </div>
 
@@ -393,7 +393,7 @@ const TomarAsistencia: React.FC = () => {
                               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                                 estado === e
                                   ? `${estadoConfig[e].bg} ${estadoConfig[e].color} ring-2 ring-offset-1 ring-current`
-                                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                  : 'bg-card border-border text-muted-foreground hover:border-primary/50'
                               }`}
                             >
                               {estadoConfig[e].icon}
@@ -410,7 +410,7 @@ const TomarAsistencia: React.FC = () => {
                             placeholder="Observación (opcional)..."
                             value={observaciones[alumno.id] || ''}
                             onChange={e => setObservaciones(prev => ({ ...prev, [alumno.id]: e.target.value }))}
-                            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                            className="w-full px-3 py-1.5 border border-border bg-background text-foreground rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                         </div>
                       )}
@@ -420,11 +420,11 @@ const TomarAsistencia: React.FC = () => {
               </div>
 
               {alumnosMateria.length > 0 && (
-                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+                <div className="px-5 py-3 bg-muted border-t border-border flex justify-end">
                   <button
                     onClick={handleGuardar}
                     disabled={completados === 0}
-                    className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
+                    className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-lg text-sm font-semibold transition-colors"
                   >
                     <Save className="w-4 h-4" />
                     Guardar Asistencia
@@ -436,10 +436,10 @@ const TomarAsistencia: React.FC = () => {
         )}
 
         {!selectedMateria && (
-          <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
-            <ClipboardListIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">Seleccioná un curso del panel izquierdo para comenzar</p>
-            <p className="text-gray-400 text-sm mt-1">Verás la lista de alumnos para registrar su asistencia</p>
+          <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
+            <ClipboardListIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+            <p className="text-muted-foreground font-medium">Seleccioná un curso del panel izquierdo para comenzar</p>
+            <p className="text-muted-foreground/70 text-sm mt-1">Verás la lista de alumnos para registrar su asistencia</p>
           </div>
         )}
       </div>
