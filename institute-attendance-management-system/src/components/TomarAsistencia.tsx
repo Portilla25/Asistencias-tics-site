@@ -49,16 +49,7 @@ const TomarAsistencia: React.FC = () => {
       }
     });
 
-    // Any materias not in any career
-    const allCareerIds = new Set(DEFAULT_CAREERS.flatMap((c) => c.secciones.map((s) => s.id)));
-    const ungrouped = misMaterias.filter((m) => !allCareerIds.has(m.id));
-    if (ungrouped.length > 0) {
-      groups.push({
-        career: { id: '_otros', nombre: 'Otros módulos', color: '#6b7280', secciones: [] },
-        materias: ungrouped,
-      });
-    }
-
+    // Any materias not in any career are intentionally hidden as requested by user
     return groups;
   }, [misMaterias]);
 
@@ -141,97 +132,135 @@ const TomarAsistencia: React.FC = () => {
   const completados = alumnosMateria.filter(a => estados[a.id]).length;
 
   return (
-    <div className="flex h-full">
-      {/* ====== LEFT SIDEBAR: Course selector ====== */}
-      <div className="w-72 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Mis Cursos</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Selecciona un curso y módulo</p>
+    <div className="flex h-full bg-slate-50/30">
+      {/* ====== LEFT SIDEBAR: Premium Course Selector ====== */}
+      <div className="w-[300px] flex-shrink-0 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-y-auto shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10">
+        <div className="p-6 border-b border-slate-100/80 bg-white/50 sticky top-0 z-20 backdrop-blur-md">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-bold text-slate-800 tracking-tight">Mis Cursos</h2>
+              <p className="text-[13px] text-slate-500 font-medium">Gestión de asistencia</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 p-4 space-y-4">
           {careerGroups.map(({ career, materias: careerMaterias }) => {
             const isExpanded = expandedCareers.has(career.id);
             const hasSelected = careerMaterias.some((m) => m.id === selectedMateria);
             const icon = CAREER_ICONS[career.id] || '📚';
 
             return (
-              <div key={career.id} className="rounded-lg overflow-hidden">
+              <div key={career.id} className="relative group">
                 {/* Career header */}
                 <button
                   onClick={() => toggleCareer(career.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-semibold rounded-lg transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
                     hasSelected
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-white shadow-[0_4px_20px_-4px_rgba(99,102,241,0.15)] border border-indigo-100/50 ring-1 ring-indigo-50'
+                      : 'hover:bg-white hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] border border-transparent'
                   }`}
                 >
-                  <span className="text-base">{icon}</span>
-                  <span className="flex-1 text-left truncate">{career.nombre}</span>
-                  <span className="text-xs text-gray-400 font-normal">{careerMaterias.length}</span>
-                  {isExpanded
-                    ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                    : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-                  }
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-lg text-lg transition-transform duration-300 ${hasSelected ? 'scale-110 bg-indigo-50/50' : 'bg-slate-50 group-hover:scale-105'}`}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className={`text-[14px] font-bold leading-tight ${hasSelected ? 'text-indigo-900' : 'text-slate-700'}`}>
+                      {career.nombre}
+                    </h3>
+                    <p className="text-[12px] font-medium text-slate-400 mt-0.5">
+                      {careerMaterias.length} módulos
+                    </p>
+                  </div>
+                  <div className={`p-1 rounded-full transition-colors ${hasSelected ? 'bg-indigo-50 text-indigo-600' : 'text-slate-300'}`}>
+                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </div>
                 </button>
 
                 {/* Materias grouped by turno */}
-                {isExpanded && (() => {
-                  // Group materias by shift
-                  const getShift = (id: string): string => {
-                    if (id.includes('_S_M')) return '☀️ Sábado Mañana';
-                    if (id.includes('_S_T')) return '🌙 Sábado Tarde';
-                    if (id.includes('_S_')) return '📅 Sábado';
-                    if (id.includes('_M_')) return '☀️ Turno Mañana';
-                    if (id.includes('_T_')) return '🌙 Turno Tarde';
-                    if (id.includes('_L_')) return '📅 Lunes';
-                    return '';
-                  };
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                  {(() => {
+                    const getShiftInfo = (id: string) => {
+                      if (id.includes('_S_M')) return { name: 'Sábado Mañana', icon: '☀️', color: 'text-amber-500', border: 'border-amber-200' };
+                      if (id.includes('_S_T')) return { name: 'Sábado Tarde', icon: '🌙', color: 'text-indigo-400', border: 'border-indigo-200' };
+                      if (id.includes('_S_')) return { name: 'Sábados', icon: '📅', color: 'text-emerald-500', border: 'border-emerald-200' };
+                      if (id.includes('_M_')) return { name: 'Turno Mañana', icon: '☀️', color: 'text-amber-500', border: 'border-amber-200' };
+                      if (id.includes('_T_')) return { name: 'Turno Tarde', icon: '🌙', color: 'text-indigo-400', border: 'border-indigo-200' };
+                      if (id.includes('_L_')) return { name: 'Lunes', icon: '📅', color: 'text-emerald-500', border: 'border-emerald-200' };
+                      return null;
+                    };
 
-                  const groups = new Map<string, typeof careerMaterias>();
-                  careerMaterias.forEach(m => {
-                    const shift = getShift(m.id);
-                    if (!groups.has(shift)) groups.set(shift, []);
-                    groups.get(shift)!.push(m);
-                  });
+                    const groups = new Map<string, typeof careerMaterias>();
+                    const shiftMeta = new Map<string, any>();
+                    careerMaterias.forEach(m => {
+                      const meta = getShiftInfo(m.id) || { name: 'General', icon: '📌', color: 'text-slate-400', border: 'border-slate-200' };
+                      if (!groups.has(meta.name)) {
+                        groups.set(meta.name, []);
+                        shiftMeta.set(meta.name, meta);
+                      }
+                      groups.get(meta.name)!.push(m);
+                    });
 
-                  const entries = [...groups.entries()];
-                  const needsHeaders = entries.length > 1 || (entries.length === 1 && entries[0][0] !== '');
+                    const entries = [...groups.entries()];
+                    const needsHeaders = entries.length > 1 || (entries.length === 1 && entries[0][0] !== 'General');
 
-                  return (
-                    <div className="ml-2 mt-0.5 pb-1">
-                      {entries.map(([shift, mats]) => (
-                        <div key={shift || '_flat'}>
-                          {needsHeaders && shift && (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 mt-1">
-                              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{shift}</span>
-                              <div className="flex-1 border-t border-gray-100" />
+                    return (
+                      <div className="relative pl-6 pr-2 pb-2">
+                        {/* Vertical connection line */}
+                        <div className="absolute left-[34px] top-2 bottom-6 w-px bg-gradient-to-b from-slate-200 via-slate-200 to-transparent"></div>
+                        
+                        {entries.map(([shiftName, mats], gIdx) => {
+                          const meta = shiftMeta.get(shiftName);
+                          return (
+                            <div key={shiftName} className={`${gIdx > 0 ? 'mt-5' : 'mt-2'}`}>
+                              {needsHeaders && (
+                                <div className="flex items-center gap-2 mb-3 relative z-10">
+                                  <div className={`w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center text-[10px] ${meta.border} shadow-sm`}>
+                                    {meta.icon}
+                                  </div>
+                                  <span className={`text-[11px] font-bold uppercase tracking-widest ${meta.color}`}>
+                                    {shiftName}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="space-y-1.5 pl-6 relative z-10">
+                                {mats.map(m => {
+                                  const isActive = selectedMateria === m.id;
+                                  return (
+                                    <button
+                                      key={m.id}
+                                      onClick={() => selectCareerAndMateria(career.id, m.id)}
+                                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden group/btn ${
+                                        isActive
+                                          ? 'text-white shadow-[0_8px_16px_-6px_rgba(99,102,241,0.4)] transform scale-[1.02]'
+                                          : 'text-slate-600 hover:text-slate-900 hover:bg-white hover:shadow-sm'
+                                      }`}
+                                    >
+                                      {isActive && (
+                                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-violet-500 opacity-100"></div>
+                                      )}
+                                      
+                                      <span
+                                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 relative z-10 transition-transform ${isActive ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)] scale-110' : 'opacity-70 group-hover/btn:scale-110 group-hover/btn:opacity-100'}`}
+                                        style={!isActive ? { backgroundColor: m.color } : undefined}
+                                      />
+                                      <span className={`text-[13px] font-semibold truncate relative z-10 ${isActive ? 'text-white' : ''}`}>
+                                        {m.codigo}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
-                          )}
-                          <div className="space-y-0.5">
-                            {mats.map(m => (
-                              <button
-                                key={m.id}
-                                onClick={() => selectCareerAndMateria(career.id, m.id)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all ${
-                                  selectedMateria === m.id
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                              >
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: m.color }}
-                                />
-                                <span className="truncate text-left">{m.codigo}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             );
           })}
