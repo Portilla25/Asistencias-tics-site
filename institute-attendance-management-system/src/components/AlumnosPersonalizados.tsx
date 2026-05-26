@@ -484,29 +484,29 @@ const AlumnosPersonalizados: React.FC = () => {
                   <div className="px-6 pb-6 pt-2 bg-muted/10">
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                       {alumno.clasesParsed.map((clase, idx) => (
-                        <div key={idx} className="flex flex-col p-3 rounded-lg border border-border bg-card text-sm group/clase">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-semibold text-foreground flex items-center gap-2">
-                              <Calendar className="w-3.5 h-3.5 text-primary" />
-                              {clase.fecha}
-                            </span>
-                            <div className="flex items-center gap-2">
+                        <div key={idx} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card text-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-semibold text-foreground flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5 text-primary" />
+                                {clase.fecha}
+                              </span>
                               <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-bold">
                                 {clase.horas} hrs
                               </span>
-                              <button
-                                onClick={() => handleDeleteClass(alumno.id, idx)}
-                                className="opacity-0 group-hover/clase:opacity-100 p-1 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
-                                title="Eliminar este registro"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="w-3.5 h-3.5" />
+                              {clase.horaInicio || '--:--'} hasta {clase.horaFin || '--:--'}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5" />
-                            {clase.horaInicio || '--:--'} hasta {clase.horaFin || '--:--'}
-                          </div>
+                          <button
+                            onClick={() => handleDeleteClass(alumno.id, idx)}
+                            className="flex-shrink-0 p-2 rounded-lg text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/30"
+                            title="Eliminar este registro"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                     </div>
