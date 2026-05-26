@@ -248,7 +248,13 @@ const Horarios: React.FC = () => {
             </select>
           </div>
 
-          {careerGroups.map(({ career, materias: careerMaterias }) => (
+          {careerGroups.map(({ career, materias: careerMaterias }) => {
+            const getRelevantMonths = () => allMonths.filter(mo => {
+              const [y, m] = mo.split('-');
+              return Number(y) === selectedYear && Number(m) >= 5;
+            });
+            const relevantMonths = getRelevantMonths();
+            return (
             <div key={career.id} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
@@ -261,7 +267,7 @@ const Horarios: React.FC = () => {
                   <thead>
                     <tr className="bg-background">
                       <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-left sticky left-0 bg-background min-w-[140px]">Módulo</th>
-                      {allMonths.filter(m => m.startsWith(String(selectedYear))).map(m => {
+                      {relevantMonths.map(m => {
                         const monthIdx = parseInt(m.split('-')[1], 10) - 1;
                         return (
                           <th key={m} className="px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-center min-w-[80px]">
@@ -275,7 +281,6 @@ const Horarios: React.FC = () => {
                   <tbody className="divide-y divide-gray-50">
                     {careerMaterias.map(m => {
                       const monthData = horasPorMes[m.id] || {};
-                      const relevantMonths = allMonths.filter(mo => mo.startsWith(String(selectedYear)));
                       const totalHoras = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.horas || 0), 0);
                       const totalClases = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.clases || 0), 0);
 
@@ -313,7 +318,7 @@ const Horarios: React.FC = () => {
                     {/* Career totals row */}
                     <tr className="bg-background font-bold">
                       <td className="px-4 py-3 text-sm text-foreground sticky left-0 bg-background">Total</td>
-                      {allMonths.filter(m => m.startsWith(String(selectedYear))).map(mo => {
+                      {relevantMonths.map(mo => {
                         const total = careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
                         return (
                           <td key={mo} className="px-3 py-3 text-center text-sm text-foreground">
@@ -324,8 +329,7 @@ const Horarios: React.FC = () => {
                       <td className="px-4 py-3 text-center bg-indigo-100/50">
                         <span className="text-sm font-bold text-indigo-800">
                           {careerMaterias.reduce((sum, m) => {
-                            return sum + allMonths
-                              .filter(mo => mo.startsWith(String(selectedYear)))
+                            return sum + relevantMonths
                               .reduce((s, mo) => s + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
                           }, 0)}h
                         </span>
@@ -335,7 +339,8 @@ const Horarios: React.FC = () => {
                 </table>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {allMonths.length === 0 && (
             <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
