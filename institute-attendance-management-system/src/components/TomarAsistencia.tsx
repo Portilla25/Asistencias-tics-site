@@ -205,7 +205,8 @@ const TomarAsistencia: React.FC = () => {
                     });
 
                     const entries = [...groups.entries()];
-                    const needsHeaders = entries.length > 1 || (entries.length === 1 && entries[0][0] !== 'General');
+                    // Solo mostramos encabezados de turno si hay MÁS de 1 turno en la carrera
+                    const needsHeaders = entries.length > 1;
 
                     return (
                       <div className="relative pl-6 pr-2 pb-2">
