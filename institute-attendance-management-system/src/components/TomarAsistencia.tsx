@@ -175,28 +175,63 @@ const TomarAsistencia: React.FC = () => {
                   }
                 </button>
 
-                {/* Materias list */}
-                {isExpanded && (
-                  <div className="ml-3 mt-0.5 space-y-0.5 pb-1">
-                    {careerMaterias.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => selectCareerAndMateria(career.id, m.id)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all ${
-                          selectedMateria === m.id
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: m.color }}
-                        />
-                        <span className="truncate text-left">{m.codigo}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Materias grouped by turno */}
+                {isExpanded && (() => {
+                  // Group materias by shift
+                  const getShift = (id: string): string => {
+                    if (id.includes('_S_M')) return '☀️ Sábado Mañana';
+                    if (id.includes('_S_T')) return '🌙 Sábado Tarde';
+                    if (id.includes('_S_')) return '📅 Sábado';
+                    if (id.includes('_M_')) return '☀️ Turno Mañana';
+                    if (id.includes('_T_')) return '🌙 Turno Tarde';
+                    if (id.includes('_L_')) return '📅 Lunes';
+                    return '';
+                  };
+
+                  const groups = new Map<string, typeof careerMaterias>();
+                  careerMaterias.forEach(m => {
+                    const shift = getShift(m.id);
+                    if (!groups.has(shift)) groups.set(shift, []);
+                    groups.get(shift)!.push(m);
+                  });
+
+                  const entries = [...groups.entries()];
+                  const needsHeaders = entries.length > 1 || (entries.length === 1 && entries[0][0] !== '');
+
+                  return (
+                    <div className="ml-2 mt-0.5 pb-1">
+                      {entries.map(([shift, mats]) => (
+                        <div key={shift || '_flat'}>
+                          {needsHeaders && shift && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 mt-1">
+                              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{shift}</span>
+                              <div className="flex-1 border-t border-gray-100" />
+                            </div>
+                          )}
+                          <div className="space-y-0.5">
+                            {mats.map(m => (
+                              <button
+                                key={m.id}
+                                onClick={() => selectCareerAndMateria(career.id, m.id)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all ${
+                                  selectedMateria === m.id
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: m.color }}
+                                />
+                                <span className="truncate text-left">{m.codigo}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
