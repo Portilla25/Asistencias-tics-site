@@ -450,8 +450,8 @@ const buildNotifications = (alumnos: Alumno[], asistencias: Asistencia[]): Notif
   return notifications;
 };
 
-/* ─── One-time migration: move Redes students from Mañana to Tarde ─── */
-const MIGRATION_FLAG_TURNO = 'redes_turno_migration_v1';
+/* ─── One-time migration v2: ensure ALL Redes students in ALL 4 Tarde modules ─── */
+const MIGRATION_FLAG_TURNO = 'redes_turno_migration_v2';
 
 const runMigrations = () => {
   if (typeof window === 'undefined') return;
@@ -462,34 +462,68 @@ const runMigrations = () => {
 
   try {
     const state = JSON.parse(raw) as Record<string, LegacyModule>;
-    const MORNING_TO_AFTERNOON: Record<string, string> = {
-      redes_M_1: 'redes_T_1',
-      redes_M_2: 'redes_T_2',
-      redes_M_3: 'redes_T_3',
-      redes_M_4: 'redes_T_4',
-    };
+    const allModuleIds = ['redes_M_1','redes_M_2','redes_M_3','redes_M_4','redes_T_1','redes_T_2','redes_T_3','redes_T_4'];
+    const afternoonIds = ['redes_T_1','redes_T_2','redes_T_3','redes_T_4'];
 
-    let changed = false;
-    Object.entries(MORNING_TO_AFTERNOON).forEach(([morningId, afternoonId]) => {
-      const morning = state[morningId];
-      if (!morning?.alumnos?.length) return;
+    // Step 1: Collect ALL unique students by name from all redes modules
+    const byName = new Map<string, LegacyStudent>();
+    allModuleIds.forEach(mId => {
+      const mod = state[mId];
+      if (!mod?.alumnos) return;
+      mod.alumnos.forEach(student => {
+        if (student.retirado) return;
+        const name = String(student.nombre || '').trim();
+        if (!name) return;
+        // Keep the version with more data (longer JSON = more fields filled)
+        const existing = byName.get(name);
+        if (!existing || JSON.stringify(student).length > JSON.stringify(existing).length) {
+          byName.set(name, { ...student });
+        }
+      });
+    });
 
-      // Initialize afternoon module if needed
-      if (!state[afternoonId]) {
-        state[afternoonId] = { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+    const allStudents = [...byName.values()];
+    console.log(`[REDES_MIGRACION_V2] ${allStudents.length} alumnos únicos encontrados`);
+
+    // Step 2: Ensure ALL students exist in ALL 4 afternoon modules
+    let totalAdded = 0;
+    afternoonIds.forEach(tId => {
+      if (!state[tId]) {
+        state[tId] = { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
       }
-      const afternoon = state[afternoonId];
+      const mod = state[tId];
+      const existingNames = new Set((mod.alumnos || []).map(a => String(a.nombre || '').trim()));
 
-      // Copy students (avoid duplicates by id)
-      const existingIds = new Set((afternoon.alumnos || []).map(a => String(a.id)));
-      morning.alumnos.forEach(student => {
-        if (!existingIds.has(String(student.id))) {
-          afternoon.alumnos = afternoon.alumnos || [];
-          afternoon.alumnos.push({ ...student });
+      allStudents.forEach(student => {
+        const name = String(student.nombre || '').trim();
+        if (!existingNames.has(name)) {
+          // Generate a new unique id for this student in this module
+          const newId = Date.now() + Math.floor(Math.random() * 10000);
+          mod.alumnos = mod.alumnos || [];
+          mod.alumnos.push({ ...student, id: newId, retirado: false });
+          totalAdded++;
         }
       });
 
-      // Copy attendance records
+      // Sort students alphabetically
+      if (mod.alumnos) {
+        mod.alumnos.sort((a, b) =>
+          String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es')
+        );
+      }
+
+      console.log(`[REDES_MIGRACION_V2] ${tId}: ${mod.alumnos?.length || 0} alumnos`);
+    });
+
+    // Step 3: Merge attendance from morning to all afternoon modules
+    const morningIds = ['redes_M_1','redes_M_2','redes_M_3','redes_M_4'];
+    morningIds.forEach((mId, idx) => {
+      const morning = state[mId];
+      const tId = afternoonIds[idx];
+      const afternoon = state[tId];
+      if (!morning || !afternoon) return;
+
+      // Copy attendance records that don't exist yet
       Object.entries(morning.asistencias || {}).forEach(([studentId, byDate]) => {
         afternoon.asistencias = afternoon.asistencias || {};
         if (!afternoon.asistencias[studentId]) {
@@ -497,7 +531,7 @@ const runMigrations = () => {
         }
       });
 
-      // Copy motivos
+      // Merge motivos
       Object.entries(morning.motivos || {}).forEach(([studentId, byDate]) => {
         afternoon.motivos = afternoon.motivos || {};
         if (!afternoon.motivos[studentId]) {
@@ -509,21 +543,17 @@ const runMigrations = () => {
       const allDates = new Set([...(afternoon.fechas || []), ...(morning.fechas || [])]);
       afternoon.fechas = [...allDates].sort();
 
-      // Clear morning students (keep module for historical record)
+      // Clear morning students
       morning.alumnos = [];
-      changed = true;
-      console.log(`[REDES_MIGRACION] ${morningId} → ${afternoonId}: alumnos migrados`);
     });
 
-    if (changed) {
-      // Backup before writing
-      window.localStorage.setItem('asist_state_backup_turno_v1', raw);
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
-      console.log('[REDES_MIGRACION] Migración Mañana→Tarde completada. Backup guardado.');
-    }
+    // Backup and save
+    window.localStorage.setItem('asist_state_backup_turno_v2', raw);
+    window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
     window.localStorage.setItem(MIGRATION_FLAG_TURNO, new Date().toISOString());
+    console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos. Backup en asist_state_backup_turno_v2.`);
   } catch (e) {
-    console.error('[REDES_MIGRACION] Error en migración:', e);
+    console.error('[REDES_MIGRACION_V2] Error:', e);
   }
 };
 

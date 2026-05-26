@@ -1,0 +1,454 @@
+[
+  {
+    "fecha": "",
+    "id": 1,
+    "cel": "",
+    "correo": "",
+    "retirado": false,
+    "edad": "",
+    "dni": "",
+    "nombre": "Arribasplata Barboza David Eugenio",
+    "fila": 2,
+    "_originalIds": {
+      "redes_T_1": "1",
+      "redes_T_2": "1"
+    }
+  },
+  {
+    "dni": "61259457",
+    "nombre": "Briones Vasquez Maria Isabel",
+    "cel": "915337918",
+    "fecha": "2007-11-24",
+    "id": 1772910617104,
+    "edad": "18",
+    "correo": "",
+    "_originalIds": {
+      "redes_T_2": "1772910617104",
+      "redes_T_3": "1772910617104",
+      "redes_T_4": "1772910617104"
+    }
+  },
+  {
+    "dni": "41839137",
+    "nombre": "Cabanillas Mosquera María Iabel",
+    "fecha": "1982-01-27",
+    "cel": "937465798",
+    "id": 1774125752216,
+    "edad": "44",
+    "correo": "mariaisabelisis@gmail.com",
+    "_originalIds": {
+      "redes_T_2": "1774125752216",
+      "redes_T_3": "1774125752216",
+      "redes_T_4": "1774125752216"
+    }
+  },
+  {
+    "correo": "",
+    "id": 2,
+    "cel": "",
+    "fecha": "",
+    "nombre": "Cáceda Rodriguez Mónica Milagros",
+    "fila": 3,
+    "dni": "",
+    "edad": "",
+    "retirado": false,
+    "_originalIds": {
+      "redes_T_1": "2",
+      "redes_T_2": "2",
+      "redes_T_3": "2",
+      "redes_T_4": "2"
+    }
+  },
+  {
+    "fila": 4,
+    "nombre": "Carhuamaca Valera Oscar",
+    "dni": "26681954.0",
+    "edad": "56.0",
+    "retirado": false,
+    "correo": "oscarvalera1970@hotmail.com",
+    "cel": "930438413.0",
+    "id": 3,
+    "fecha": "1970-01-09",
+    "_originalIds": {
+      "redes_T_1": "3",
+      "redes_T_2": "3",
+      "redes_T_3": "3",
+      "redes_T_4": "3"
+    }
+  },
+  {
+    "nombre": "Castrejón Herrera Yojany Yudith",
+    "cel": "920347988.0",
+    "edad": "13.0",
+    "retirado": false,
+    "id": 1,
+    "fila": 2,
+    "correo": "yudithcastrejon310@gmail.com",
+    "dni": "80994143.0",
+    "fecha": "2012-10-06",
+    "_originalIds": {
+      "redes_M_1": "1",
+      "redes_M_2": "1",
+      "redes_T_3": "1774125752217",
+      "redes_T_4": "1774125752217"
+    }
+  },
+  {
+    "fecha": "2007-09-06",
+    "dni": "60291390.0",
+    "correo": "moisescerdanguevara@gmail.com",
+    "edad": "18.0",
+    "cel": "903422148.0",
+    "fila": 3,
+    "retirado": false,
+    "id": 2,
+    "nombre": "Cerdán Guevara Moises",
+    "_originalIds": {
+      "redes_M_1": "2",
+      "redes_M_2": "2",
+      "redes_T_3": "1774125752218",
+      "redes_T_4": "1774125752218"
+    }
+  },
+  {
+    "cel": "910916477.0",
+    "edad": "36.0",
+    "id": 3,
+    "retirado": false,
+    "fila": 4,
+    "nombre": "Cerna Rasco Santiago Claudio",
+    "dni": "45203848.0",
+    "fecha": "1988-07-26",
+    "correo": "claudiotec.361@gmail.com",
+    "_originalIds": {
+      "redes_M_1": "3",
+      "redes_M_2": "3",
+      "redes_T_3": "1774125752219",
+      "redes_T_4": "1774125752219"
+    }
+  },
+  {
+    "fecha": "1987-09-30",
+    "id": 4,
+    "cel": "958066677.0",
+    "correo": "karchig7@gmail.com",
+    "retirado": false,
+    "edad": "38.0",
+    "dni": "44581973.0",
+    "nombre": "Chicoma Gamarra Karla Judith",
+    "fila": 5,
+    "_originalIds": {
+      "redes_T_1": "4",
+      "redes_T_2": "4"
+    }
+  },
+  {
+    "correo": "tchilonsanchez@icloud.com",
+    "id": 5,
+    "cel": "929900945.0",
+    "fecha": "2006-09-13",
+    "nombre": "Chilón Sánchez Tatiana Valentina",
+    "fila": 6,
+    "dni": "60439387.0",
+    "edad": "19.0",
+    "retirado": false,
+    "_originalIds": {
+      "redes_T_1": "5",
+      "redes_T_2": "5",
+      "redes_T_3": "5",
+      "redes_T_4": "5"
+    }
+  },
+  {
+    "dni": "60040252.0",
+    "fila": 7,
+    "nombre": "Chugnas Cotrina Laury",
+    "retirado": false,
+    "edad": "19.0",
+    "cel": "930158957.0",
+    "id": 6,
+    "correo": "chungascortinalaury@gmail.com",
+    "fecha": "2006-06-22",
+    "_originalIds": {
+      "redes_T_1": "6",
+      "redes_T_2": "6",
+      "redes_T_3": "6",
+      "redes_T_4": "6"
+    }
+  },
+  {
+    "fecha": "",
+    "correo": "",
+    "cel": "",
+    "id": 7,
+    "edad": "",
+    "retirado": false,
+    "nombre": "Cruz Pajares Alejandra",
+    "fila": 8,
+    "dni": "",
+    "_originalIds": {
+      "redes_T_1": "7",
+      "redes_T_2": "7",
+      "redes_T_3": "7",
+      "redes_T_4": "7"
+    }
+  },
+  {
+    "fecha": "2007-12-29",
+    "cel": "921575905.0",
+    "id": 8,
+    "correo": "yenifercueva29@gmail.com",
+    "retirado": false,
+    "edad": "18.0",
+    "dni": "61259813.0",
+    "nombre": "Cueva Castrejón Yenifer Dayana",
+    "fila": 9,
+    "_originalIds": {
+      "redes_T_1": "8",
+      "redes_T_2": "8",
+      "redes_T_3": "8",
+      "redes_T_4": "8"
+    }
+  },
+  {
+    "id": 9,
+    "cel": "",
+    "correo": "",
+    "fecha": "",
+    "dni": "",
+    "fila": 10,
+    "nombre": "De la Cruz Paredes Lucy Margot",
+    "retirado": false,
+    "edad": "",
+    "_originalIds": {
+      "redes_T_1": "9",
+      "redes_T_2": "9"
+    }
+  },
+  {
+    "correo": "",
+    "dni": "71225813.0",
+    "fecha": "2001-03-13",
+    "nombre": "Díaz Marín Erika Mirella",
+    "id": 4,
+    "retirado": false,
+    "fila": 5,
+    "cel": "921910297.0",
+    "edad": "24.0",
+    "_originalIds": {
+      "redes_M_1": "4",
+      "redes_M_2": "4",
+      "redes_T_3": "1774125752220",
+      "redes_T_4": "1774125752220"
+    }
+  },
+  {
+    "cel": "976201593.0",
+    "id": 10,
+    "correo": "gonzlesapolinario48@gmail.com",
+    "fecha": "1987-02-10",
+    "dni": "44055041.0",
+    "fila": 11,
+    "nombre": "Gonzales Castrejon Apolinario",
+    "retirado": false,
+    "edad": "38.0",
+    "_originalIds": {
+      "redes_T_1": "10",
+      "redes_T_2": "10"
+    }
+  },
+  {
+    "fecha": "",
+    "id": 11,
+    "cel": "",
+    "correo": "",
+    "retirado": false,
+    "edad": "",
+    "dni": "",
+    "nombre": "Guevara Becerra Sarita Noemí",
+    "fila": 12,
+    "_originalIds": {
+      "redes_T_1": "11"
+    }
+  },
+  {
+    "correo": "malcagutierrezelizabeth@gmail.com",
+    "fecha": "1978-03-13",
+    "dni": "26731786.0",
+    "nombre": "Malca Gutierrez Elizabeth",
+    "edad": "47.0",
+    "cel": "901613292.0",
+    "fila": 6,
+    "id": 5,
+    "retirado": false,
+    "_originalIds": {
+      "redes_M_1": "5",
+      "redes_M_2": "5",
+      "redes_T_3": "1774125752221",
+      "redes_T_4": "1774125752221"
+    }
+  },
+  {
+    "fila": 13,
+    "nombre": "Masfil Tambillo Leoncio",
+    "dni": "43649200.0",
+    "edad": "49.0",
+    "retirado": false,
+    "correo": "leonciomasfiltambillo@gmail.com",
+    "id": 12,
+    "cel": "921814106.0",
+    "fecha": "27649.0",
+    "_originalIds": {
+      "redes_T_1": "12",
+      "redes_T_2": "11"
+    }
+  },
+  {
+    "correo": "emermendo10@gmail.com",
+    "dni": "26627411.0",
+    "fecha": "19214.0",
+    "nombre": "Mendoza Chávez Gladis Emerita",
+    "cel": "917916158.0",
+    "edad": "74.0",
+    "id": 6,
+    "retirado": false,
+    "fila": 7,
+    "_originalIds": {
+      "redes_M_1": "6",
+      "redes_M_2": "6",
+      "redes_T_3": "1774125752222",
+      "redes_T_4": "1774125752222"
+    }
+  },
+  {
+    "cel": "",
+    "id": 13,
+    "correo": "",
+    "fecha": "",
+    "dni": "",
+    "nombre": "Mori Rojas Angelica Elizabeth",
+    "fila": 14,
+    "retirado": false,
+    "edad": "",
+    "_originalIds": {
+      "redes_T_1": "13",
+      "redes_T_2": "12",
+      "redes_T_3": "12",
+      "redes_T_4": "12"
+    }
+  },
+  {
+    "edad": "47.0",
+    "cel": "947419906.0",
+    "fila": 8,
+    "id": 7,
+    "retirado": false,
+    "nombre": "Murrugarra Medina Genny Elizabeth",
+    "fecha": "1978-04-07",
+    "dni": "26731823.0",
+    "correo": "genely1978@gmail.com",
+    "_originalIds": {
+      "redes_M_1": "7",
+      "redes_M_2": "7",
+      "redes_T_3": "1774125752223",
+      "redes_T_4": "1774125752223"
+    }
+  },
+  {
+    "fecha": "",
+    "dni": "",
+    "correo": "",
+    "edad": "",
+    "cel": "",
+    "fila": 9,
+    "retirado": false,
+    "id": 8,
+    "nombre": "Murrugarra Medina Sandra Mabel",
+    "_originalIds": {
+      "redes_M_1": "8",
+      "redes_M_2": "8",
+      "redes_T_3": "1774125752224",
+      "redes_T_4": "1774125752224"
+    }
+  },
+  {
+    "correo": "davyperezocas5@gmail.com",
+    "id": 14,
+    "cel": "976487804.0",
+    "fecha": "2005-08-11",
+    "fila": 15,
+    "nombre": "Pérez Ocas Davy Adrián",
+    "dni": "72462874.0",
+    "edad": "20.0",
+    "retirado": false,
+    "_originalIds": {
+      "redes_T_1": "14",
+      "redes_T_2": "13",
+      "redes_T_3": "13",
+      "redes_T_4": "13"
+    }
+  },
+  {
+    "nombre": "Vásquez Mendoza Jorge Nilson",
+    "fila": 10,
+    "retirado": false,
+    "id": 9,
+    "edad": "18.0",
+    "cel": "900803353.0",
+    "correo": "Jorgenilsonvasquezmendoza@gmail.com",
+    "fecha": "39245.0",
+    "dni": "60309357.0",
+    "_originalIds": {
+      "redes_M_1": "9",
+      "redes_M_2": "9"
+    }
+  },
+  {
+    "nombre": "Vasquez Sifuentes Rosa Lila",
+    "dni": "45479106",
+    "edad": "37",
+    "correo": "vasquezsifuentesrosalila@gmail.com",
+    "id": 1772910520177,
+    "cel": "996938371",
+    "fecha": "1988-11-17",
+    "_originalIds": {
+      "redes_T_2": "1772910520177",
+      "redes_T_3": "1772910520177",
+      "redes_T_4": "1772910520177"
+    }
+  },
+  {
+    "retirado": false,
+    "edad": "",
+    "dni": "61025240.0",
+    "fila": 16,
+    "nombre": "Ventura Gallardo Jhefry Jean Pool",
+    "fecha": "",
+    "cel": "",
+    "id": 15,
+    "correo": "",
+    "_originalIds": {
+      "redes_T_1": "15",
+      "redes_T_2": "14",
+      "redes_T_3": "14",
+      "redes_T_4": "14"
+    }
+  },
+  {
+    "nombre": "Zavaleta Carrión Geiner Agusto",
+    "cel": "900362831.0",
+    "edad": "17.0",
+    "retirado": false,
+    "id": 10,
+    "fila": 11,
+    "correo": "eazc2025@gmail.com",
+    "dni": "73074739.0",
+    "fecha": "6//07/2008",
+    "_originalIds": {
+      "redes_M_1": "10",
+      "redes_M_2": "10",
+      "redes_T_3": "1774125752226",
+      "redes_T_4": "1774125752226"
+    }
+  }
+]
