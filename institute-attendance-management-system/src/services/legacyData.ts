@@ -42,7 +42,7 @@ type LegacySection = {
   badge?: string;
 };
 
-type LegacyCareer = {
+export type LegacyCareer = {
   id: string;
   nombre: string;
   icono?: string;
@@ -88,9 +88,9 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
   },
   {
     id: 'info_gastro',
-    nombre: 'Tecnologías de la Información',
+    nombre: 'Gastronomía · Tecnologías de la Información',
     color: '#0d9488',
-    secciones: [{ id: 'info_gastro_L_1', label: 'Clase Lunes', badge: 'Lunes' }],
+    secciones: [{ id: 'info_gastro_L_1', label: 'Lunes 10:30–12:20 (2h)', badge: 'Lunes' }],
   },
   {
     id: 'tics_sabados',
@@ -119,6 +119,8 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
     ],
   },
 ];
+
+export { DEFAULT_CAREERS };
 
 const COLORS = ['#f59e0b', '#0d9488', '#2563eb', '#16a34a', '#dc2626', '#7c3aed', '#0284c7', '#f97316'];
 
