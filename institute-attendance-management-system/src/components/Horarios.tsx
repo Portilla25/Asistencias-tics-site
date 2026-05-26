@@ -55,24 +55,47 @@ interface AlumnoPersonalizado {
   nombre: string;
   horasPorMes: Record<string, number>;
 }
+const calcHoursFromTimes = (inicio: string, fin: string): number => {
+  if (!inicio || !fin) return 0;
+  const [h1, m1] = inicio.split(':').map(Number);
+  const [h2, m2] = fin.split(':').map(Number);
+  if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+  const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return diff > 0 ? Math.round(diff / 30) * 0.5 : 0;
+};
+
 const parseClase = (str: unknown): ClasePersonalizada | null => {
+  let horas = 0, fecha = '', val = 'Presente', horaInicio = '', horaFin = '';
+
   if (typeof str === 'object' && str !== null) {
     const s = str as any;
-    return {
-      horas: parseFloat(s.horas || 0),
-      fecha: s.fecha || '',
-      val: s.val || 'Presente',
-    };
+    horas = parseFloat(s.horas || 0);
+    fecha = s.fecha || '';
+    val = s.val || 'Presente';
+    horaInicio = s.horaInicio || '';
+    horaFin = s.horaFin || '';
+  } else if (typeof str === 'string') {
+    const matchHours = str.match(/horas\s*=\s*([\d.,]+)/);
+    const matchDate = str.match(/fecha\s*=\s*([0-9-T:\.Z]+)/);
+    const matchVal = str.match(/val\s*=\s*([^;}]+)/);
+    const matchInicio = str.match(/horaInicio\s*=\s*([\d:]+)/);
+    const matchFin = str.match(/horaFin\s*=\s*([\d:]+)/);
+    horas = matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0;
+    fecha = matchDate ? matchDate[1].trim() : '';
+    val = matchVal ? matchVal[1].trim() : 'Presente';
+    horaInicio = matchInicio ? matchInicio[1].trim() : '';
+    horaFin = matchFin ? matchFin[1].trim() : '';
+  } else {
+    return null;
   }
-  if (typeof str !== 'string') return null;
-  const matchHours = str.match(/horas\s*=\s*([\d.,]+)/);
-  const matchDate = str.match(/fecha\s*=\s*([0-9-T:\.Z]+)/);
-  const matchVal = str.match(/val\s*=\s*([^;}]+)/);
-  return {
-    horas: matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0,
-    fecha: matchDate ? matchDate[1].trim() : '',
-    val: matchVal ? matchVal[1].trim() : 'Presente',
-  };
+
+  // Always recalculate hours from times if both are available
+  if (horaInicio && horaFin) {
+    const calculated = calcHoursFromTimes(horaInicio, horaFin);
+    if (calculated > 0) horas = calculated;
+  }
+
+  return { horas, fecha, val };
 };
 
 type Tab = 'horarios' | 'horas';

@@ -20,31 +20,48 @@ interface AlumnoPersonalizado {
   horasPorMes: Record<string, number>;
 }
 
+/** Calculate hours between two HH:MM time strings */
+const calcHoursFromTimes = (inicio: string, fin: string): number => {
+  if (!inicio || !fin) return 0;
+  const [h1, m1] = inicio.split(':').map(Number);
+  const [h2, m2] = fin.split(':').map(Number);
+  if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return 0;
+  const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return diff > 0 ? Math.round(diff / 30) * 0.5 : 0; // round to nearest 0.5
+};
+
 const parseClase = (str: unknown): ClasePersonalizada | null => {
+  let horas = 0, fecha = '', val = 'Presente', horaInicio = '', horaFin = '';
+
   if (typeof str === 'object' && str !== null) {
     const s = str as any;
-    return {
-      horas: parseFloat(s.horas || 0),
-      fecha: s.fecha || '',
-      val: s.val || 'Presente',
-      horaInicio: s.horaInicio || '',
-      horaFin: s.horaFin || ''
-    };
+    horas = parseFloat(s.horas || 0);
+    fecha = s.fecha || '';
+    val = s.val || 'Presente';
+    horaInicio = s.horaInicio || '';
+    horaFin = s.horaFin || '';
+  } else if (typeof str === 'string') {
+    const matchHours = str.match(/horas=([\d.,]+)/);
+    const matchDate = str.match(/fecha=([0-9-T:\.Z]+)/);
+    const matchVal = str.match(/val=([^;}]+)/);
+    const matchInicio = str.match(/horaInicio=([\d:]+)/);
+    const matchFin = str.match(/horaFin=([\d:]+)/);
+    horas = matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0;
+    fecha = matchDate ? matchDate[1].trim() : '';
+    val = matchVal ? matchVal[1].trim() : 'Presente';
+    horaInicio = matchInicio ? matchInicio[1].trim() : '';
+    horaFin = matchFin ? matchFin[1].trim() : '';
+  } else {
+    return null;
   }
-  if (typeof str !== 'string') return null;
-  const matchHours = str.match(/horas=([\d.,]+)/);
-  const matchDate = str.match(/fecha=([0-9-T:\.Z]+)/);
-  const matchVal = str.match(/val=([^;}]+)/);
-  const matchInicio = str.match(/horaInicio=([\d:]+)/);
-  const matchFin = str.match(/horaFin=([\d:]+)/);
 
-  return {
-    horas: matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0,
-    fecha: matchDate ? matchDate[1].trim() : '',
-    val: matchVal ? matchVal[1].trim() : 'Presente',
-    horaInicio: matchInicio ? matchInicio[1].trim() : '',
-    horaFin: matchFin ? matchFin[1].trim() : '',
-  };
+  // Always recalculate hours from times if both are available
+  if (horaInicio && horaFin) {
+    const calculated = calcHoursFromTimes(horaInicio, horaFin);
+    if (calculated > 0) horas = calculated;
+  }
+
+  return { horas, fecha, val, horaInicio, horaFin };
 };
 
 const getMonthLabel = (dateStr: string) => {
@@ -213,8 +230,21 @@ const AlumnosPersonalizados: React.FC = () => {
     fecha: new Date().toISOString().split('T')[0],
     horaInicio: '',
     horaFin: '',
-    horas: 1
+    horas: 0
   });
+
+  const updateClassForm = (patch: Partial<typeof classForm>) => {
+    setClassForm(prev => {
+      const next = { ...prev, ...patch };
+      // Auto-calculate hours whenever start or end time changes
+      const inicio = patch.horaInicio ?? prev.horaInicio;
+      const fin = patch.horaFin ?? prev.horaFin;
+      if (inicio && fin) {
+        next.horas = calcHoursFromTimes(inicio, fin);
+      }
+      return next;
+    });
+  };
 
   const [studentForm, setStudentForm] = useState({
     nombre: '',
@@ -502,22 +532,24 @@ const AlumnosPersonalizados: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">Fecha</label>
-                <input type="date" required value={classForm.fecha} onChange={e => setClassForm({...classForm, fecha: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <input type="date" required value={classForm.fecha} onChange={e => updateClassForm({ fecha: e.target.value })} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">Hora Inicio</label>
-                  <input type="time" required value={classForm.horaInicio} onChange={e => setClassForm({...classForm, horaInicio: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input type="time" required value={classForm.horaInicio} onChange={e => updateClassForm({ horaInicio: e.target.value })} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5">Hora Fin</label>
-                  <input type="time" required value={classForm.horaFin} onChange={e => setClassForm({...classForm, horaFin: e.target.value})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  <input type="time" required value={classForm.horaFin} onChange={e => updateClassForm({ horaFin: e.target.value })} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-1.5">Total Horas</label>
-                <input type="number" step="0.5" min="0.5" required value={classForm.horas} onChange={e => setClassForm({...classForm, horas: Number(e.target.value)})} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
+              {classForm.horas > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                  <Clock className="w-4 h-4 text-indigo-400" />
+                  <span className="text-sm font-bold text-indigo-300">Total calculado: {classForm.horas} hora{classForm.horas !== 1 ? 's' : ''}</span>
+                </div>
+              )}
               <div className="pt-2 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsClassModalOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Registro</button>
