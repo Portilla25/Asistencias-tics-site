@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X } from 'lucide-react';
+import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X, Trash2 } from 'lucide-react';
 import mergedData from '../data/merged_personalizados.json';
 
 interface ClasePersonalizada {
@@ -300,6 +300,33 @@ const AlumnosPersonalizados: React.FC = () => {
     }
   };
 
+  const handleDeleteClass = (studentId: string | number, claseIdx: number) => {
+    if (!confirm('¿Eliminar este registro de clase?')) return;
+    try {
+      const raw = localStorage.getItem('asist_personalizados');
+      const parsed = raw ? JSON.parse(raw) : [];
+      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(studentId));
+      if (studentIndex >= 0 && Array.isArray(parsed[studentIndex].clases)) {
+        const rawClases = parsed[studentIndex].clases;
+        // Map visible claseIdx back to raw index (since we filter for 'presente' only)
+        const presentClases = rawClases
+          .map((c: any, i: number) => ({ c, i }))
+          .filter(({ c }: any) => {
+            const p = parseClase(c);
+            return p !== null && p.val.toLowerCase() === 'presente';
+          });
+        
+        if (presentClases[claseIdx]) {
+          parsed[studentIndex].clases.splice(presentClases[claseIdx].i, 1);
+          persistPersonalizados(parsed);
+          loadData();
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (alumnos.length === 0) {
       <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in zoom-in duration-500">
         <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
@@ -457,15 +484,24 @@ const AlumnosPersonalizados: React.FC = () => {
                   <div className="px-6 pb-6 pt-2 bg-muted/10">
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                       {alumno.clasesParsed.map((clase, idx) => (
-                        <div key={idx} className="flex flex-col p-3 rounded-lg border border-border bg-card text-sm">
+                        <div key={idx} className="flex flex-col p-3 rounded-lg border border-border bg-card text-sm group/clase">
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-semibold text-foreground flex items-center gap-2">
                               <Calendar className="w-3.5 h-3.5 text-primary" />
                               {clase.fecha}
                             </span>
-                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-bold">
-                              {clase.horas} hrs
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-bold">
+                                {clase.horas} hrs
+                              </span>
+                              <button
+                                onClick={() => handleDeleteClass(alumno.id, idx)}
+                                className="opacity-0 group-hover/clase:opacity-100 p-1 rounded-md text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-all"
+                                title="Eliminar este registro"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Clock className="w-3.5 h-3.5" />
