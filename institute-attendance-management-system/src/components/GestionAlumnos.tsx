@@ -88,19 +88,19 @@ const GestionAlumnos: React.FC = () => {
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
           <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar alumno..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <select
             value={cursoFilter}
             onChange={e => setCursoFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Todos los cursos</option>
             {cursos.map(c => <option key={c} value={c}>{c}</option>)}
@@ -117,40 +117,40 @@ const GestionAlumnos: React.FC = () => {
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-3 border border-gray-100 text-center shadow-sm">
+        <div className="bg-card rounded-xl p-3 border border-border text-center shadow-sm">
           <p className="text-2xl font-bold text-indigo-600">{alumnos.length}</p>
-          <p className="text-xs text-gray-500">Total alumnos</p>
+          <p className="text-xs text-muted-foreground">Total alumnos</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-gray-100 text-center shadow-sm">
+        <div className="bg-card rounded-xl p-3 border border-border text-center shadow-sm">
           <p className="text-2xl font-bold text-indigo-600">{cursos.length}</p>
-          <p className="text-xs text-gray-500">Cursos</p>
+          <p className="text-xs text-muted-foreground">Cursos</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-gray-100 text-center shadow-sm">
+        <div className="bg-card rounded-xl p-3 border border-border text-center shadow-sm">
           <p className="text-2xl font-bold text-indigo-600">{filtered.length}</p>
-          <p className="text-xs text-gray-500">Mostrando</p>
+          <p className="text-xs text-muted-foreground">Mostrando</p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
+              <tr className="bg-background border-b border-border">
                 <th className="px-4 py-3 text-left">
-                  <button onClick={() => handleSort('apellido')} className="flex items-center gap-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  <button onClick={() => handleSort('apellido')} className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Alumno <SortIcon field="apellido" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">DNI</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">DNI</th>
                 <th className="px-4 py-3 text-left">
-                  <button onClick={() => handleSort('curso')} className="flex items-center gap-1 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  <button onClick={() => handleSort('curso')} className="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Curso <SortIcon field="curso" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Asistencia</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Materias</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide">Acciones</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Asistencia</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Materias</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wide">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -158,19 +158,19 @@ const GestionAlumnos: React.FC = () => {
                 const stats = getAlumnoStats(alumno.id);
                 const enRiesgo = stats.pct < 75 && stats.total > 0;
                 return (
-                  <tr key={alumno.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={alumno.id} className="hover:bg-background/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold flex-shrink-0">
                           {alumno.nombre[0]}{alumno.apellido[0]}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{alumno.apellido}, {alumno.nombre}</p>
-                          <p className="text-xs text-gray-500">{alumno.email}</p>
+                          <p className="text-sm font-medium text-foreground">{alumno.apellido}, {alumno.nombre}</p>
+                          <p className="text-xs text-muted-foreground">{alumno.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{alumno.dni}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{alumno.dni}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">{alumno.curso}</span>
                     </td>
@@ -189,14 +189,14 @@ const GestionAlumnos: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600">{alumno.materias.length} materias</span>
+                      <span className="text-sm text-muted-foreground">{alumno.materias.length} materias</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setViewingId(alumno.id)} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver detalles">
+                        <button onClick={() => setViewingId(alumno.id)} className="p-1.5 text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver detalles">
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button onClick={() => openEdit(alumno)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Editar">
+                        <button onClick={() => openEdit(alumno)} className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Editar">
                           <Edit3 className="w-4 h-4" />
                         </button>
                         {deleteConfirm === alumno.id ? (
@@ -204,12 +204,12 @@ const GestionAlumnos: React.FC = () => {
                             <button onClick={() => handleDelete(alumno.id)} className="p-1.5 text-white bg-red-500 rounded-lg hover:bg-red-600">
                               <Check className="w-4 h-4" />
                             </button>
-                            <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                            <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg">
                               <X className="w-4 h-4" />
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(alumno.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                          <button onClick={() => setDeleteConfirm(alumno.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
@@ -223,7 +223,7 @@ const GestionAlumnos: React.FC = () => {
           {filtered.length === 0 && (
             <div className="text-center py-12">
               <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">No se encontraron alumnos</p>
+              <p className="text-muted-foreground text-sm">No se encontraron alumnos</p>
             </div>
           )}
         </div>
@@ -232,50 +232,50 @@ const GestionAlumnos: React.FC = () => {
       {/* Modal Form */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">{editingId ? 'Editar Alumno' : 'Nuevo Alumno'}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="font-bold text-foreground">{editingId ? 'Editar Alumno' : 'Nuevo Alumno'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-1 text-muted-foreground hover:text-muted-foreground rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Nombre *</label>
                   <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nombre" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nombre" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Apellido *</label>
                   <input required value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Apellido" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Apellido" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Email *</label>
                 <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="email@instituto.edu" />
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="email@instituto.edu" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">DNI *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">DNI *</label>
                   <input required value={form.dni} onChange={e => setForm(f => ({ ...f, dni: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="42123456" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="42123456" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Curso *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Curso *</label>
                   <select value={form.curso} onChange={e => setForm(f => ({ ...f, curso: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     {['3°A', '3°B', '4°A', '4°B', '5°A', '5°B'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Materias</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Materias</label>
                 <div className="grid grid-cols-2 gap-2">
                   {materias.map(m => (
-                    <label key={m.id} className="flex items-center gap-2 p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <label key={m.id} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-background">
                       <input
                         type="checkbox"
                         checked={form.materias.includes(m.id)}
@@ -285,13 +285,13 @@ const GestionAlumnos: React.FC = () => {
                         }))}
                         className="accent-indigo-600"
                       />
-                      <span className="text-xs text-gray-700">{m.nombre}</span>
+                      <span className="text-xs text-foreground">{m.nombre}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg text-sm hover:bg-background transition-colors">
                   Cancelar
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
@@ -306,10 +306,10 @@ const GestionAlumnos: React.FC = () => {
       {/* Modal Ver detalle */}
       {viewingAlumno && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Perfil del Alumno</h3>
-              <button onClick={() => setViewingId(null)} className="p-1 text-gray-400 hover:text-gray-600 rounded">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="font-bold text-foreground">Perfil del Alumno</h3>
+              <button onClick={() => setViewingId(null)} className="p-1 text-muted-foreground hover:text-muted-foreground rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -325,35 +325,35 @@ const GestionAlumnos: React.FC = () => {
                         {viewingAlumno.nombre[0]}{viewingAlumno.apellido[0]}
                       </div>
                       <div>
-                        <h4 className="text-xl font-bold text-gray-900">{viewingAlumno.nombre} {viewingAlumno.apellido}</h4>
-                        <p className="text-gray-500 text-sm">{viewingAlumno.email}</p>
+                        <h4 className="text-xl font-bold text-foreground">{viewingAlumno.nombre} {viewingAlumno.apellido}</h4>
+                        <p className="text-muted-foreground text-sm">{viewingAlumno.email}</p>
                         <div className="flex gap-2 mt-1">
                           <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">{viewingAlumno.curso}</span>
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">DNI: {viewingAlumno.dni}</span>
+                          <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs font-semibold rounded-full">DNI: {viewingAlumno.dni}</span>
                         </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-3 mb-4">
                       <div className="text-center p-2 bg-green-50 rounded-lg">
                         <p className="text-lg font-bold text-green-600">{stats.presentes}</p>
-                        <p className="text-xs text-gray-500">Presentes</p>
+                        <p className="text-xs text-muted-foreground">Presentes</p>
                       </div>
                       <div className="text-center p-2 bg-red-50 rounded-lg">
                         <p className="text-lg font-bold text-red-600">{stats.ausentes}</p>
-                        <p className="text-xs text-gray-500">Ausentes</p>
+                        <p className="text-xs text-muted-foreground">Ausentes</p>
                       </div>
                       <div className="text-center p-2 bg-amber-50 rounded-lg">
                         <p className="text-lg font-bold text-amber-600">{stats.tardanzas}</p>
-                        <p className="text-xs text-gray-500">Tardanzas</p>
+                        <p className="text-xs text-muted-foreground">Tardanzas</p>
                       </div>
                       <div className="text-center p-2 bg-indigo-50 rounded-lg">
                         <p className="text-lg font-bold text-indigo-600">{justificados}</p>
-                        <p className="text-xs text-gray-500">Justif.</p>
+                        <p className="text-xs text-muted-foreground">Justif.</p>
                       </div>
                     </div>
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">% Asistencia Global</span>
+                        <span className="text-sm font-medium text-foreground">% Asistencia Global</span>
                         <span className={`text-sm font-bold ${stats.pct < 75 ? 'text-red-600' : 'text-green-600'}`}>{stats.pct}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -361,7 +361,7 @@ const GestionAlumnos: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Materias inscriptas</p>
+                      <p className="text-sm font-medium text-foreground mb-2">Materias inscriptas</p>
                       <div className="flex flex-wrap gap-2">
                         {viewingAlumno.materias.map(mId => {
                           const m = materias.find(mat => mat.id === mId);

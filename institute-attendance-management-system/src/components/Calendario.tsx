@@ -69,31 +69,31 @@ const Calendario: React.FC = () => {
     <div className="p-6 space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Calendar */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <button onClick={prevMonth} className="p-2 hover:bg-muted rounded-lg transition-colors">
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
-            <h3 className="font-semibold text-gray-800 capitalize">{monthName}</h3>
-            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ChevronRight className="w-4 h-4 text-gray-600" />
+            <h3 className="font-semibold text-foreground capitalize">{monthName}</h3>
+            <button onClick={nextMonth} className="p-2 hover:bg-muted rounded-lg transition-colors">
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
 
           {/* Filter */}
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+          <div className="px-5 py-3 border-b border-border bg-background">
             <select value={selectedMateria} onChange={e => setSelectedMateria(e.target.value)}
-              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">Todas las materias</option>
               {misMaterias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+          <div className="grid grid-cols-7 bg-background border-b border-border">
             {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-              <div key={d} className="py-2 text-center text-xs font-semibold text-gray-500">{d}</div>
+              <div key={d} className="py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>
             ))}
           </div>
 
@@ -117,14 +117,14 @@ const Calendario: React.FC = () => {
                   onClick={() => setSelectedDate(isSelected ? null : dateStr)}
                   className={`min-h-[70px] border-b border-r border-gray-50 p-2 cursor-pointer transition-colors ${
                     isSelected ? 'bg-indigo-50' :
-                    isWeekend ? 'bg-gray-50/50' :
-                    'hover:bg-gray-50'
+                    isWeekend ? 'bg-background/50' :
+                    'hover:bg-background'
                   }`}
                 >
                   <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold mb-1 ${
                     isToday ? 'bg-indigo-600 text-white' :
                     isSelected ? 'bg-indigo-200 text-indigo-800' :
-                    'text-gray-700'
+                    'text-foreground'
                   }`}>
                     {day}
                   </span>
@@ -135,7 +135,7 @@ const Calendario: React.FC = () => {
                         <div key={estado} className={`w-full h-1.5 rounded-full ${estadoColors[estado]}`} />
                       ))}
                       {dayStats.total > 0 && (
-                        <p className="text-[9px] text-gray-500">{dayStats.total} reg.</p>
+                        <p className="text-[9px] text-muted-foreground">{dayStats.total} reg.</p>
                       )}
                     </div>
                   )}
@@ -145,25 +145,25 @@ const Calendario: React.FC = () => {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 px-5 py-3 border-t border-gray-100 bg-gray-50 flex-wrap">
+          <div className="flex items-center gap-4 px-5 py-3 border-t border-border bg-background flex-wrap">
             {Object.entries({ presente: 'Presente', ausente: 'Ausente', tardanza: 'Tardanza', justificado: 'Justificado' }).map(([k, v]) => (
               <div key={k} className="flex items-center gap-1.5">
                 <div className={`w-3 h-3 rounded-full ${estadoColors[k]}`} />
-                <span className="text-xs text-gray-500">{v}</span>
+                <span className="text-xs text-muted-foreground">{v}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Detail Panel */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-            <h3 className="font-semibold text-gray-800">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+          <div className="px-5 py-4 border-b border-border bg-background">
+            <h3 className="font-semibold text-foreground">
               {selectedDate
                 ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
                 : 'Seleccioná un día'}
             </h3>
-            {selectedDate && <p className="text-xs text-gray-500">{selectedDayData.length} registros</p>}
+            {selectedDate && <p className="text-xs text-muted-foreground">{selectedDayData.length} registros</p>}
           </div>
 
           {selectedDate && selectedDayData.length > 0 ? (
@@ -176,10 +176,10 @@ const Calendario: React.FC = () => {
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: mat?.color || '#6366f1' }} />
                     <div className="flex-1 min-w-0">
                       {currentUser?.rol !== 'alumno' && alumno && (
-                        <p className="text-xs font-medium text-gray-900 truncate">{alumno.nombre} {alumno.apellido}</p>
+                        <p className="text-xs font-medium text-foreground truncate">{alumno.nombre} {alumno.apellido}</p>
                       )}
-                      <p className="text-xs text-gray-500 truncate">{mat?.nombre}</p>
-                      {asis.observacion && <p className="text-xs text-gray-400 italic truncate">{asis.observacion}</p>}
+                      <p className="text-xs text-muted-foreground truncate">{mat?.nombre}</p>
+                      {asis.observacion && <p className="text-xs text-muted-foreground italic truncate">{asis.observacion}</p>}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                       asis.estado === 'presente' ? 'bg-green-100 text-green-700' :
@@ -194,8 +194,8 @@ const Calendario: React.FC = () => {
               })}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+              <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mb-3">
                 <ChevronLeft className="w-6 h-6 text-gray-300" />
               </div>
               <p className="text-sm">{selectedDate ? 'Sin registros este día' : 'Seleccioná un día para ver los detalles'}</p>
@@ -203,8 +203,8 @@ const Calendario: React.FC = () => {
           )}
 
           {/* Stats mes */}
-          <div className="border-t border-gray-100 px-5 py-4">
-            <p className="text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wide">Resumen del Mes</p>
+          <div className="border-t border-border px-5 py-4">
+            <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Resumen del Mes</p>
             <div className="space-y-2">
               {[
                 { label: 'Presentes', count: filteredAsistencias.filter(a => a.estado === 'presente').length, color: 'bg-green-500' },
@@ -214,8 +214,8 @@ const Calendario: React.FC = () => {
               ].map(s => (
                 <div key={s.label} className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                  <span className="text-xs text-gray-600 flex-1">{s.label}</span>
-                  <span className="text-xs font-bold text-gray-800">{s.count}</span>
+                  <span className="text-xs text-muted-foreground flex-1">{s.label}</span>
+                  <span className="text-xs font-bold text-foreground">{s.count}</span>
                 </div>
               ))}
             </div>

@@ -49,7 +49,7 @@ const GestionMaterias: React.FC = () => {
     <div className="p-6 space-y-5">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-500">{misMaterias.length} materias en total</div>
+        <div className="text-sm text-muted-foreground">{misMaterias.length} materias en total</div>
         {currentUser?.rol === 'admin' && (
           <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" />
@@ -64,7 +64,7 @@ const GestionMaterias: React.FC = () => {
           const stats = getMateriaStats(materia.id);
           const docente = usuarios.find(u => u.id === materia.docenteId);
           return (
-            <div key={materia.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+            <div key={materia.id} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden hover:shadow-md transition-shadow">
               <div className="h-2" style={{ backgroundColor: materia.color }} />
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
@@ -73,13 +73,13 @@ const GestionMaterias: React.FC = () => {
                       <BookOpen className="w-5 h-5" style={{ color: materia.color }} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{materia.nombre}</h3>
-                      <p className="text-xs text-gray-500 font-mono">{materia.codigo}</p>
+                      <h3 className="font-semibold text-foreground">{materia.nombre}</h3>
+                      <p className="text-xs text-muted-foreground font-mono">{materia.codigo}</p>
                     </div>
                   </div>
                   {currentUser?.rol === 'admin' && (
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(materia)} className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                      <button onClick={() => openEdit(materia)} className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       {deleteConfirm === materia.id ? (
@@ -87,12 +87,12 @@ const GestionMaterias: React.FC = () => {
                           <button onClick={() => { deleteMateria(materia.id); setDeleteConfirm(null); }} className="p-1.5 text-white bg-red-500 rounded-lg hover:bg-red-600">
                             <Check className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+                          <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => setDeleteConfirm(materia.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => setDeleteConfirm(materia.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -100,20 +100,20 @@ const GestionMaterias: React.FC = () => {
                   )}
                 </div>
 
-                <p className="text-xs text-gray-500 mb-4 line-clamp-2">{materia.descripcion}</p>
+                <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{materia.descripcion}</p>
 
                 <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <p className="text-base font-bold text-gray-900">{stats.alumnos}</p>
-                    <p className="text-[10px] text-gray-500">Alumnos</p>
+                  <div className="text-center p-2 bg-background rounded-lg">
+                    <p className="text-base font-bold text-foreground">{stats.alumnos}</p>
+                    <p className="text-[10px] text-muted-foreground">Alumnos</p>
                   </div>
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <p className="text-base font-bold text-gray-900">{stats.clases}</p>
-                    <p className="text-[10px] text-gray-500">Clases</p>
+                  <div className="text-center p-2 bg-background rounded-lg">
+                    <p className="text-base font-bold text-foreground">{stats.clases}</p>
+                    <p className="text-[10px] text-muted-foreground">Clases</p>
                   </div>
                   <div className="text-center p-2 rounded-lg" style={{ backgroundColor: `${materia.color}10` }}>
                     <p className="text-base font-bold" style={{ color: materia.color }}>{stats.pct}%</p>
-                    <p className="text-[10px] text-gray-500">Asistencia</p>
+                    <p className="text-[10px] text-muted-foreground">Asistencia</p>
                   </div>
                 </div>
 
@@ -123,9 +123,9 @@ const GestionMaterias: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">Docente</p>
-                  <p className="text-sm font-medium text-gray-800">{docente ? `${docente.nombre} ${docente.apellido}` : 'Sin asignar'}</p>
+                <div className="pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground">Docente</p>
+                  <p className="text-sm font-medium text-foreground">{docente ? `${docente.nombre} ${docente.apellido}` : 'Sin asignar'}</p>
                 </div>
               </div>
             </div>
@@ -136,41 +136,41 @@ const GestionMaterias: React.FC = () => {
       {/* Modal Form */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">{editingId ? 'Editar Materia' : 'Nueva Materia'}</h3>
-              <button onClick={() => setShowForm(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="font-bold text-foreground">{editingId ? 'Editar Materia' : 'Nueva Materia'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-1 text-muted-foreground hover:text-muted-foreground rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Nombre *</label>
                   <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Matemáticas" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Matemáticas" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Código *</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Código *</label>
                   <input required value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="MAT-101" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="MAT-101" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Descripción</label>
                 <textarea value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows={2} placeholder="Descripción de la materia..." />
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" rows={2} placeholder="Descripción de la materia..." />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Docente</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Docente</label>
                 <select value={form.docenteId} onChange={e => setForm(f => ({ ...f, docenteId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                   <option value="">-- Sin asignar --</option>
                   {docentes.map(d => <option key={d.id} value={d.id}>{d.nombre} {d.apellido}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Color</label>
                 <div className="flex flex-wrap gap-2">
                   {colors.map(c => (
                     <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
@@ -180,7 +180,7 @@ const GestionMaterias: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg text-sm hover:bg-background transition-colors">
                   Cancelar
                 </button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">

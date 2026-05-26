@@ -41,7 +41,7 @@ const STATUS_OPTIONS = [
   { value: 'activo', label: 'Activo', color: 'bg-green-100 text-green-800' },
   { value: 'inactivo', label: 'Inactivo', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'retirado', label: 'Retirado', color: 'bg-red-100 text-red-800' },
-  { value: 'corrupto', label: 'Corrupto', color: 'bg-gray-100 text-gray-800' },
+  { value: 'corrupto', label: 'Corrupto', color: 'bg-muted text-foreground' },
 ];
 
 const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: number; color: string }> = ({
@@ -129,17 +129,17 @@ const ReporteRedes: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
             <BarChart3 className="w-7 h-7 text-rose-600" />
             Reporte de Migración — Redes & TICs
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Sábados · Turnos Mañana (09:00-13:00) y Tarde (14:00-18:00)
           </p>
         </div>
         <button
           onClick={loadData}
-          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-lg hover:bg-background transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar
@@ -176,33 +176,33 @@ const ReporteRedes: React.FC = () => {
 
       {/* Migration date */}
       {report?.fecha && (
-        <div className="text-xs text-gray-400 font-mono">
+        <div className="text-xs text-muted-foreground font-mono">
           Migración ejecutada: {new Date(report.fecha).toLocaleString('es-ES')} · Última carga: {lastUpdate}
         </div>
       )}
 
       {/* Distribution Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-          <h2 className="font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-border bg-background">
+          <h2 className="font-bold text-foreground flex items-center gap-2">
             📦 Distribución por módulo
           </h2>
         </div>
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Módulo</th>
-              <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Turno</th>
-              <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Horario</th>
-              <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Alumnos</th>
+            <tr className="bg-background text-left">
+              <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Módulo</th>
+              <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Turno</th>
+              <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Horario</th>
+              <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Alumnos</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {Object.entries(MODULOS_INFO).map(([id, info]) => (
-              <tr key={id} className="hover:bg-gray-50 transition-colors">
+              <tr key={id} className="hover:bg-background transition-colors">
                 <td className="px-5 py-3">
-                  <span className="font-mono text-sm font-medium text-gray-900">{id}</span>
-                  <span className="ml-2 text-xs text-gray-400">{info.label}</span>
+                  <span className="font-mono text-sm font-medium text-foreground">{id}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{info.label}</span>
                 </td>
                 <td className="px-5 py-3">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -211,18 +211,18 @@ const ReporteRedes: React.FC = () => {
                     {info.turno === 'Mañana' ? '☀️' : '🌙'} {info.turno}
                   </span>
                 </td>
-                <td className="px-5 py-3 font-mono text-sm text-gray-600">{info.hora}</td>
+                <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{info.hora}</td>
                 <td className="px-5 py-3 text-right">
-                  <span className="font-mono text-sm font-bold text-gray-900">
+                  <span className="font-mono text-sm font-bold text-foreground">
                     {moduleCounts[id] || 0}
                   </span>
                 </td>
               </tr>
             ))}
             {/* Total row */}
-            <tr className="bg-gray-50 font-bold">
-              <td className="px-5 py-3 text-sm text-gray-800" colSpan={3}>Total distribuido</td>
-              <td className="px-5 py-3 text-right font-mono text-sm text-gray-900">{totalModulos}</td>
+            <tr className="bg-background font-bold">
+              <td className="px-5 py-3 text-sm text-foreground" colSpan={3}>Total distribuido</td>
+              <td className="px-5 py-3 text-right font-mono text-sm text-foreground">{totalModulos}</td>
             </tr>
           </tbody>
         </table>
@@ -230,38 +230,38 @@ const ReporteRedes: React.FC = () => {
 
       {/* Retired/Corrupt Students */}
       {retirados.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
-            <h2 className="font-bold text-gray-800 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-border bg-background">
+            <h2 className="font-bold text-foreground flex items-center gap-2">
               👤 Alumnos retirados / inactivos / corruptos
-              <span className="ml-auto text-xs font-normal text-gray-400">
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
                 Selecciona el estado correcto. Los cambios se guardan automáticamente.
               </span>
             </h2>
           </div>
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-12">#</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Etiqueta</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+              <tr className="bg-background text-left">
+                <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12">#</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nombre</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Etiqueta</th>
+                <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {retirados.map((alumno, index) => (
-                <tr key={`ret-${index}`} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 font-mono text-sm text-gray-400">{index + 1}</td>
-                  <td className="px-5 py-3 text-sm font-medium text-gray-900">{alumno.nombre || '(sin nombre)'}</td>
+                <tr key={`ret-${index}`} className="hover:bg-background transition-colors">
+                  <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{index + 1}</td>
+                  <td className="px-5 py-3 text-sm font-medium text-foreground">{alumno.nombre || '(sin nombre)'}</td>
                   <td className="px-5 py-3">
-                    <span className="text-xs text-gray-500 italic">{alumno._etiqueta || '—'}</span>
+                    <span className="text-xs text-muted-foreground italic">{alumno._etiqueta || '—'}</span>
                   </td>
                   <td className="px-5 py-3">
                     <select
                       value={alumno.status || 'retirado'}
                       onChange={(e) => handleStatusChange(index, e.target.value)}
-                      className={`text-sm font-medium rounded-lg border-gray-300 px-3 py-1.5 cursor-pointer focus:ring-2 focus:ring-rose-500 focus:border-rose-500 ${
-                        STATUS_OPTIONS.find((o) => o.value === alumno.status)?.color || 'bg-gray-100 text-gray-800'
+                      className={`text-sm font-medium rounded-lg border-border px-3 py-1.5 cursor-pointer focus:ring-2 focus:ring-rose-500 focus:border-rose-500 ${
+                        STATUS_OPTIONS.find((o) => o.value === alumno.status)?.color || 'bg-muted text-foreground'
                       }`}
                     >
                       {STATUS_OPTIONS.map((opt) => (
@@ -278,7 +278,7 @@ const ReporteRedes: React.FC = () => {
 
       {/* No data fallback */}
       {!report && retirados.length === 0 && totalModulos === 0 && (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-40" />
           <p className="text-lg font-medium">No hay datos de migración disponibles</p>
           <p className="text-sm mt-1">La migración de módulos sábado aún no se ha ejecutado.</p>

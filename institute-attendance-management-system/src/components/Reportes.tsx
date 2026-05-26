@@ -101,22 +101,22 @@ const Reportes: React.FC = () => {
   return (
     <div className="p-6 space-y-5">
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className="w-4 h-4 text-muted-foreground" />
           <select value={filterMateria} onChange={e => setFilterMateria(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todas las materias</option>
             {misMaterias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
           <select value={filterCurso} onChange={e => setFilterCurso(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todos los cursos</option>
             {cursos.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <button
             onClick={() => { setFilterMateria(''); setFilterCurso(''); }}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            className="px-3 py-2 text-sm text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
           >
             Limpiar filtros
           </button>
@@ -135,7 +135,7 @@ const Reportes: React.FC = () => {
           { label: 'Tardanzas', value: generalStats.tardanzas, pct: generalStats.total > 0 ? Math.round((generalStats.tardanzas / generalStats.total) * 100) : 0, color: 'text-amber-600 bg-amber-50', icon: <AlertTriangle className="w-4 h-4 text-amber-600" /> },
           { label: 'Justificados', value: generalStats.justificados, pct: generalStats.total > 0 ? Math.round((generalStats.justificados / generalStats.total) * 100) : 0, color: 'text-indigo-600 bg-indigo-50', icon: <Award className="w-4 h-4 text-indigo-600" /> },
         ].map(s => (
-          <div key={s.label} className={`${s.color} rounded-xl p-4 border border-gray-100`}>
+          <div key={s.label} className={`${s.color} rounded-xl p-4 border border-border`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium">{s.label}</span>
               {s.icon}
@@ -147,10 +147,10 @@ const Reportes: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit">
         {(['general', 'alumnos', 'materias'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${activeTab === tab ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-600 hover:text-gray-800'}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${activeTab === tab ? 'bg-card shadow-sm text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}>
             {tab === 'general' ? 'General' : tab === 'alumnos' ? 'Por Alumno' : 'Por Materia'}
           </button>
         ))}
@@ -158,8 +158,8 @@ const Reportes: React.FC = () => {
 
       {activeTab === 'general' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-4">Tendencia Mensual (%)</h3>
+          <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+            <h3 className="font-semibold text-foreground mb-4">Tendencia Mensual (%)</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={tendenciaMensual}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -171,8 +171,8 @@ const Reportes: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-4">Distribución de Estados</h3>
+          <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+            <h3 className="font-semibold text-foreground mb-4">Distribución de Estados</h3>
             <ResponsiveContainer width="100%" height={180}>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3}>
@@ -185,14 +185,14 @@ const Reportes: React.FC = () => {
               {pieData.map(d => (
                 <div key={d.name} className="flex items-center gap-2 text-xs">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }} />
-                  <span className="text-gray-600">{d.name}: <strong>{d.value}</strong></span>
+                  <span className="text-muted-foreground">{d.name}: <strong>{d.value}</strong></span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-4">Asistencia por Materia (%)</h3>
+          <div className="lg:col-span-2 bg-card rounded-xl p-5 shadow-sm border border-border">
+            <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia (%)</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={materiasReport}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -209,28 +209,28 @@ const Reportes: React.FC = () => {
       )}
 
       {activeTab === 'alumnos' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Alumno</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Curso</th>
+              <tr className="bg-background border-b border-border">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Alumno</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase">Curso</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-green-600 uppercase">Presentes</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-red-600 uppercase">Ausentes</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-amber-600 uppercase">Tardanzas</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">% Asistencia</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Estado</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase">% Asistencia</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {alumnosReport.map(a => (
-                <tr key={a.id} className="hover:bg-gray-50/50">
+                <tr key={a.id} className="hover:bg-background/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
                         {a.nombre[0]}{a.apellido[0]}
                       </div>
-                      <span className="text-sm font-medium text-gray-900">{a.apellido}, {a.nombre}</span>
+                      <span className="text-sm font-medium text-foreground">{a.apellido}, {a.nombre}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -269,20 +269,20 @@ const Reportes: React.FC = () => {
       {activeTab === 'materias' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {materiasReport.map(m => (
-            <div key={m.id} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+            <div key={m.id} className="bg-card rounded-xl p-5 shadow-sm border border-border">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${m.color}20` }}>
                   <span className="text-sm font-bold" style={{ color: m.color }}>{m.nombre[0]}</span>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 text-sm">{m.nombre}</h3>
-                  <p className="text-xs text-gray-500">{m.clases} clases dictadas</p>
+                  <h3 className="font-semibold text-foreground text-sm">{m.nombre}</h3>
+                  <p className="text-xs text-muted-foreground">{m.clases} clases dictadas</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">% Asistencia</span>
+                    <span className="text-muted-foreground">% Asistencia</span>
                     <span className="font-bold" style={{ color: m.color }}>{m.pct}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -291,15 +291,15 @@ const Reportes: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Presentes:</span>
+                    <span className="text-muted-foreground">Presentes:</span>
                     <span className="font-semibold text-green-600">{m.presentes}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Ausentes:</span>
+                    <span className="text-muted-foreground">Ausentes:</span>
                     <span className="font-semibold text-red-600">{m.total - m.presentes}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Total reg:</span>
+                    <span className="text-muted-foreground">Total reg:</span>
                     <span className="font-semibold">{m.total}</span>
                   </div>
                 </div>

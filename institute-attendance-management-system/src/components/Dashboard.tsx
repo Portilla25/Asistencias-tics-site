@@ -66,15 +66,15 @@ const Dashboard: React.FC = () => {
   }, [alumnos, asistencias]);
 
   const StatCard = ({ title, value, icon, color, subtitle }: { title: string; value: string | number; icon: React.ReactNode; color: string; subtitle?: string }) => (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
           {icon}
         </div>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+      <p className="text-2xl font-bold text-foreground">{value}</p>
+      {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
     </div>
   );
 
@@ -92,8 +92,8 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-800 mb-4">Asistencia por Materia</h3>
+          <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+            <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={asistenciasPorMateria.filter(m => misMaterias.some(mm => mm.nombre.startsWith(m.name)))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -106,13 +106,13 @@ const Dashboard: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">Alumnos en Riesgo</h3>
-              <span className="text-xs text-gray-500">+20% inasistencias</span>
+              <h3 className="font-semibold text-foreground">Alumnos en Riesgo</h3>
+              <span className="text-xs text-muted-foreground">+20% inasistencias</span>
             </div>
             {alumnosEnRiesgo.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <Award className="w-10 h-10 mx-auto mb-2 text-green-400" />
                 <p className="text-sm">¡Excelente! Ningún alumno en riesgo</p>
               </div>
@@ -125,13 +125,13 @@ const Dashboard: React.FC = () => {
                         {a.nombre[0]}{a.apellido[0]}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-800">{a.nombre} {a.apellido}</p>
-                        <p className="text-xs text-gray-500">{a.curso}</p>
+                        <p className="text-sm font-medium text-foreground">{a.nombre} {a.apellido}</p>
+                        <p className="text-xs text-muted-foreground">{a.curso}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-red-600">{a.porcentaje}%</p>
-                      <p className="text-xs text-gray-500">{a.ausencias} ausencias</p>
+                      <p className="text-xs text-muted-foreground">{a.ausencias} ausencias</p>
                     </div>
                   </div>
                 ))}
@@ -140,8 +140,8 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Tendencia de Asistencia (%)</h3>
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Tendencia de Asistencia (%)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={tendencia}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -177,8 +177,8 @@ const Dashboard: React.FC = () => {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Asistencia por Materia</h3>
+        <div className="lg:col-span-2 bg-card rounded-xl p-5 shadow-sm border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={asistenciasPorMateria}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -193,8 +193,8 @@ const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Distribución General</h3>
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Distribución General</h3>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={3}>
@@ -208,9 +208,9 @@ const Dashboard: React.FC = () => {
               <div key={d.name} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                  <span className="text-gray-600">{d.name}</span>
+                  <span className="text-muted-foreground">{d.name}</span>
                 </div>
-                <span className="font-semibold text-gray-800">{d.value.toLocaleString()}</span>
+                <span className="font-semibold text-foreground">{d.value.toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -219,8 +219,8 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tendencia */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-800 mb-4">Tendencia de Asistencia (%)</h3>
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+          <h3 className="font-semibold text-foreground mb-4">Tendencia de Asistencia (%)</h3>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={tendencia}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -233,9 +233,9 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Alumnos en riesgo */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Alumnos en Riesgo</h3>
+            <h3 className="font-semibold text-foreground">Alumnos en Riesgo</h3>
             <button onClick={() => setActiveSection('alumnos')} className="text-xs text-indigo-600 hover:underline">Ver todos</button>
           </div>
           <div className="space-y-2">
@@ -246,8 +246,8 @@ const Dashboard: React.FC = () => {
                     {a.nombre[0]}{a.apellido[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{a.nombre} {a.apellido}</p>
-                    <p className="text-xs text-gray-500">{a.curso}</p>
+                    <p className="text-sm font-medium text-foreground">{a.nombre} {a.apellido}</p>
+                    <p className="text-xs text-muted-foreground">{a.curso}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

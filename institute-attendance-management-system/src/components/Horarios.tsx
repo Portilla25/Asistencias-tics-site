@@ -128,11 +128,11 @@ const Horarios: React.FC = () => {
   return (
     <div className="p-6 space-y-5">
       {/* Tab bar */}
-      <div className="flex items-center gap-2 bg-white rounded-xl p-1.5 shadow-sm border border-gray-100 w-fit">
+      <div className="flex items-center gap-2 bg-card rounded-xl p-1.5 shadow-sm border border-border w-fit">
         <button
           onClick={() => setActiveTab('horarios')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'horarios' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+            activeTab === 'horarios' ? 'bg-indigo-600 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'
           }`}
         >
           <Clock className="w-4 h-4" />
@@ -141,7 +141,7 @@ const Horarios: React.FC = () => {
         <button
           onClick={() => setActiveTab('horas')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === 'horas' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+            activeTab === 'horas' ? 'bg-indigo-600 text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -155,27 +155,27 @@ const Horarios: React.FC = () => {
           {careerGroups.map(({ career, materias: careerMaterias }) => {
             const isExpanded = expandedCareers.has(career.id);
             return (
-              <div key={career.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div key={career.id} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 <button
                   onClick={() => toggleCareer(career.id)}
-                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-background transition-colors"
                 >
                   <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: career.color }} />
-                  <span className="font-bold text-gray-800 text-sm flex-1 text-left">{career.nombre}</span>
-                  <span className="text-xs text-gray-400 font-mono">{careerMaterias.length} módulo{careerMaterias.length !== 1 ? 's' : ''}</span>
-                  {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  <span className="font-bold text-foreground text-sm flex-1 text-left">{career.nombre}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{careerMaterias.length} módulo{careerMaterias.length !== 1 ? 's' : ''}</span>
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                 </button>
 
                 {isExpanded && (
-                  <div className="border-t border-gray-100">
+                  <div className="border-t border-border">
                     <table className="w-full">
                       <thead>
-                        <tr className="bg-gray-50 text-left">
-                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Módulo</th>
-                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Día</th>
-                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Turno</th>
-                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase">Horario</th>
-                          <th className="px-5 py-2.5 text-xs font-semibold text-gray-500 uppercase text-right">Alumnos</th>
+                        <tr className="bg-background text-left">
+                          <th className="px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase">Módulo</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase">Día</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase">Turno</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase">Horario</th>
+                          <th className="px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-right">Alumnos</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -183,14 +183,14 @@ const Horarios: React.FC = () => {
                           const sched = MODULE_SCHEDULES[m.id];
                           const alumnoCount = alumnos.filter(a => a.materias.includes(m.id)).length;
                           return (
-                            <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                            <tr key={m.id} className="hover:bg-background transition-colors">
                               <td className="px-5 py-3">
                                 <div className="flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                                  <span className="font-medium text-sm text-gray-900">{m.codigo}</span>
+                                  <span className="font-medium text-sm text-foreground">{m.codigo}</span>
                                 </div>
                               </td>
-                              <td className="px-5 py-3 text-sm text-gray-600">{sched?.dia || '—'}</td>
+                              <td className="px-5 py-3 text-sm text-muted-foreground">{sched?.dia || '—'}</td>
                               <td className="px-5 py-3">
                                 {sched ? (
                                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -202,10 +202,10 @@ const Horarios: React.FC = () => {
                                   </span>
                                 ) : '—'}
                               </td>
-                              <td className="px-5 py-3 font-mono text-sm text-gray-600">{sched?.hora || '—'}</td>
+                              <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{sched?.hora || '—'}</td>
                               <td className="px-5 py-3 text-right">
-                                <span className="inline-flex items-center gap-1 text-sm text-gray-700">
-                                  <Users className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="inline-flex items-center gap-1 text-sm text-foreground">
+                                  <Users className="w-3.5 h-3.5 text-muted-foreground" />
                                   {alumnoCount}
                                 </span>
                               </td>
@@ -221,9 +221,9 @@ const Horarios: React.FC = () => {
           })}
 
           {careerGroups.length === 0 && (
-            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+            <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
               <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No hay horarios asignados</p>
+              <p className="text-muted-foreground font-medium">No hay horarios asignados</p>
             </div>
           )}
         </div>
@@ -234,13 +234,13 @@ const Horarios: React.FC = () => {
         <div className="space-y-4">
           {/* Year selector */}
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">
-              <Calendar className="w-4 h-4 inline mr-1.5 text-gray-400" />Año:
+            <label className="text-sm font-medium text-foreground">
+              <Calendar className="w-4 h-4 inline mr-1.5 text-muted-foreground" />Año:
             </label>
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {[2024, 2025, 2026].map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -249,27 +249,27 @@ const Horarios: React.FC = () => {
           </div>
 
           {careerGroups.map(({ career, materias: careerMaterias }) => (
-            <div key={career.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div key={career.id} className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
-                <h3 className="font-bold text-gray-800 text-sm">{career.nombre}</h3>
-                <span className="text-xs text-gray-400">— Registro de horas {selectedYear}</span>
+                <h3 className="font-bold text-foreground text-sm">{career.nombre}</h3>
+                <span className="text-xs text-muted-foreground">— Registro de horas {selectedYear}</span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase text-left sticky left-0 bg-gray-50 min-w-[140px]">Módulo</th>
+                    <tr className="bg-background">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-left sticky left-0 bg-background min-w-[140px]">Módulo</th>
                       {allMonths.filter(m => m.startsWith(String(selectedYear))).map(m => {
                         const monthIdx = parseInt(m.split('-')[1], 10) - 1;
                         return (
-                          <th key={m} className="px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase text-center min-w-[80px]">
+                          <th key={m} className="px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-center min-w-[80px]">
                             {MONTH_NAMES[monthIdx]?.slice(0, 3)}
                           </th>
                         );
                       })}
-                      <th className="px-4 py-2.5 text-xs font-bold text-gray-700 uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
+                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -280,11 +280,11 @@ const Horarios: React.FC = () => {
                       const totalClases = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.clases || 0), 0);
 
                       return (
-                        <tr key={m.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 sticky left-0 bg-white">
+                        <tr key={m.id} className="hover:bg-background">
+                          <td className="px-4 py-3 sticky left-0 bg-card">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
-                              <span className="text-sm font-medium text-gray-900">{m.codigo}</span>
+                              <span className="text-sm font-medium text-foreground">{m.codigo}</span>
                             </div>
                           </td>
                           {relevantMonths.map(mo => {
@@ -293,8 +293,8 @@ const Horarios: React.FC = () => {
                               <td key={mo} className="px-3 py-3 text-center">
                                 {data ? (
                                   <div>
-                                    <span className="text-sm font-bold text-gray-800">{data.horas}h</span>
-                                    <p className="text-[10px] text-gray-400">{data.clases} clase{data.clases !== 1 ? 's' : ''}</p>
+                                    <span className="text-sm font-bold text-foreground">{data.horas}h</span>
+                                    <p className="text-[10px] text-muted-foreground">{data.clases} clase{data.clases !== 1 ? 's' : ''}</p>
                                   </div>
                                 ) : (
                                   <span className="text-xs text-gray-300">—</span>
@@ -304,19 +304,19 @@ const Horarios: React.FC = () => {
                           })}
                           <td className="px-4 py-3 text-center bg-indigo-50/50">
                             <span className="text-sm font-bold text-indigo-700">{totalHoras}h</span>
-                            <p className="text-[10px] text-gray-500">{totalClases} clases</p>
+                            <p className="text-[10px] text-muted-foreground">{totalClases} clases</p>
                           </td>
                         </tr>
                       );
                     })}
 
                     {/* Career totals row */}
-                    <tr className="bg-gray-50 font-bold">
-                      <td className="px-4 py-3 text-sm text-gray-800 sticky left-0 bg-gray-50">Total</td>
+                    <tr className="bg-background font-bold">
+                      <td className="px-4 py-3 text-sm text-foreground sticky left-0 bg-background">Total</td>
                       {allMonths.filter(m => m.startsWith(String(selectedYear))).map(mo => {
                         const total = careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
                         return (
-                          <td key={mo} className="px-3 py-3 text-center text-sm text-gray-800">
+                          <td key={mo} className="px-3 py-3 text-center text-sm text-foreground">
                             {total > 0 ? `${total}h` : '—'}
                           </td>
                         );
@@ -338,10 +338,10 @@ const Horarios: React.FC = () => {
           ))}
 
           {allMonths.length === 0 && (
-            <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
+            <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
               <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No hay registros de clases para {selectedYear}</p>
-              <p className="text-gray-400 text-sm mt-1">Las horas se calculan automáticamente a partir de la asistencia registrada</p>
+              <p className="text-muted-foreground font-medium">No hay registros de clases para {selectedYear}</p>
+              <p className="text-muted-foreground text-sm mt-1">Las horas se calculan automáticamente a partir de la asistencia registrada</p>
             </div>
           )}
         </div>

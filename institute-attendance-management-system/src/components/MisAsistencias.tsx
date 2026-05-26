@@ -57,7 +57,7 @@ const MisAsistencias: React.FC = () => {
 
   if (!alumno) {
     return (
-      <div className="p-6 text-center text-gray-500">
+      <div className="p-6 text-center text-muted-foreground">
         <p>No se encontró información del alumno.</p>
       </div>
     );
@@ -68,7 +68,7 @@ const MisAsistencias: React.FC = () => {
       {/* Perfil resumen */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-4 mb-5">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-bold">
+          <div className="w-14 h-14 rounded-2xl bg-card/20 flex items-center justify-center text-2xl font-bold">
             {alumno.nombre[0]}{alumno.apellido[0]}
           </div>
           <div>
@@ -83,7 +83,7 @@ const MisAsistencias: React.FC = () => {
             { label: 'Ausentes', value: stats.ausentes },
             { label: 'Tardanzas', value: stats.tardanzas },
           ].map(s => (
-            <div key={s.label} className={`${s.highlight ? 'bg-white/20' : 'bg-white/10'} rounded-xl p-3 text-center`}>
+            <div key={s.label} className={`${s.highlight ? 'bg-card/20' : 'bg-card/10'} rounded-xl p-3 text-center`}>
               <p className={`${s.highlight ? 'text-2xl' : 'text-xl'} font-bold`}>{s.value}</p>
               <p className="text-xs text-indigo-200">{s.label}</p>
             </div>
@@ -97,8 +97,8 @@ const MisAsistencias: React.FC = () => {
       </div>
 
       {/* Gráfico por materia */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <h3 className="font-semibold text-gray-800 mb-4">Asistencia por Materia (%)</h3>
+      <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+        <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia (%)</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={porMateria}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -113,37 +113,37 @@ const MisAsistencias: React.FC = () => {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+      <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex flex-wrap gap-3 items-center">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className="w-4 h-4 text-muted-foreground" />
           <select value={filterMateria} onChange={e => setFilterMateria(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todas las materias</option>
             {materias.filter(m => alumno.materias.includes(m.id)).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </select>
           <select value={filterMes} onChange={e => setFilterMes(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todos los meses</option>
             {meses.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select>
-          <span className="text-xs text-gray-500 ml-auto">{misAsistencias.length} registros</span>
+          <span className="text-xs text-muted-foreground ml-auto">{misAsistencias.length} registros</span>
         </div>
       </div>
 
       {/* Lista de asistencias */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="divide-y divide-gray-50">
           {misAsistencias.slice(0, 50).map(asis => {
             const materia = materias.find(m => m.id === asis.materiaId);
             const badge = estadoBadge[asis.estado];
             const fecha = new Date(asis.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
             return (
-              <div key={asis.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/50">
+              <div key={asis.id} className="flex items-center gap-4 px-5 py-3 hover:bg-background/50">
                 <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: materia?.color || '#6366f1' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{materia?.nombre}</p>
-                  <p className="text-xs text-gray-500 capitalize">{fecha}</p>
-                  {asis.observacion && <p className="text-xs text-gray-400 italic mt-0.5">{asis.observacion}</p>}
+                  <p className="text-sm font-medium text-foreground">{materia?.nombre}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{fecha}</p>
+                  {asis.observacion && <p className="text-xs text-muted-foreground italic mt-0.5">{asis.observacion}</p>}
                 </div>
                 <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${badge.color}`}>
                   {badge.icon}
@@ -153,7 +153,7 @@ const MisAsistencias: React.FC = () => {
             );
           })}
           {misAsistencias.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="w-10 h-10 mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No hay registros de asistencia</p>
             </div>
