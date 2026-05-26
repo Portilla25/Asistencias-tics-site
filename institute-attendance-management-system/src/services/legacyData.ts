@@ -547,11 +547,20 @@ const runMigrations = () => {
       morning.alumnos = [];
     });
 
-    // Backup and save
-    window.localStorage.setItem('asist_state_backup_turno_v2', raw);
+    // Clean old backups to free localStorage space
+    ['asist_state_backup_redes_v1', 'asist_state_backup_turno_v1', 'redes_migracion_v1', 'redes_turno_migration_v1', 'reporteComparativoRedes'].forEach(k => {
+      try { window.localStorage.removeItem(k); } catch { /* ignore */ }
+    });
+
+    // Backup (skip if quota exceeded) and save
+    try {
+      window.localStorage.setItem('asist_state_backup_turno_v2', raw);
+    } catch {
+      console.warn('[REDES_MIGRACION_V2] No se pudo guardar backup en localStorage (cuota excedida). Usa el backup descargado.');
+    }
     window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
     window.localStorage.setItem(MIGRATION_FLAG_TURNO, new Date().toISOString());
-    console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos. Backup en asist_state_backup_turno_v2.`);
+    console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos.`);
   } catch (e) {
     console.error('[REDES_MIGRACION_V2] Error:', e);
   }
