@@ -92,17 +92,7 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
     color: '#0d9488',
     secciones: [{ id: 'info_gastro_L_1', label: 'Lunes 10:30–12:20 (2h)', badge: 'Lunes' }],
   },
-  {
-    id: 'tics_sabados',
-    nombre: 'Tecnologías Turno mañana sábados',
-    color: '#7c3aed',
-    secciones: [
-      { id: 'tics_S_1', label: 'Turno Sábado - Módulo 1', badge: 'Sáb M1' },
-      { id: 'tics_S_2', label: 'Turno Sábado - Módulo 2', badge: 'Sáb M2' },
-      { id: 'tics_S_3', label: 'Turno Sábado - Módulo 3', badge: 'Sáb M3' },
-      { id: 'tics_S_4', label: 'Turno Sábado - Módulo 4', badge: 'Sáb M4' },
-    ],
-  },
+
   {
     id: 'redes_sabados',
     nombre: 'Tecnologías de la Información y Redes',
@@ -566,9 +556,91 @@ const runMigrations = () => {
   }
 };
 
+/* ─── One-time migration v3: move tics_sabados students to redes_M ─── */
+const MIGRATION_FLAG_TICS_SAB = 'tics_sabados_to_redes_M_v1';
+
+const runMigrationsV3 = () => {
+  if (typeof window === 'undefined') return;
+  if (window.localStorage.getItem(MIGRATION_FLAG_TICS_SAB)) return;
+
+  const raw = window.localStorage.getItem(STORAGE_STATE_KEY);
+  if (!raw) return;
+
+  try {
+    const state = JSON.parse(raw) as Record<string, LegacyModule>;
+    const SAB_TO_MANANA: Record<string, string> = {
+      tics_S_1: 'redes_M_1',
+      tics_S_2: 'redes_M_2',
+      tics_S_3: 'redes_M_3',
+      tics_S_4: 'redes_M_4',
+    };
+
+    let changed = false;
+    let totalMigrated = 0;
+
+    Object.entries(SAB_TO_MANANA).forEach(([sabId, mananaId]) => {
+      const sab = state[sabId];
+      if (!sab?.alumnos?.length) return;
+
+      if (!state[mananaId]) {
+        state[mananaId] = { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+      }
+      const manana = state[mananaId];
+      const existingNames = new Set((manana.alumnos || []).map(a => String(a.nombre || '').trim()));
+
+      sab.alumnos.forEach(student => {
+        const name = String(student.nombre || '').trim();
+        if (!existingNames.has(name) && !student.retirado) {
+          manana.alumnos = manana.alumnos || [];
+          manana.alumnos.push({ ...student });
+          totalMigrated++;
+        }
+      });
+
+      // Copy attendance records
+      Object.entries(sab.asistencias || {}).forEach(([studentId, byDate]) => {
+        manana.asistencias = manana.asistencias || {};
+        if (!manana.asistencias[studentId]) {
+          manana.asistencias[studentId] = { ...byDate };
+        }
+      });
+
+      // Copy motivos
+      Object.entries(sab.motivos || {}).forEach(([studentId, byDate]) => {
+        manana.motivos = manana.motivos || {};
+        if (!manana.motivos[studentId]) {
+          manana.motivos[studentId] = { ...byDate };
+        }
+      });
+
+      // Merge dates
+      const allDates = new Set([...(manana.fechas || []), ...(sab.fechas || [])]);
+      manana.fechas = [...allDates].sort();
+
+      // Clear sab students
+      sab.alumnos = [];
+      changed = true;
+    });
+
+    if (changed) {
+      try {
+        window.localStorage.setItem('asist_state_backup_tics_sab_v1', raw);
+      } catch {
+        // Ignore quota error for backup
+      }
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      console.log(`[REDES_MIGRACION_V3] Completada. ${totalMigrated} alumnos migrados de tics_S a redes_M.`);
+    }
+    window.localStorage.setItem(MIGRATION_FLAG_TICS_SAB, new Date().toISOString());
+  } catch (e) {
+    console.error('[REDES_MIGRACION_V3] Error:', e);
+  }
+};
+
 export const loadInitialAppData = (): InitialAppData => {
   // Run one-time migrations first
   runMigrations();
+  runMigrationsV3();
 
   const state = safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
   const hasLegacyState = Object.keys(state).length > 0;
