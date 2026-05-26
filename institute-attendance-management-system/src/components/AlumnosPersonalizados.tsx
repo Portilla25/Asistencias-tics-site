@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X } from 'lucide-react';
+import mergedData from '../data/merged_personalizados.json';
 
 interface ClasePersonalizada {
   fecha: string;
@@ -20,19 +21,29 @@ interface AlumnoPersonalizado {
 }
 
 const parseClase = (str: unknown): ClasePersonalizada | null => {
+  if (typeof str === 'object' && str !== null) {
+    const s = str as any;
+    return {
+      horas: parseFloat(s.horas || 0),
+      fecha: s.fecha || '',
+      val: s.val || 'Presente',
+      horaInicio: s.horaInicio || '',
+      horaFin: s.horaFin || ''
+    };
+  }
   if (typeof str !== 'string') return null;
-  const matchHours = str.match(/horas=([\d.]+)/);
-  const matchDate = str.match(/fecha=([\d-]+)/);
-  const matchVal = str.match(/val=([a-zA-Z]+)/);
+  const matchHours = str.match(/horas=([\d.,]+)/);
+  const matchDate = str.match(/fecha=([0-9-T:\.Z]+)/);
+  const matchVal = str.match(/val=([^;}]+)/);
   const matchInicio = str.match(/horaInicio=([\d:]+)/);
   const matchFin = str.match(/horaFin=([\d:]+)/);
 
   return {
-    horas: matchHours ? parseFloat(matchHours[1]) : 0,
-    fecha: matchDate ? matchDate[1] : '',
-    val: matchVal ? matchVal[1] : 'Presente',
-    horaInicio: matchInicio ? matchInicio[1] : '',
-    horaFin: matchFin ? matchFin[1] : '',
+    horas: matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0,
+    fecha: matchDate ? matchDate[1].trim() : '',
+    val: matchVal ? matchVal[1].trim() : 'Presente',
+    horaInicio: matchInicio ? matchInicio[1].trim() : '',
+    horaFin: matchFin ? matchFin[1].trim() : '',
   };
 };
 
@@ -52,6 +63,11 @@ const AlumnosPersonalizados: React.FC = () => {
 
   const loadData = () => {
     try {
+      if (!localStorage.getItem('asist_personalizados_merged_v3')) {
+        localStorage.setItem('asist_personalizados', JSON.stringify(mergedData));
+        localStorage.setItem('asist_personalizados_merged_v3', 'true');
+      }
+      
       const raw = localStorage.getItem('asist_personalizados');
       if (raw) {
         const parsed = JSON.parse(raw);

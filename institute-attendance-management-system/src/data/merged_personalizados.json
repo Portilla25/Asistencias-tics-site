@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1774892486625,
+    "nombre": "Jaime Diaz Jara",
+    "tel": "997741671",
+    "clases": [
+      {
+        "horaFin": "13:00",
+        "val": "Presente",
+        "horas": "2",
+        "fecha": "2026-03-30",
+        "horaInicio": "11:00"
+      },
+      {
+        "horaInicio": "10:30",
+        "fecha": "2026-03-31",
+        "horaFin": "13:00",
+        "horas": "2.5",
+        "val": "Presente"
+      }
+    ]
+  },
+  {
+    "id": 1773446926946,
+    "nombre": "Maria Renee Ruiz",
+    "tel": "976494743",
+    "clases": [
+      {
+        "horaInicio": "17:00",
+        "fecha": "2026-03-02",
+        "horas": "2",
+        "val": "Presente",
+        "horaFin": "19:00"
+      },
+      {
+        "horaFin": "19:00",
+        "horas": "2",
+        "val": "Presente",
+        "horaInicio": "17:00",
+        "fecha": "2026-03-09"
+      },
+      {
+        "horas": "2",
+        "val": "Presente",
+        "horaFin": "19:00",
+        "horaInicio": "17:00",
+        "fecha": "2026-03-18"
+      },
+      {
+        "val": "Presente",
+        "horas": "2",
+        "horaFin": "19:00",
+        "fecha": "2026-04-06",
+        "horaInicio": "17:00"
+      }
+    ]
+  },
+  {
+    "id": 1775001870850,
+    "nombre": "Víctor Chuquiruna Bardales",
+    "tel": "973718535",
+    "clases": [
+      {
+        "horaInicio": "19:00",
+        "fecha": "2026-03-31",
+        "horaFin": "21:00",
+        "horas": "2",
+        "val": "Presente"
+      }
+    ]
+  },
+  {
+    "id": 1777074922899,
+    "nombre": "Wilfredo Terrones",
+    "tel": "982522692",
+    "clases": [
+      {
+        "horaFin": "21:00",
+        "horas": "2",
+        "val": "Presente",
+        "horaInicio": "19:00",
+        "fecha": "2026-04-24"
+      },
+      {
+        "horaInicio": "19:00",
+        "fecha": "2026-05-06",
+        "horas": "2",
+        "val": "Presente",
+        "horaFin": "21:00"
+      }
+    ]
+  },
+  {
+    "id": 1778800375826,
+    "nombre": "Eduardo Casterjón Llico",
+    "tel": "963100951",
+    "clases": [
+      {
+        "fecha": "2026-05-14",
+        "val": "Presente",
+        "horas": "2",
+        "horaInicio": "18:00",
+        "horaFin": "20:00"
+      },
+      {
+        "fecha": "2026-05-16",
+        "val": "Presente",
+        "horas": "2",
+        "horaInicio": "17:00",
+        "horaFin": "19:00"
+      }
+    ]
+  },
+  {
+    "id": 1777074922899,
+    "nombre": "Wilfredo Torres Ruiz",
+    "tel": "982522692",
+    "clases": [
+      {
+        "horaFin": "21:00",
+        "horas": "2",
+        "val": "Presente",
+        "horaInicio": "19:00",
+        "fecha": "2026-04-24"
+      },
+      {
+        "horaInicio": "19:00",
+        "fecha": "2026-05-06",
+        "horas": "2",
+        "val": "Presente",
+        "horaFin": "21:00"
+      },
+      {
+        "fecha": "2026-05-23",
+        "val": "Presente",
+        "horas": "1",
+        "horaInicio": "19:00",
+        "horaFin": "20:00"
+      }
+    ]
+  }
+]
