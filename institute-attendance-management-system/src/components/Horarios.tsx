@@ -45,6 +45,36 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+interface ClasePersonalizada {
+  fecha: string;
+  val: string;
+  horas: number;
+}
+interface AlumnoPersonalizado {
+  id: number | string;
+  nombre: string;
+  horasPorMes: Record<string, number>;
+}
+const parseClase = (str: unknown): ClasePersonalizada | null => {
+  if (typeof str === 'object' && str !== null) {
+    const s = str as any;
+    return {
+      horas: parseFloat(s.horas || 0),
+      fecha: s.fecha || '',
+      val: s.val || 'Presente',
+    };
+  }
+  if (typeof str !== 'string') return null;
+  const matchHours = str.match(/horas\s*=\s*([\d.,]+)/);
+  const matchDate = str.match(/fecha\s*=\s*([0-9-T:\.Z]+)/);
+  const matchVal = str.match(/val\s*=\s*([^;}]+)/);
+  return {
+    horas: matchHours ? parseFloat(matchHours[1].replace(',', '.')) : 0,
+    fecha: matchDate ? matchDate[1].trim() : '',
+    val: matchVal ? matchVal[1].trim() : 'Presente',
+  };
+};
+
 type Tab = 'horarios' | 'horas';
 
 const Horarios: React.FC = () => {
@@ -52,6 +82,39 @@ const Horarios: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('horarios');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [personalizados, setPersonalizados] = useState<AlumnoPersonalizado[]>([]);
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('asist_personalizados');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const enriched = parsed.map((a: any) => {
+            const rawClases: any[] = Array.isArray(a.clases) ? a.clases : [];
+            const parsedClases = rawClases
+              .map(parseClase)
+              .filter((c): c is ClasePersonalizada => c !== null && c.val.toLowerCase() === 'presente');
+            
+            const horasPorMes: Record<string, number> = {};
+            parsedClases.forEach(c => {
+              const parts = c.fecha.split('-');
+              if (parts.length >= 2) {
+                const mesKey = `${parts[0]}-${parts[1]}`;
+                horasPorMes[mesKey] = (horasPorMes[mesKey] || 0) + c.horas;
+              }
+            });
+            return {
+              id: a.id || Date.now(),
+              nombre: a.nombre || 'Sin nombre',
+              horasPorMes,
+            };
+          });
+          setPersonalizados(enriched);
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   const alumnoActual = alumnos.find(a => a.email === currentUser?.email);
   const misMateriaIds = useMemo(() => {
@@ -341,6 +404,98 @@ const Horarios: React.FC = () => {
             </div>
             );
           })}
+
+          {/* Personalizados Table */}
+          {personalizados.length > 0 && (
+            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+              <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-indigo-500" />
+                <h3 className="font-bold text-foreground text-sm">Alumnos Personalizados</h3>
+                <span className="text-xs text-muted-foreground">— Registro de horas {selectedYear}</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-background">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-left sticky left-0 bg-background min-w-[140px]">Alumno</th>
+                      {allMonths.filter(m => {
+                        const [y, mm] = m.split('-');
+                        return Number(y) === selectedYear && Number(mm) >= 5;
+                      }).map(m => {
+                        const monthIdx = parseInt(m.split('-')[1], 10) - 1;
+                        return (
+                          <th key={m} className="px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase text-center min-w-[80px]">
+                            {MONTH_NAMES[monthIdx]?.slice(0, 3)}
+                          </th>
+                        );
+                      })}
+                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {personalizados.map(p => {
+                      const relevantMonths = allMonths.filter(mo => {
+                        const [y, mm] = mo.split('-');
+                        return Number(y) === selectedYear && Number(mm) >= 5;
+                      });
+                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (p.horasPorMes[mo] || 0), 0);
+                      
+                      return (
+                        <tr key={p.id} className="hover:bg-background">
+                          <td className="px-4 py-3 sticky left-0 bg-card">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">{p.nombre}</span>
+                            </div>
+                          </td>
+                          {relevantMonths.map(mo => {
+                            const horas = p.horasPorMes[mo] || 0;
+                            return (
+                              <td key={mo} className="px-3 py-3 text-center">
+                                {horas > 0 ? (
+                                  <span className="text-sm font-bold text-foreground">{horas}h</span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="px-4 py-3 text-center bg-indigo-50/50">
+                            <span className="text-sm font-bold text-indigo-700">{totalHoras}h</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    <tr className="bg-background font-bold">
+                      <td className="px-4 py-3 text-sm text-foreground sticky left-0 bg-background">Total</td>
+                      {allMonths.filter(m => {
+                        const [y, mm] = m.split('-');
+                        return Number(y) === selectedYear && Number(mm) >= 5;
+                      }).map(mo => {
+                        const total = personalizados.reduce((sum, p) => sum + (p.horasPorMes[mo] || 0), 0);
+                        return (
+                          <td key={mo} className="px-3 py-3 text-center text-sm text-foreground">
+                            {total > 0 ? `${total}h` : '—'}
+                          </td>
+                        );
+                      })}
+                      <td className="px-4 py-3 text-center bg-indigo-100/50">
+                        <span className="text-sm font-bold text-indigo-800">
+                          {personalizados.reduce((sum, p) => {
+                            return sum + allMonths.filter(mo => {
+                              const [y, mm] = mo.split('-');
+                              return Number(y) === selectedYear && Number(mm) >= 5;
+                            }).reduce((s, mo) => s + (p.horasPorMes[mo] || 0), 0);
+                          }, 0)}h
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {allMonths.length === 0 && (
             <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
