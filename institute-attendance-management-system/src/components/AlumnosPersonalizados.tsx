@@ -238,6 +238,7 @@ const AlumnosPersonalizados: React.FC = () => {
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<{ studentId: string | number, clase: ClasePersonalizada } | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<{ id: string | number, nombre: string } | null>(null);
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
@@ -343,6 +344,23 @@ const AlumnosPersonalizados: React.FC = () => {
       console.error(err);
     }
     setClassToDelete(null);
+  };
+
+  const confirmDeleteStudent = () => {
+    if (!studentToDelete) return;
+    try {
+      const raw = localStorage.getItem('asist_personalizados');
+      const parsed = raw ? JSON.parse(raw) : [];
+      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(studentToDelete.id));
+      if (studentIndex >= 0) {
+        parsed.splice(studentIndex, 1);
+        persistPersonalizados(parsed);
+        refreshLocalState();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setStudentToDelete(null);
   };
 
   if (alumnos.length === 0) {
@@ -454,6 +472,13 @@ const AlumnosPersonalizados: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary shrink-0">
                   {alumno.nombre.substring(0, 2).toUpperCase()}
                 </div>
+                <button
+                  onClick={() => setStudentToDelete({ id: alumno.id, nombre: alumno.nombre })}
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                  title="Eliminar Alumno"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
               
               <div className="flex items-center gap-6">
@@ -641,6 +666,37 @@ const AlumnosPersonalizados: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Confirmar Eliminar Alumno */}
+      {studentToDelete && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card text-left w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border p-6 text-center">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserSquare2 className="w-8 h-8 relative" />
+              <X className="w-4 h-4 absolute top-10 right-10 text-red-500 font-bold" />
+            </div>
+            <h3 className="font-bold text-lg text-foreground mb-2">¿Eliminar Alumno?</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Estás a punto de eliminar a <strong className="text-foreground">{studentToDelete.nombre}</strong> y todo su historial de clases. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex justify-center gap-3 w-full">
+              <button 
+                onClick={() => setStudentToDelete(null)} 
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteStudent} 
+                className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm hover:shadow transition-all"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
