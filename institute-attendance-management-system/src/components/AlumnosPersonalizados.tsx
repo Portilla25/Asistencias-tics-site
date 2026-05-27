@@ -272,7 +272,11 @@ const AlumnosPersonalizados: React.FC = () => {
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
-      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(selectedStudentId));
+      const targetStudent = alumnos.find(a => String(a.id) === String(selectedStudentId));
+      const studentIndex = parsed.findIndex((a: any) => 
+        (a.id && String(a.id) === String(selectedStudentId)) || 
+        (!a.id && targetStudent && a.nombre === targetStudent.nombre)
+      );
       if (studentIndex >= 0) {
         if (!Array.isArray(parsed[studentIndex].clases)) {
           parsed[studentIndex].clases = [];
@@ -320,7 +324,13 @@ const AlumnosPersonalizados: React.FC = () => {
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
-      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(classToDelete.studentId));
+      // If studentId doesn't match by id, try matching by looking up the student's name in state
+      const targetStudent = alumnos.find(a => String(a.id) === String(classToDelete.studentId));
+      const studentIndex = parsed.findIndex((a: any) => 
+        (a.id && String(a.id) === String(classToDelete.studentId)) || 
+        (!a.id && targetStudent && a.nombre === targetStudent.nombre)
+      );
+      
       if (studentIndex >= 0 && Array.isArray(parsed[studentIndex].clases)) {
         const rawClases = parsed[studentIndex].clases;
         
@@ -351,7 +361,10 @@ const AlumnosPersonalizados: React.FC = () => {
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
-      const studentIndex = parsed.findIndex((a: any) => String(a.id) === String(studentToDelete.id));
+      const studentIndex = parsed.findIndex((a: any) => 
+        (a.id && String(a.id) === String(studentToDelete.id)) || 
+        (!a.id && a.nombre === studentToDelete.nombre)
+      );
       if (studentIndex >= 0) {
         parsed.splice(studentIndex, 1);
         persistPersonalizados(parsed);
