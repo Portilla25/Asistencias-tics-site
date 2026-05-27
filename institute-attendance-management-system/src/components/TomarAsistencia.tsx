@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser } from 'lucide-react';
 import { Asistencia } from '../types';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
 
@@ -21,7 +21,7 @@ const CAREER_ICONS: Record<string, string> = {
 };
 
 const TomarAsistencia: React.FC = () => {
-  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno } = useApp();
+  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno, limpiarAsistencia } = useApp();
 
   const today = new Date().toLocaleDateString('en-CA');
   const [fecha, setFecha] = useState(today);
@@ -102,7 +102,17 @@ const TomarAsistencia: React.FC = () => {
   }, [selectedMateria, fecha, alumnosMateria, asistencias]);
 
   const handleEstado = (alumnoId: string, estado: Estado) => {
-    setEstados(prev => ({ ...prev, [alumnoId]: estado }));
+    setEstados(prev => {
+      if (prev[alumnoId] === estado) {
+        const next = { ...prev };
+        delete next[alumnoId];
+        if (selectedMateria && fecha) {
+          limpiarAsistencia(alumnoId, selectedMateria, fecha);
+        }
+        return next;
+      }
+      return { ...prev, [alumnoId]: estado };
+    });
     setSaved(false);
   };
 
@@ -430,6 +440,21 @@ const TomarAsistencia: React.FC = () => {
                             </button>
                           ))}
                           
+                          {(estado) && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleEstado(alumno.id, estado);
+                              }}
+                              className="ml-1 p-1.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-colors border border-transparent"
+                              title="Limpiar asistencia"
+                            >
+                              <Eraser className="w-4 h-4" />
+                            </button>
+                          )}
+
                           <div className="w-px h-6 bg-border mx-1"></div>
                           <button
                             type="button"

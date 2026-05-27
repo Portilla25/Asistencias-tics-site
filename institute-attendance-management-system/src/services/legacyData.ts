@@ -775,6 +775,29 @@ export const persistLegacyAttendanceBatch = (items: Omit<Asistencia, 'id'>[], al
   syncTouchedModules(touchedModules, state);
 };
 
+export const deleteLegacyAttendance = (alumnoId: string, materiaId: string, fecha: string, alumnos: Alumno[]) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    const alumno = alumnos.find((a) => a.id === alumnoId);
+    const legacyStudentId = alumno?.legacyRefs?.[materiaId];
+
+    if (legacyStudentId && state[materiaId]?.asistencias?.[legacyStudentId]) {
+      delete state[materiaId].asistencias[legacyStudentId][fecha];
+      
+      if (state[materiaId].motivos?.[legacyStudentId]) {
+        delete state[materiaId].motivos![legacyStudentId][fecha];
+      }
+      
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada con éxito de la base de datos (LocalStorage).`);
+    }
+  } catch (error) {
+    console.error("Error real al limpiar asistencia en base de datos:", error);
+  }
+};
+
 export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, currentAlumnos: Alumno[]) => {
   if (typeof window === 'undefined') return;
 

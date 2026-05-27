@@ -7,6 +7,7 @@ import {
   loadInitialAppData,
   persistLegacyAttendanceBatch,
   persistAlumno,
+  deleteLegacyAttendance,
 } from '../services/legacyData';
 
 interface AppContextType {
@@ -33,6 +34,7 @@ interface AppContextType {
   registrarAsistencia: (asistencia: Omit<Asistencia, 'id'>) => void;
   registrarAsistenciaLote: (asistencias: Omit<Asistencia, 'id'>[]) => void;
   updateAsistencia: (id: string, data: Partial<Asistencia>) => void;
+  limpiarAsistencia: (alumnoId: string, materiaId: string, fecha: string) => void;
   marcarNotificacionLeida: (id: string) => void;
   marcarTodasLeidas: () => void;
   activeSection: string;
@@ -232,6 +234,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAsistencias(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
   }, []);
 
+  const limpiarAsistencia = useCallback((alumnoId: string, materiaId: string, fecha: string) => {
+    deleteLegacyAttendance(alumnoId, materiaId, fecha, alumnos);
+    setAsistencias(prev => prev.filter(a => !(a.alumnoId === alumnoId && a.materiaId === materiaId && a.fecha === fecha)));
+  }, [alumnos]);
+
   const marcarNotificacionLeida = useCallback((id: string) => {
     setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
   }, []);
@@ -252,7 +259,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       exportBackup: createLegacyBackup,
       addAlumno, updateAlumno, deleteAlumno,
       addMateria, updateMateria, deleteMateria,
-      registrarAsistencia, registrarAsistenciaLote, updateAsistencia,
+      registrarAsistencia, registrarAsistenciaLote, updateAsistencia, limpiarAsistencia,
       marcarNotificacionLeida, marcarTodasLeidas,
       activeSection, setActiveSection,
       sidebarOpen, setSidebarOpen,
