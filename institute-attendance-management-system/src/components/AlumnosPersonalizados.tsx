@@ -240,6 +240,7 @@ const AlumnosPersonalizados: React.FC = () => {
   const [classToDelete, setClassToDelete] = useState<{ studentId: string | number, clase: ClasePersonalizada } | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<{ id: string | number, nombre: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingClass, setIsSavingClass] = useState(false);
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
@@ -267,9 +268,12 @@ const AlumnosPersonalizados: React.FC = () => {
     tel: ''
   });
 
-  const handleAddClass = (e: React.FormEvent) => {
+  const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId) return alert('Seleccione un alumno');
+    setIsSavingClass(true);
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
@@ -281,6 +285,18 @@ const AlumnosPersonalizados: React.FC = () => {
       if (studentIndex >= 0) {
         if (!Array.isArray(parsed[studentIndex].clases)) {
           parsed[studentIndex].clases = [];
+        }
+        
+        // Prevent duplicate attendance for the same date
+        const existingClass = parsed[studentIndex].clases.find((c: any) => {
+          const p = parseClase(c);
+          return p && p.fecha === classForm.fecha;
+        });
+
+        if (existingClass) {
+          alert("Ya existe asistencia registrada para esta fecha.");
+          setIsSavingClass(false);
+          return;
         }
         parsed[studentIndex].clases.push({
           fecha: classForm.fecha,
@@ -296,6 +312,8 @@ const AlumnosPersonalizados: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSavingClass(false);
     }
   };
 
@@ -656,8 +674,10 @@ const AlumnosPersonalizados: React.FC = () => {
                 </div>
               )}
               <div className="pt-2 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsClassModalOpen(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">Guardar Registro</button>
+                <button type="button" onClick={() => setIsClassModalOpen(false)} disabled={isSavingClass} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50">Cancelar</button>
+                <button type="submit" disabled={isSavingClass} className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isSavingClass ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Registro'}
+                </button>
               </div>
             </form>
           </div>
