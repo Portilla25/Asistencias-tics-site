@@ -6,6 +6,7 @@ import {
   InitialAppData,
   loadInitialAppData,
   persistLegacyAttendanceBatch,
+  persistAlumno,
 } from '../services/legacyData';
 
 interface AppContextType {
@@ -177,8 +178,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const updateAlumno = useCallback((id: string, data: Partial<Alumno>) => {
+    persistAlumno(id, data, alumnos);
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-  }, []);
+  }, [alumnos]);
 
   const deleteAlumno = useCallback((id: string) => {
     setAlumnos(prev => prev.filter(a => a.id !== id));

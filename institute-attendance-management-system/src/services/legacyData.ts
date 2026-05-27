@@ -775,6 +775,38 @@ export const persistLegacyAttendanceBatch = (items: Omit<Asistencia, 'id'>[], al
   syncTouchedModules(touchedModules, state);
 };
 
+export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, currentAlumnos: Alumno[]) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    let touched = false;
+
+    const alumno = currentAlumnos.find(a => a.id === alumnoId);
+    if (!alumno) return;
+
+    Object.keys(alumno.legacyRefs || {}).forEach(materiaId => {
+      const legacyId = alumno.legacyRefs?.[materiaId];
+      if (!legacyId || !state[materiaId]?.alumnos) return;
+      
+      const legacyStudent = state[materiaId].alumnos?.find(a => String(a.id) === String(legacyId));
+      if (legacyStudent) {
+        if (updates.estado !== undefined) {
+          legacyStudent.retirado = updates.estado === 'retirado';
+          touched = true;
+        }
+      }
+    });
+
+    if (touched) {
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      console.log(`Alumno con ID ${alumnoId} actualizado/retirado con éxito de la base de datos (LocalStorage).`);
+    }
+  } catch (error) {
+    console.error("Error real al eliminar/actualizar en base de datos:", error);
+  }
+};
+
 export const createLegacyBackup = () => {
   const backup = {
     state: safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {}),
