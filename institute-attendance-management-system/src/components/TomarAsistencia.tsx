@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus } from 'lucide-react';
 import { Asistencia } from '../types';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
 
@@ -21,7 +21,7 @@ const CAREER_ICONS: Record<string, string> = {
 };
 
 const TomarAsistencia: React.FC = () => {
-  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote } = useApp();
+  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno } = useApp();
 
   const today = new Date().toLocaleDateString('en-CA');
   const [fecha, setFecha] = useState(today);
@@ -104,6 +104,10 @@ const TomarAsistencia: React.FC = () => {
   const handleEstado = (alumnoId: string, estado: Estado) => {
     setEstados(prev => ({ ...prev, [alumnoId]: estado }));
     setSaved(false);
+  };
+
+  const toggleRetirado = (alumno: import('../types').Alumno) => {
+    updateAlumno(alumno.id, { estado: alumno.estado === 'retirado' ? 'activo' : 'retirado' });
   };
 
   const handleMarcarTodos = (estado: Estado) => {
@@ -400,7 +404,7 @@ const TomarAsistencia: React.FC = () => {
                         </div>
 
                         {/* Estado buttons */}
-                        <div className="flex gap-1.5 flex-wrap">
+                        <div className="flex gap-1.5 flex-wrap items-center">
                           {(Object.keys(estadoConfig) as Estado[]).map(e => (
                             <button
                               key={e}
@@ -415,6 +419,19 @@ const TomarAsistencia: React.FC = () => {
                               <span className="hidden sm:inline">{estadoConfig[e].label}</span>
                             </button>
                           ))}
+                          
+                          <div className="w-px h-6 bg-border mx-1"></div>
+                          <button
+                            onClick={() => toggleRetirado(alumno)}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              alumno.estado === 'retirado'
+                                ? 'text-green-600 hover:bg-green-50'
+                                : 'text-orange-500 hover:bg-orange-50'
+                            }`}
+                            title={alumno.estado === 'retirado' ? 'Restaurar alumno' : 'Retirar alumno'}
+                          >
+                            {alumno.estado === 'retirado' ? <UserPlus className="w-4 h-4" /> : <UserMinus className="w-4 h-4" />}
+                          </button>
                         </div>
                       </div>
 
