@@ -110,6 +110,7 @@ const Horarios: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('horarios');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [personalizados, setPersonalizados] = useState<AlumnoPersonalizado[]>([]);
 
   React.useEffect(() => {
@@ -327,7 +328,7 @@ const Horarios: React.FC = () => {
       {/* ═══════ TAB: Horas Dictadas ═══════ */}
       {activeTab === 'horas' && (
         <div className="space-y-4">
-          {/* Year selector */}
+          {/* Selectors */}
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-foreground">
               <Calendar className="w-4 h-4 inline mr-1.5 text-muted-foreground" />Año:
@@ -341,68 +342,70 @@ const Horarios: React.FC = () => {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
+
+            <label className="text-sm font-medium text-foreground ml-2">Mes:</label>
+            <select
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={i} value={i + 1}>{name}</option>
+              ))}
+            </select>
           </div>
 
           {careerGroups.map(({ career, materias: careerMaterias }) => {
-            const relevantMonths = Array.from({ length: 12 }, (_, i) => `${selectedYear}-${String(i + 1).padStart(2, '0')}`);
+            const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+            const monthName = MONTH_NAMES[selectedMonth - 1].toUpperCase();
+
             return (
             <div key={career.id} className="bg-[rgba(30,41,59,0.7)] backdrop-blur-[12px] shadow-lg border border-white/10 rounded-xl overflow-hidden mb-6">
               <div className="px-5 py-4 border-b border-white/10 flex items-center gap-3">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
                 <h3 className="font-bold text-gray-100 text-sm">{career.nombre}</h3>
-                <span className="text-xs text-gray-400">— Registro de horas {selectedYear}</span>
+                <span className="text-xs text-gray-400">— {monthName} {selectedYear}</span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-300 uppercase text-left sticky left-0 bg-[rgba(30,41,59,0.9)] min-w-[140px] z-10">Módulo</th>
-                      {relevantMonths.map(m => {
-                        const monthIdx = parseInt(m.split('-')[1], 10) - 1;
-                        return (
-                          <th key={m} className="px-3 py-2.5 text-xs font-semibold text-gray-300 uppercase text-center min-w-[80px]">
-                            {MONTH_NAMES[monthIdx]?.slice(0, 3)}
-                          </th>
-                        );
-                      })}
-                      <th className="px-4 py-2.5 text-xs font-bold text-white uppercase text-center bg-white/5 min-w-[80px]">Total</th>
+                    <tr className="border-b border-white/10 flex w-full">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-gray-300 uppercase text-left bg-[rgba(30,41,59,0.9)] w-[50%] border-r border-white/10">Módulo</th>
+                      <th className="px-3 py-2.5 text-xs font-semibold text-gray-300 uppercase text-center bg-white/5 w-[25%] border-r border-white/10">{monthName}</th>
+                      <th className="px-4 py-2.5 text-xs font-bold text-white uppercase text-center bg-white/5 w-[25%]">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="flex flex-col w-full divide-y divide-white/5">
                     {careerMaterias.map(m => {
                       const monthData = horasPorMes[m.id] || {};
-                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.horas || 0), 0);
-                      const totalClases = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.clases || 0), 0);
+                      const data = monthData[targetMonthStr];
+                      const totalHoras = data?.horas || 0;
+                      const totalClases = data?.clases || 0;
 
                       return (
-                        <tr key={m.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-3 sticky left-0 bg-[rgba(30,41,59,0.9)] z-10 border-r border-white/5">
+                        <tr key={m.id} className="hover:bg-white/5 transition-colors flex w-full">
+                          <td className="px-4 py-3 bg-[rgba(30,41,59,0.9)] border-r border-white/5 w-[50%] flex items-center">
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-                              <span className="text-sm font-medium text-gray-100 whitespace-nowrap">{m.codigo}</span>
+                              <span className="text-sm font-medium text-gray-100">{m.codigo}</span>
                             </div>
                           </td>
-                          {relevantMonths.map(mo => {
-                            const data = monthData[mo];
-                            return (
-                              <td key={mo} className="px-3 py-3 text-center border-r border-white/5 last:border-r-0">
-                                {data && data.horas > 0 ? (
-                                  <div className="flex flex-col items-center justify-center gap-0.5">
-                                    <span className="text-sm font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{data.horas}h</span>
-                                    {data.fechas && data.fechas.length > 0 && (
-                                      <span className="text-[10px] text-indigo-200 font-mono bg-black/20 px-1.5 py-0.5 rounded border border-white/5" title={`Días: ${data.fechas.join(', ')}`}>
-                                        {data.fechas.join(', ')}
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-sm font-medium text-gray-600">—</span>
+                          <td className="px-3 py-3 text-center border-r border-white/5 w-[25%] flex flex-col justify-center">
+                            {data && data.horas > 0 ? (
+                              <div className="flex flex-col items-center justify-center gap-0.5">
+                                <span className="text-sm font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{data.horas}h</span>
+                                {data.fechas && data.fechas.length > 0 && (
+                                  <span className="text-[10px] text-indigo-200 font-mono bg-black/20 px-1.5 py-0.5 rounded border border-white/5" title={`Días: ${data.fechas.join(', ')}`}>
+                                    {data.fechas.join(', ')}
+                                  </span>
                                 )}
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-3 text-center bg-white/5">
+                              </div>
+                            ) : (
+                              <span className="text-sm font-medium text-gray-600">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center bg-white/5 w-[25%] flex flex-col justify-center">
                             <span className="text-sm font-bold text-indigo-400">{totalHoras}h</span>
                             <p className="text-[10px] text-gray-400">{totalClases} clases</p>
                           </td>
@@ -411,22 +414,17 @@ const Horarios: React.FC = () => {
                     })}
 
                     {/* Career totals row */}
-                    <tr className="bg-white/5 font-bold">
-                      <td className="px-4 py-3 text-sm text-gray-200 sticky left-0 bg-[rgba(30,41,59,0.9)] z-10 border-r border-white/10">Total</td>
-                      {relevantMonths.map(mo => {
-                        const total = careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
-                        return (
-                          <td key={mo} className="px-3 py-3 text-center text-sm border-r border-white/5">
-                            {total > 0 ? <span className="text-indigo-400 font-bold">{total}h</span> : <span className="text-gray-600">—</span>}
-                          </td>
-                        );
-                      })}
-                      <td className="px-4 py-3 text-center bg-indigo-500/20">
+                    <tr className="bg-white/5 font-bold flex w-full">
+                      <td className="px-4 py-3 text-sm text-gray-200 bg-[rgba(30,41,59,0.9)] border-r border-white/10 w-[50%] flex items-center">Total</td>
+                      <td className="px-3 py-3 text-center text-sm border-r border-white/5 w-[25%] flex items-center justify-center">
+                        {(() => {
+                          const monthTotal = careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[targetMonthStr]?.horas || 0), 0);
+                          return monthTotal > 0 ? <span className="text-indigo-400 font-bold">{monthTotal}h</span> : <span className="text-gray-600">—</span>;
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-center bg-indigo-500/20 w-[25%] flex items-center justify-center">
                         <span className="text-sm font-bold text-indigo-300">
-                          {careerMaterias.reduce((sum, m) => {
-                            return sum + relevantMonths
-                              .reduce((s, mo) => s + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
-                          }, 0)}h
+                          {careerMaterias.reduce((sum, m) => sum + (horasPorMes[m.id]?.[targetMonthStr]?.horas || 0), 0)}h
                         </span>
                       </td>
                     </tr>
