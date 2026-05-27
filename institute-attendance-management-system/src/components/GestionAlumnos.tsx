@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Search, Edit3, Trash2, X, Check, Users, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, X, Check, Users, Eye, ChevronDown, ChevronUp, UserMinus, UserPlus } from 'lucide-react';
 import { Alumno } from '../types';
 
 const GestionAlumnos: React.FC = () => {
@@ -27,10 +27,18 @@ const GestionAlumnos: React.FC = () => {
       return matchSearch && matchCurso;
     })
     .sort((a, b) => {
+      const aRetirado = a.estado === 'retirado';
+      const bRetirado = b.estado === 'retirado';
+      if (aRetirado && !bRetirado) return 1;
+      if (!aRetirado && bRetirado) return -1;
       const aVal = sortField === 'apellido' ? a.apellido : a.curso;
       const bVal = sortField === 'apellido' ? b.apellido : b.curso;
       return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
+
+  const toggleRetirado = (alumno: Alumno) => {
+    updateAlumno(alumno.id, { estado: alumno.estado === 'retirado' ? 'activo' : 'retirado' });
+  };
 
   const getAlumnoStats = (alumnoId: string) => {
     const asis = asistencias.filter(a => a.alumnoId === alumnoId);
@@ -158,15 +166,22 @@ const GestionAlumnos: React.FC = () => {
                 const stats = getAlumnoStats(alumno.id);
                 const enRiesgo = stats.pct < 75 && stats.total > 0;
                 return (
-                  <tr key={alumno.id} className="hover:bg-background/50 transition-colors">
+                  <tr key={alumno.id} className={`transition-colors ${alumno.estado === 'retirado' ? 'bg-gray-50/80 opacity-75' : 'hover:bg-background/50'}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-bold flex-shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${alumno.estado === 'retirado' ? 'bg-gray-200 text-gray-500' : 'bg-indigo-100 text-indigo-700'}`}>
                           {alumno.nombre[0]}{alumno.apellido[0]}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground">{alumno.apellido}, {alumno.nombre}</p>
-                          <p className="text-xs text-muted-foreground">{alumno.email}</p>
+                          <p className={`text-sm font-medium ${alumno.estado === 'retirado' ? 'text-gray-500 line-through decoration-gray-400' : 'text-foreground'}`}>
+                            {alumno.apellido}, {alumno.nombre}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">{alumno.email}</p>
+                            {alumno.estado === 'retirado' && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">RETIRADO</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -201,17 +216,28 @@ const GestionAlumnos: React.FC = () => {
                         </button>
                         {deleteConfirm === alumno.id ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => handleDelete(alumno.id)} className="p-1.5 text-white bg-red-500 rounded-lg hover:bg-red-600">
+                            <button onClick={() => handleDelete(alumno.id)} className="p-1.5 text-white bg-red-500 rounded-lg hover:bg-red-600" title="Confirmar eliminación permanente">
                               <Check className="w-4 h-4" />
                             </button>
-                            <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg">
+                            <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg" title="Cancelar">
                               <X className="w-4 h-4" />
                             </button>
                           </div>
                         ) : (
-                          <button onClick={() => setDeleteConfirm(alumno.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <>
+                            {alumno.estado === 'retirado' ? (
+                              <button onClick={() => toggleRetirado(alumno)} className="p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Restaurar alumno">
+                                <UserPlus className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button onClick={() => toggleRetirado(alumno)} className="p-1.5 text-muted-foreground hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Retirar alumno">
+                                <UserMinus className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button onClick={() => setDeleteConfirm(alumno.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar permanentemente">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

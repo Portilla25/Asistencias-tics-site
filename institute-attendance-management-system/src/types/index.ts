@@ -27,6 +27,7 @@ export interface Alumno {
   email: string;
   dni: string;
   curso: string;
+  estado?: 'activo' | 'retirado';
   avatar?: string;
   materias: string[];
   legacyRefs?: Record<string, string>;

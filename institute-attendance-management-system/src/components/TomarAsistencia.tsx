@@ -73,7 +73,15 @@ const TomarAsistencia: React.FC = () => {
 
   const alumnosMateria = useMemo(() => {
     if (!selectedMateria) return [];
-    return alumnos.filter(a => a.materias.includes(selectedMateria));
+    return alumnos
+      .filter(a => a.materias.includes(selectedMateria))
+      .sort((a, b) => {
+        const aRetirado = a.estado === 'retirado';
+        const bRetirado = b.estado === 'retirado';
+        if (aRetirado && !bRetirado) return 1;
+        if (!aRetirado && bRetirado) return -1;
+        return a.apellido.localeCompare(b.apellido);
+      });
   }, [selectedMateria, alumnos]);
 
   // Pre-fill with existing attendance
@@ -369,18 +377,25 @@ const TomarAsistencia: React.FC = () => {
                 {alumnosMateria.map((alumno, idx) => {
                   const estado = estados[alumno.id];
                   return (
-                    <div key={alumno.id} className={`px-5 py-4 ${estado ? '' : 'bg-muted/30'}`}>
+                    <div key={alumno.id} className={`px-5 py-4 ${alumno.estado === 'retirado' ? 'bg-gray-50/50 opacity-80' : (estado ? '' : 'bg-muted/30')}`}>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         {/* Alumno info */}
                         <div className="flex items-center gap-3 flex-1">
                           <span className="text-xs text-muted-foreground w-5 text-center">{idx + 1}</span>
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                            style={{ backgroundColor: materia?.color || '#6366f1' }}>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${alumno.estado === 'retirado' ? 'bg-gray-300' : ''}`}
+                            style={alumno.estado !== 'retirado' ? { backgroundColor: materia?.color || '#6366f1' } : undefined}>
                             {alumno.nombre[0]}{alumno.apellido[0]}
                           </div>
                           <div>
-                            <p className="font-medium text-foreground text-sm">{alumno.apellido}, {alumno.nombre}</p>
-                            <p className="text-xs text-muted-foreground">DNI: {alumno.dni} · {alumno.curso}</p>
+                            <p className={`font-medium text-sm ${alumno.estado === 'retirado' ? 'text-gray-500 line-through decoration-gray-400' : 'text-foreground'}`}>
+                              {alumno.apellido}, {alumno.nombre}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground">DNI: {alumno.dni} · {alumno.curso}</p>
+                              {alumno.estado === 'retirado' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">RETIRADO</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
