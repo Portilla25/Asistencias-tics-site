@@ -365,10 +365,10 @@ const Horarios: React.FC = () => {
                           </th>
                         );
                       })}
-                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
+                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-primary/5 min-w-[80px]">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-border">
                     {careerMaterias.map(m => {
                       const monthData = horasPorMes[m.id] || {};
                       const totalHoras = relevantMonths.reduce((sum, mo) => sum + (monthData[mo]?.horas || 0), 0);
@@ -401,8 +401,8 @@ const Horarios: React.FC = () => {
                               </td>
                             );
                           })}
-                          <td className="px-4 py-3 text-center bg-indigo-50/50">
-                            <span className="text-sm font-bold text-indigo-700">{totalHoras}h</span>
+                          <td className="px-4 py-3 text-center bg-primary/5">
+                            <span className="text-sm font-bold text-primary">{totalHoras}h</span>
                             <p className="text-[10px] text-muted-foreground">{totalClases} clases</p>
                           </td>
                         </tr>
@@ -420,8 +420,8 @@ const Horarios: React.FC = () => {
                           </td>
                         );
                       })}
-                      <td className="px-4 py-3 text-center bg-indigo-100/50">
-                        <span className="text-sm font-bold text-indigo-800">
+                      <td className="px-4 py-3 text-center bg-primary/10">
+                        <span className="text-sm font-bold text-primary">
                           {careerMaterias.reduce((sum, m) => {
                             return sum + relevantMonths
                               .reduce((s, mo) => s + (horasPorMes[m.id]?.[mo]?.horas || 0), 0);
@@ -461,10 +461,10 @@ const Horarios: React.FC = () => {
                           </th>
                         );
                       })}
-                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-indigo-50 min-w-[80px]">Total</th>
+                      <th className="px-4 py-2.5 text-xs font-bold text-foreground uppercase text-center bg-primary/5 min-w-[80px]">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-border">
                     {personalizados.map(p => {
                       const relevantMonths = allMonths.filter(mo => {
                         const [y, mm] = mo.split('-');
@@ -498,8 +498,8 @@ const Horarios: React.FC = () => {
                               </td>
                             );
                           })}
-                          <td className="px-4 py-3 text-center bg-indigo-50/50">
-                            <span className="text-sm font-bold text-indigo-700">{totalHoras}h</span>
+                          <td className="px-4 py-3 text-center bg-primary/5">
+                            <span className="text-sm font-bold text-primary">{totalHoras}h</span>
                           </td>
                         </tr>
                       );
@@ -518,8 +518,8 @@ const Horarios: React.FC = () => {
                           </td>
                         );
                       })}
-                      <td className="px-4 py-3 text-center bg-indigo-100/50">
-                        <span className="text-sm font-bold text-indigo-800">
+                      <td className="px-4 py-3 text-center bg-primary/10">
+                        <span className="text-sm font-bold text-primary">
                           {personalizados.reduce((sum, p) => {
                             return sum + allMonths.filter(mo => {
                               const [y, mm] = mo.split('-');
