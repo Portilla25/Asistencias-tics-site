@@ -106,10 +106,11 @@ const TomarAsistencia: React.FC = () => {
     setSaved(false);
   };
 
-  const toggleRetirado = (alumno: import('../types').Alumno, e?: React.MouseEvent) => {
+  const toggleRetirado = (alumno: import('../types').Alumno, e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
+      e.currentTarget.blur();
     }
     updateAlumno(alumno.id, { estado: alumno.estado === 'retirado' ? 'activo' : 'retirado' });
   };
