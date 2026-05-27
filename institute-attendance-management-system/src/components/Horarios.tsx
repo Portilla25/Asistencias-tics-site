@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2 } from 'lucide-react';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
+import { getSesiones, recalcularNumerosClaseBatch, SesionData } from '../services/sesiones';
 
 /* ─── Schedule definitions for each module ─── */
 const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: string }> = {
@@ -104,6 +105,153 @@ const parseClase = (str: unknown): ClasePersonalizada | null => {
 };
 
 type Tab = 'horarios' | 'horas';
+
+const ModuleRowAccordion: React.FC<{ 
+  materia: any; 
+  data: any; 
+  targetMonthStr: string; 
+  totalHoras: number; 
+  totalClases: number;
+}> = ({ materia, data, targetMonthStr, totalHoras, totalClases }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [sesiones, setSesiones] = useState<SesionData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+
+  const loadSesiones = async () => {
+    setLoading(true);
+    const data = await getSesiones(materia.id);
+    const filtered = data.filter(s => s.fecha.startsWith(targetMonthStr));
+    setSesiones(filtered);
+    setLoading(false);
+  };
+
+  const handleToggle = () => {
+    if (!isExpanded) {
+      loadSesiones();
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleEditSubmit = async (sesion: SesionData) => {
+    if (editValue.trim() === '') return;
+    const nuevoNumero = parseInt(editValue, 10);
+    if (isNaN(nuevoNumero) || nuevoNumero === sesion.numeroClase) {
+      setEditingId(null);
+      return;
+    }
+
+    setLoading(true);
+    await recalcularNumerosClaseBatch(materia.id, sesion.fecha, nuevoNumero);
+    await loadSesiones(); // Reload after batch update
+    setEditingId(null);
+  };
+
+  return (
+    <>
+      <tr onClick={handleToggle} className="hover:bg-white/5 transition-colors flex w-full cursor-pointer group">
+        <td className="px-4 py-3 bg-[rgba(30,41,59,0.9)] border-r border-white/5 w-[50%] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: materia.color }} />
+            <span className="text-sm font-medium text-gray-100 group-hover:text-white transition-colors">{materia.codigo}</span>
+          </div>
+          {isExpanded ? <ChevronUp className="w-4 h-4 text-indigo-400" /> : <ChevronDown className="w-4 h-4 text-gray-500 group-hover:text-gray-300" />}
+        </td>
+        <td className="px-3 py-3 text-center border-r border-white/5 w-[25%] flex flex-col justify-center">
+          {data && data.horas > 0 ? (
+            <div className="flex flex-col items-center justify-center gap-0.5">
+              <span className="text-sm font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{data.horas}h</span>
+              {data.fechas && data.fechas.length > 0 && (
+                <span className="text-[10px] text-indigo-200 font-mono bg-black/20 px-1.5 py-0.5 rounded border border-white/5" title={`Días: ${data.fechas.join(', ')}`}>
+                  {data.fechas.join(', ')}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-sm font-medium text-gray-600">—</span>
+          )}
+        </td>
+        <td className="px-4 py-3 text-center bg-white/5 w-[25%] flex flex-col justify-center">
+          <span className="text-sm font-bold text-indigo-400">{totalHoras}h</span>
+          <p className="text-[10px] text-gray-400">{totalClases} clases</p>
+        </td>
+      </tr>
+      
+      {/* Expanded Accordion Sub-table */}
+      {isExpanded && (
+        <tr className="w-full flex">
+          <td colSpan={3} className="w-full p-0 bg-[rgba(15,23,42,0.8)] border-b border-white/10 shadow-inner">
+            <div className="p-4">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                  <span className="text-xs text-indigo-300 font-medium tracking-wide">Cargando sesiones...</span>
+                </div>
+              ) : sesiones.length > 0 ? (
+                <div className="rounded-lg border border-white/5 overflow-hidden bg-black/20">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-white/5 text-xs uppercase text-gray-400">
+                      <tr>
+                        <th className="px-4 py-2 font-medium">Fecha</th>
+                        <th className="px-4 py-2 font-medium">Tema</th>
+                        <th className="px-4 py-2 font-medium text-center">Nº Clase</th>
+                        <th className="px-4 py-2 font-medium text-center">Modalidad</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {sesiones.map(s => (
+                        <tr key={s.fecha} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-2.5 text-gray-300 font-mono text-xs">{s.fecha}</td>
+                          <td className="px-4 py-2.5 text-gray-200">{s.tema || <span className="text-gray-500 italic">Sin tema registrado</span>}</td>
+                          <td className="px-4 py-2.5 text-center">
+                            {editingId === s.fecha ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <input
+                                  type="number"
+                                  autoFocus
+                                  defaultValue={s.numeroClase}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => handleEditSubmit(s)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleEditSubmit(s);
+                                    if (e.key === 'Escape') setEditingId(null);
+                                  }}
+                                  className="w-16 px-1 py-0.5 text-center bg-indigo-900/50 border border-indigo-500/50 rounded text-indigo-100 outline-none focus:ring-1 focus:ring-indigo-400 text-xs"
+                                />
+                              </div>
+                            ) : (
+                              <span 
+                                onClick={() => { setEditingId(s.fecha); setEditValue(s.numeroClase.toString()); }}
+                                className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-xs cursor-pointer hover:bg-indigo-500/40 hover:text-indigo-200 transition-colors border border-indigo-500/10 shadow-[0_0_10px_rgba(99,102,241,0.1)] hover:shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+                                title="Haz clic para editar y recalcular"
+                              >
+                                {s.numeroClase || 0}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${s.modalidad === 'Virtual' ? 'bg-sky-500/10 text-sky-300 border-sky-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
+                              {s.modalidad || 'Presencial'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-white/5 border-dashed rounded-lg bg-white/[0.02]">
+                  <p className="text-sm text-gray-400">No hay detalles de sesión guardados en Firebase para este mes.</p>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
 
 const Horarios: React.FC = () => {
   const { materias, asistencias, alumnos, currentUser } = useApp();
@@ -384,32 +532,14 @@ const Horarios: React.FC = () => {
                       const totalClases = data?.clases || 0;
 
                       return (
-                        <tr key={m.id} className="hover:bg-white/5 transition-colors flex w-full">
-                          <td className="px-4 py-3 bg-[rgba(30,41,59,0.9)] border-r border-white/5 w-[50%] flex items-center">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-                              <span className="text-sm font-medium text-gray-100">{m.codigo}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-center border-r border-white/5 w-[25%] flex flex-col justify-center">
-                            {data && data.horas > 0 ? (
-                              <div className="flex flex-col items-center justify-center gap-0.5">
-                                <span className="text-sm font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">{data.horas}h</span>
-                                {data.fechas && data.fechas.length > 0 && (
-                                  <span className="text-[10px] text-indigo-200 font-mono bg-black/20 px-1.5 py-0.5 rounded border border-white/5" title={`Días: ${data.fechas.join(', ')}`}>
-                                    {data.fechas.join(', ')}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-sm font-medium text-gray-600">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center bg-white/5 w-[25%] flex flex-col justify-center">
-                            <span className="text-sm font-bold text-indigo-400">{totalHoras}h</span>
-                            <p className="text-[10px] text-gray-400">{totalClases} clases</p>
-                          </td>
-                        </tr>
+                        <ModuleRowAccordion 
+                          key={m.id}
+                          materia={m}
+                          data={data}
+                          targetMonthStr={targetMonthStr}
+                          totalHoras={totalHoras}
+                          totalClases={totalClases}
+                        />
                       );
                     })}
 

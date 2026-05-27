@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor } from 'lucide-react';
 import { Asistencia } from '../types';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
+import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
 
 type Estado = Asistencia['estado'];
 
@@ -30,6 +31,12 @@ const TomarAsistencia: React.FC = () => {
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(['info_gastro']));
   const [estados, setEstados] = useState<Record<string, Estado>>({});
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
+  
+  // Sesion fields
+  const [tema, setTema] = useState('');
+  const [modalidad, setModalidad] = useState('Presencial');
+  const [numeroClase, setNumeroClase] = useState<number | ''>('');
+  
   const [saved, setSaved] = useState(false);
   const [, setMarcarTodos] = useState<Estado | ''>('');
 
@@ -99,6 +106,27 @@ const TomarAsistencia: React.FC = () => {
     setEstados(newEstados);
     setObservaciones(newObs);
     setSaved(false);
+
+    // Fetch session data
+    getSesion(selectedMateria, fecha).then(sesion => {
+      if (sesion) {
+        setTema(sesion.tema || '');
+        setNumeroClase(sesion.numeroClase || '');
+        setModalidad(sesion.modalidad || 'Presencial');
+      } else {
+        setTema('');
+        setModalidad('Presencial');
+        // Auto-calculate next numeroClase if empty
+        getSesiones(selectedMateria).then(sesiones => {
+          if (sesiones.length > 0) {
+            const max = Math.max(...sesiones.map(s => s.numeroClase || 0));
+            setNumeroClase(max + 1);
+          } else {
+            setNumeroClase(1);
+          }
+        });
+      }
+    });
   }, [selectedMateria, fecha, alumnosMateria, asistencias]);
 
   const handleEstado = (alumnoId: string, estado: Estado) => {
@@ -133,7 +161,7 @@ const TomarAsistencia: React.FC = () => {
     setSaved(false);
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     const batch: Omit<Asistencia, 'id'>[] = alumnosMateria
       .filter(a => estados[a.id])
       .map(a => ({
@@ -144,7 +172,20 @@ const TomarAsistencia: React.FC = () => {
         observacion: observaciones[a.id] || undefined,
         registradoPor: currentUser?.id || '',
       }));
+    
+    // Guardar asistencias
     registrarAsistenciaLote(batch);
+
+    // Guardar sesión en Firebase
+    if (selectedMateria && fecha) {
+      await saveSesion(selectedMateria, fecha, {
+        tema,
+        numeroClase: Number(numeroClase) || 0,
+        modalidad,
+        horas: 0 // Will be calculated by Horarios view based on attendance counts or module config
+      });
+    }
+
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -321,6 +362,51 @@ const TomarAsistencia: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Session Info Fields */}
+          {selectedMateria && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 mt-4 border-t border-border">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">
+                  <Hash className="w-3 h-3 inline mr-1" /> Nº de Clase
+                </label>
+                <input
+                  type="number"
+                  value={numeroClase}
+                  onChange={(e) => setNumeroClase(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                  placeholder="Ej. 43"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">
+                  <BookOpen className="w-3 h-3 inline mr-1" /> Tema / Actividad
+                </label>
+                <input
+                  type="text"
+                  value={tema}
+                  onChange={(e) => setTema(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                  placeholder="Ej. Virus Informáticos"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 ml-1">
+                  <Monitor className="w-3 h-3 inline mr-1" /> Modalidad
+                </label>
+                <select
+                  value={modalidad}
+                  onChange={(e) => setModalidad(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
+                >
+                  <option value="Presencial">Presencial</option>
+                  <option value="Virtual">Virtual</option>
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {selectedMateria && (
