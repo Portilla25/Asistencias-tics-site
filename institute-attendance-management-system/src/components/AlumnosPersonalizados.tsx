@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X, Trash2 } from 'lucide-react';
+import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X, Trash2, Loader2 } from 'lucide-react';
 import mergedData from '../data/merged_personalizados.json';
 
 interface ClasePersonalizada {
@@ -239,6 +239,7 @@ const AlumnosPersonalizados: React.FC = () => {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<{ studentId: string | number, clase: ClasePersonalizada } | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<{ id: string | number, nombre: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
@@ -319,8 +320,12 @@ const AlumnosPersonalizados: React.FC = () => {
     }
   };
 
-  const confirmDeleteClass = () => {
+  const confirmDeleteClass = async () => {
     if (!classToDelete) return;
+    setIsDeleting(true);
+    // Simulate slight API latency to show visual loading as requested
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
@@ -352,12 +357,18 @@ const AlumnosPersonalizados: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsDeleting(false);
+      setClassToDelete(null);
     }
-    setClassToDelete(null);
   };
 
-  const confirmDeleteStudent = () => {
+  const confirmDeleteStudent = async () => {
     if (!studentToDelete) return;
+    setIsDeleting(true);
+    // Simulate slight API latency to show visual loading as requested
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     try {
       const raw = localStorage.getItem('asist_personalizados');
       const parsed = raw ? JSON.parse(raw) : [];
@@ -372,8 +383,10 @@ const AlumnosPersonalizados: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsDeleting(false);
+      setStudentToDelete(null);
     }
-    setStudentToDelete(null);
   };
 
   if (alumnos.length === 0) {
@@ -665,15 +678,17 @@ const AlumnosPersonalizados: React.FC = () => {
             <div className="flex justify-center gap-3 w-full">
               <button 
                 onClick={() => setClassToDelete(null)} 
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 onClick={confirmDeleteClass} 
-                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sí, eliminar
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sí, eliminar'}
               </button>
             </div>
           </div>
@@ -695,15 +710,17 @@ const AlumnosPersonalizados: React.FC = () => {
             <div className="flex justify-center gap-3 w-full">
               <button 
                 onClick={() => setStudentToDelete(null)} 
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors"
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 onClick={confirmDeleteStudent} 
-                className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm hover:shadow transition-all"
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sí, eliminar
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sí, eliminar'}
               </button>
             </div>
           </div>
