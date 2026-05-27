@@ -114,8 +114,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!authUser?.email) return;
       const user = resolveGoogleUser(authUser.email, authUser.displayName);
       if (user) {
-        setCurrentUser(user);
-        setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
+        setCurrentUser(prev => {
+          if (!prev || prev.email !== user.email) {
+            setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
+          }
+          return user;
+        });
       }
     });
     return () => unsubscribe?.();
