@@ -18,25 +18,28 @@ const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: strin
   // Gastronomía Lunes
   info_gastro_L_1: { turno: 'Mañana', hora: '10:30 – 12:20', dia: 'Lunes' },
   // TICs Sábados
-  tics_S_1: { turno: 'Mañana', hora: '09:00 – 10:00', dia: 'Sábado' },
-  tics_S_2: { turno: 'Mañana', hora: '10:00 – 11:00', dia: 'Sábado' },
-  tics_S_3: { turno: 'Mañana', hora: '11:00 – 12:00', dia: 'Sábado' },
-  tics_S_4: { turno: 'Mañana', hora: '12:00 – 13:00', dia: 'Sábado' },
+  tics_S_1: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  tics_S_2: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  tics_S_3: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  tics_S_4: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
   // Redes Sábados Mañana
-  redes_S_M1: { turno: 'Mañana', hora: '09:00 – 10:00', dia: 'Sábado' },
-  redes_S_M2: { turno: 'Mañana', hora: '10:00 – 11:00', dia: 'Sábado' },
-  redes_S_M3: { turno: 'Mañana', hora: '11:00 – 12:00', dia: 'Sábado' },
-  redes_S_M4: { turno: 'Mañana', hora: '12:00 – 13:00', dia: 'Sábado' },
+  redes_S_M1: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  redes_S_M2: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  redes_S_M3: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
+  redes_S_M4: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
   // Redes Sábados Tarde
-  redes_S_T1: { turno: 'Tarde', hora: '14:00 – 15:00', dia: 'Sábado' },
-  redes_S_T2: { turno: 'Tarde', hora: '15:00 – 16:00', dia: 'Sábado' },
-  redes_S_T3: { turno: 'Tarde', hora: '16:00 – 17:00', dia: 'Sábado' },
-  redes_S_T4: { turno: 'Tarde', hora: '17:00 – 18:00', dia: 'Sábado' },
+  redes_S_T1: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
+  redes_S_T2: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
+  redes_S_T3: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
+  redes_S_T4: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
 };
 
 /* Hours per module (1h per module, except Gastronomía = 2h) */
 const HOURS_PER_MODULE: Record<string, number> = {
   info_gastro_L_1: 2,
+  tics_S_1: 4, tics_S_2: 4, tics_S_3: 4, tics_S_4: 4,
+  redes_S_M1: 4, redes_S_M2: 4, redes_S_M3: 4, redes_S_M4: 4,
+  redes_S_T1: 4, redes_S_T2: 4, redes_S_T3: 4, redes_S_T4: 4,
 };
 const getHoursForModule = (id: string) => HOURS_PER_MODULE[id] || 1;
 

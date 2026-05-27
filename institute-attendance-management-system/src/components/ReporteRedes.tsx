@@ -27,14 +27,14 @@ interface LegacyModule {
 }
 
 const MODULOS_INFO: Record<string, { turno: string; hora: string; label: string }> = {
-  redes_S_M1: { turno: 'Mañana', hora: '09:00 - 10:00', label: 'Módulo 1' },
-  redes_S_M2: { turno: 'Mañana', hora: '10:00 - 11:00', label: 'Módulo 2' },
-  redes_S_M3: { turno: 'Mañana', hora: '11:00 - 12:00', label: 'Módulo 3' },
-  redes_S_M4: { turno: 'Mañana', hora: '12:00 - 13:00', label: 'Módulo 4' },
-  redes_S_T1: { turno: 'Tarde', hora: '14:00 - 15:00', label: 'Módulo 1' },
-  redes_S_T2: { turno: 'Tarde', hora: '15:00 - 16:00', label: 'Módulo 2' },
-  redes_S_T3: { turno: 'Tarde', hora: '16:00 - 17:00', label: 'Módulo 3' },
-  redes_S_T4: { turno: 'Tarde', hora: '17:00 - 18:00', label: 'Módulo 4' },
+  redes_S_M1: { turno: 'Mañana', hora: '09:00 - 13:00', label: 'Módulo 1' },
+  redes_S_M2: { turno: 'Mañana', hora: '09:00 - 13:00', label: 'Módulo 2' },
+  redes_S_M3: { turno: 'Mañana', hora: '09:00 - 13:00', label: 'Módulo 3' },
+  redes_S_M4: { turno: 'Mañana', hora: '09:00 - 13:00', label: 'Módulo 4' },
+  redes_S_T1: { turno: 'Tarde', hora: '14:00 - 18:00', label: 'Módulo 1' },
+  redes_S_T2: { turno: 'Tarde', hora: '14:00 - 18:00', label: 'Módulo 2' },
+  redes_S_T3: { turno: 'Tarde', hora: '14:00 - 18:00', label: 'Módulo 3' },
+  redes_S_T4: { turno: 'Tarde', hora: '14:00 - 18:00', label: 'Módulo 4' },
 };
 
 const STATUS_OPTIONS = [
