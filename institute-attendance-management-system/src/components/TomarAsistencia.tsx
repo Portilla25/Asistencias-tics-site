@@ -106,7 +106,11 @@ const TomarAsistencia: React.FC = () => {
     setSaved(false);
   };
 
-  const toggleRetirado = (alumno: import('../types').Alumno) => {
+  const toggleRetirado = (alumno: import('../types').Alumno, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     updateAlumno(alumno.id, { estado: alumno.estado === 'retirado' ? 'activo' : 'retirado' });
   };
 
@@ -408,7 +412,12 @@ const TomarAsistencia: React.FC = () => {
                           {(Object.keys(estadoConfig) as Estado[]).map(e => (
                             <button
                               key={e}
-                              onClick={() => handleEstado(alumno.id, e)}
+                              type="button"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleEstado(alumno.id, e);
+                              }}
                               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                                 estado === e
                                   ? `${estadoConfig[e].bg} ${estadoConfig[e].color} ring-2 ring-offset-1 ring-current`
@@ -422,7 +431,8 @@ const TomarAsistencia: React.FC = () => {
                           
                           <div className="w-px h-6 bg-border mx-1"></div>
                           <button
-                            onClick={() => toggleRetirado(alumno)}
+                            type="button"
+                            onClick={(e) => toggleRetirado(alumno, e)}
                             className={`p-1.5 rounded-lg transition-colors ${
                               alumno.estado === 'retirado'
                                 ? 'text-green-600 hover:bg-green-50'

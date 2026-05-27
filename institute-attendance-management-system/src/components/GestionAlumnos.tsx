@@ -36,7 +36,11 @@ const GestionAlumnos: React.FC = () => {
       return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     });
 
-  const toggleRetirado = (alumno: Alumno) => {
+  const toggleRetirado = (alumno: Alumno, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     updateAlumno(alumno.id, { estado: alumno.estado === 'retirado' ? 'activo' : 'retirado' });
   };
 
@@ -226,15 +230,15 @@ const GestionAlumnos: React.FC = () => {
                         ) : (
                           <>
                             {alumno.estado === 'retirado' ? (
-                              <button onClick={() => toggleRetirado(alumno)} className="p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Restaurar alumno">
+                              <button type="button" onClick={(e) => toggleRetirado(alumno, e)} className="p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Restaurar alumno">
                                 <UserPlus className="w-4 h-4" />
                               </button>
                             ) : (
-                              <button onClick={() => toggleRetirado(alumno)} className="p-1.5 text-muted-foreground hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Retirar alumno">
+                              <button type="button" onClick={(e) => toggleRetirado(alumno, e)} className="p-1.5 text-muted-foreground hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Retirar alumno">
                                 <UserMinus className="w-4 h-4" />
                               </button>
                             )}
-                            <button onClick={() => setDeleteConfirm(alumno.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar permanentemente">
+                            <button type="button" onClick={(e) => { e.preventDefault(); setDeleteConfirm(alumno.id); }} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar permanentemente">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </>
