@@ -386,6 +386,7 @@ const Horarios: React.FC = () => {
       horas: number;
       tipo: 'modulo' | 'personalizado';
       color: string;
+      materiaId?: string;
     }> = [];
 
     const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
@@ -411,7 +412,8 @@ const Horarios: React.FC = () => {
           horario: sched ? sched.hora : 'Horario oficial',
           horas: horasModulo,
           tipo: 'modulo',
-          color: m.color
+          color: m.color,
+          materiaId: m.id
         });
       });
     });
@@ -764,57 +766,121 @@ const Horarios: React.FC = () => {
           )}
             </>
           ) : (
-            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden mt-4">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-background border-b border-border text-left">
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Módulo / Alumno</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hora Dictada</th>
-                      <th className="px-5 py-3 text-xs font-bold text-foreground uppercase text-right">Horas</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {clasesDetalladas.length > 0 ? (
-                      clasesDetalladas.map((c, index) => (
-                        <tr key={`${c.id}-${index}`} className="hover:bg-background transition-colors">
-                          <td className="px-5 py-3 font-medium text-foreground whitespace-nowrap text-sm">{c.fechaStr}</td>
-                          <td className="px-5 py-3 text-sm text-muted-foreground">{c.diaStr}</td>
-                          <td className="px-5 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                              <span className="font-medium text-sm text-foreground">{c.entidad}</span>
-                              {c.tipo === 'personalizado' && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">PERS</span>}
-                            </div>
-                          </td>
-                          <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{c.horario}</td>
-                          <td className="px-5 py-3 text-right">
-                            <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-bold text-sm">
-                              {c.horas}h
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">
-                          No hay clases registradas para este mes.
-                        </td>
-                      </tr>
-                    )}
-                    {clasesDetalladas.length > 0 && (
-                      <tr className="bg-background font-bold border-t-2 border-border">
-                        <td colSpan={4} className="px-5 py-4 text-right text-foreground">Total Horas del Mes:</td>
-                        <td className="px-5 py-4 text-right text-lg text-indigo-600">
-                          {clasesDetalladas.reduce((acc, c) => acc + c.horas, 0)}h
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-6 mt-4">
+              {careerGroups.map(({ career, materias: careerMaterias }) => {
+                const careerClasses = clasesDetalladas.filter(c => 
+                  c.tipo === 'modulo' && careerMaterias.some(m => m.id === c.materiaId)
+                );
+                
+                if (careerClasses.length === 0) return null;
+
+                return (
+                  <div key={career.id} className="bg-[rgba(30,41,59,0.7)] backdrop-blur-[12px] shadow-lg border border-white/10 rounded-xl overflow-hidden">
+                    <div className="px-5 py-4 border-b border-white/10 flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
+                      <h3 className="font-bold text-gray-100 text-sm">{career.nombre}</h3>
+                      <span className="text-xs text-gray-400">— Detalle de clases</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-white/5 border-b border-white/10 text-left">
+                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Fecha</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Día</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Módulo</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Hora Dictada</th>
+                            <th className="px-5 py-3 text-xs font-bold text-white uppercase text-right">Horas</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {careerClasses.map((c, index) => (
+                            <tr key={`${c.id}-${index}`} className="hover:bg-white/5 transition-colors">
+                              <td className="px-5 py-3 font-medium text-gray-200 whitespace-nowrap text-sm">{c.fechaStr}</td>
+                              <td className="px-5 py-3 text-sm text-gray-400">{c.diaStr}</td>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                                  <span className="font-medium text-sm text-gray-200">{c.entidad}</span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3 font-mono text-sm text-gray-400">{c.horario}</td>
+                              <td className="px-5 py-3 text-right">
+                                <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold text-sm">
+                                  {c.horas}h
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-white/5 font-bold border-t-2 border-white/10">
+                            <td colSpan={4} className="px-5 py-4 text-right text-gray-200">Total Horas del Mes:</td>
+                            <td className="px-5 py-4 text-right text-lg text-indigo-400">
+                              {careerClasses.reduce((acc, c) => acc + c.horas, 0)}h
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Personalizados Detailed Table */}
+              {(() => {
+                const persClasses = clasesDetalladas.filter(c => c.tipo === 'personalizado');
+                if (persClasses.length === 0) return null;
+
+                return (
+                  <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden mt-6">
+                    <div className="px-5 py-4 border-b border-border flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full bg-indigo-500" />
+                      <h3 className="font-bold text-foreground text-sm">Alumnos Personalizados</h3>
+                      <span className="text-xs text-muted-foreground">— Detalle de clases</span>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-background border-b border-border text-left">
+                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Alumno</th>
+                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hora Dictada</th>
+                            <th className="px-5 py-3 text-xs font-bold text-foreground uppercase text-right">Horas</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {persClasses.map((c, index) => (
+                            <tr key={`${c.id}-${index}`} className="hover:bg-background transition-colors">
+                              <td className="px-5 py-3 font-medium text-foreground whitespace-nowrap text-sm">{c.fechaStr}</td>
+                              <td className="px-5 py-3 text-sm text-muted-foreground">{c.diaStr}</td>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                                  <span className="font-medium text-sm text-foreground">{c.entidad.replace('Personalizado: ', '')}</span>
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">PERS</span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{c.horario}</td>
+                              <td className="px-5 py-3 text-right">
+                                <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-bold text-sm">
+                                  {c.horas}h
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-background font-bold border-t-2 border-border">
+                            <td colSpan={4} className="px-5 py-4 text-right text-foreground">Total Horas Personalizadas:</td>
+                            <td className="px-5 py-4 text-right text-lg text-indigo-600">
+                              {persClasses.reduce((acc, c) => acc + c.horas, 0)}h
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
