@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2, List, Grid } from 'lucide-react';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
-import { getSesiones, recalcularNumerosClaseBatch, SesionData } from '../services/sesiones';
+import { getSesiones, recalcularNumerosClaseBatch, SesionData, getFirebaseFirestore } from '../services/sesiones';
 
 /* ─── Schedule definitions for each module ─── */
 const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: string }> = {
@@ -137,7 +137,24 @@ const ModuleRowAccordion: React.FC<{
     setIsExpanded(!isExpanded);
   };
 
-  const handleEditSubmit = async (sesion: SesionData) => {
+  const displaySesiones = useMemo(() => {
+    const datesFromAsistencias = (data?.fechas || []).map((day: string) => `${targetMonthStr}-${day.padStart(2, '0')}`);
+    const datesFromFirebase = sesiones.map(s => s.fecha);
+    const allDates = Array.from(new Set([...datesFromAsistencias, ...datesFromFirebase])).sort();
+    
+    return allDates.map(fecha => {
+      const fbData = sesiones.find(s => s.fecha === fecha);
+      return {
+        fecha,
+        numeroClase: fbData?.numeroClase || 0,
+        tema: fbData?.tema || '',
+        modalidad: fbData?.modalidad || 'Presencial',
+        horas: fbData?.horas || getHoursForModule(materia.id)
+      };
+    });
+  }, [data?.fechas, sesiones, targetMonthStr, materia.id]);
+
+  const handleEditSubmit = async (sesion: any) => {
     if (editValue.trim() === '') return;
     const nuevoNumero = parseInt(editValue, 10);
     if (isNaN(nuevoNumero) || nuevoNumero === sesion.numeroClase) {
@@ -146,8 +163,30 @@ const ModuleRowAccordion: React.FC<{
     }
 
     setLoading(true);
+
+    const db = getFirebaseFirestore();
+    const fb = (window as any).firebase;
+    if (db && fb) {
+      const batch = db.batch();
+      for (const s of displaySesiones) {
+         const fbExists = sesiones.some(fs => fs.fecha === s.fecha);
+         if (!fbExists || s.fecha === sesion.fecha) {
+           const docRef = db.collection('modulos').doc(materia.id).collection('sesiones').doc(s.fecha);
+           batch.set(docRef, {
+             fecha: s.fecha,
+             numeroClase: s.fecha === sesion.fecha ? nuevoNumero : s.numeroClase,
+             tema: s.tema,
+             modalidad: s.modalidad,
+             horas: s.horas,
+             updatedAt: fb.firestore.FieldValue.serverTimestamp()
+           }, { merge: true });
+         }
+      }
+      await batch.commit();
+    }
+
     await recalcularNumerosClaseBatch(materia.id, sesion.fecha, nuevoNumero);
-    await loadSesiones(); // Reload after batch update
+    await loadSesiones();
     setEditingId(null);
   };
 
@@ -191,7 +230,7 @@ const ModuleRowAccordion: React.FC<{
                   <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
                   <span className="text-xs text-indigo-300 font-medium tracking-wide">Cargando sesiones...</span>
                 </div>
-              ) : sesiones.length > 0 ? (
+              ) : displaySesiones.length > 0 ? (
                 <div className="rounded-lg border border-white/5 overflow-hidden bg-black/20">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-white/5 text-xs uppercase text-gray-400">
@@ -204,7 +243,7 @@ const ModuleRowAccordion: React.FC<{
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {sesiones.map(s => {
+                      {displaySesiones.map(s => {
                         const dayStr = new Date(s.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long' });
                         const capDayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
                         return (
@@ -260,6 +299,114 @@ const ModuleRowAccordion: React.FC<{
               ) : (
                 <div className="text-center py-6 border border-white/5 border-dashed rounded-lg bg-white/[0.02]">
                   <p className="text-sm text-gray-400">No hay detalles de sesión guardados en Firebase para este mes.</p>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
+
+const PersonalizadoRowAccordion: React.FC<{
+  alumno: AlumnoPersonalizado;
+  selectedYear: number;
+  allMonths: string[];
+  MONTH_NAMES: string[];
+}> = ({ alumno, selectedYear, allMonths, MONTH_NAMES }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const relevantMonths = allMonths.filter(mo => {
+    const [y, mm] = mo.split('-');
+    return Number(y) === selectedYear && Number(mm) >= 5;
+  });
+  const totalHoras = relevantMonths.reduce((sum, mo) => sum + (alumno.horasPorMes[mo]?.horas || 0), 0);
+  
+  // Prepare flat classes for the selected year
+  const yearClasses = alumno.clases
+    .filter(c => c.fecha.startsWith(`${selectedYear}-`))
+    .sort((a, b) => new Date(`${a.fecha}T12:00:00Z`).getTime() - new Date(`${b.fecha}T12:00:00Z`).getTime());
+
+  return (
+    <>
+      <tr onClick={() => setIsExpanded(!isExpanded)} className="hover:bg-background cursor-pointer group">
+        <td className="px-4 py-3 sticky left-0 bg-card z-10 flex items-center justify-between border-r border-border">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground group-hover:text-indigo-600 transition-colors">{alumno.nombre}</span>
+          </div>
+          {isExpanded ? <ChevronUp className="w-4 h-4 text-indigo-500" /> : <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />}
+        </td>
+        {relevantMonths.map(mo => {
+          const data = alumno.horasPorMes[mo];
+          return (
+            <td key={mo} className="px-3 py-3 text-center border-r border-border">
+              {data && data.horas > 0 ? (
+                <div className="flex flex-col items-center justify-center gap-0.5">
+                  <span className="text-sm font-bold text-foreground">{data.horas}h</span>
+                  {data.fechas && data.fechas.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50" title={`Días: ${data.fechas.join(', ')}`}>
+                      {data.fechas.join(', ')}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-300">—</span>
+              )}
+            </td>
+          );
+        })}
+        <td className="px-4 py-3 text-center bg-primary/5">
+          <span className="text-sm font-bold text-primary">{totalHoras}h</span>
+        </td>
+      </tr>
+
+      {isExpanded && (
+        <tr>
+          <td colSpan={relevantMonths.length + 2} className="p-0 bg-muted/30 border-b border-border shadow-inner">
+            <div className="p-4">
+              {yearClasses.length > 0 ? (
+                <div className="rounded-lg border border-border overflow-hidden bg-background">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-muted text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2 font-medium">Fecha</th>
+                        <th className="px-4 py-2 font-medium">Estado</th>
+                        <th className="px-4 py-2 font-medium text-center">Horario</th>
+                        <th className="px-4 py-2 font-medium text-right">Horas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {yearClasses.map((c, index) => {
+                        const dayStr = new Date(c.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long' });
+                        const capDayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+                        const horarioStr = (c.horaInicio && c.horaFin) ? `de ${c.horaInicio} a ${c.horaFin}` : 'Horas asignadas';
+                        return (
+                          <tr key={`${c.fecha}-${index}`} className="hover:bg-muted/50 transition-colors">
+                            <td className="px-4 py-2.5 text-foreground font-mono text-xs">
+                              {c.fecha}
+                              <span className="ml-2 text-muted-foreground font-sans">{capDayStr}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-foreground">
+                              <span className={`text-xs px-2 py-0.5 rounded-full border ${c.val === 'Presente' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>
+                                {c.val}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-center font-mono text-xs text-muted-foreground">
+                              {horarioStr}
+                            </td>
+                            <td className="px-4 py-2.5 text-right font-bold text-indigo-600">
+                              {c.horas}h
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-6 border border-border border-dashed rounded-lg bg-background/50">
+                  <p className="text-sm text-muted-foreground">No hay clases detalladas para este año.</p>
                 </div>
               )}
             </div>
@@ -614,45 +761,15 @@ const Horarios: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {personalizados.map(p => {
-                      const relevantMonths = allMonths.filter(mo => {
-                        const [y, mm] = mo.split('-');
-                        return Number(y) === selectedYear && Number(mm) >= 5;
-                      });
-                      const totalHoras = relevantMonths.reduce((sum, mo) => sum + (p.horasPorMes[mo]?.horas || 0), 0);
-                      
-                      return (
-                        <tr key={p.id} className="hover:bg-background">
-                          <td className="px-4 py-3 sticky left-0 bg-card">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground">{p.nombre}</span>
-                            </div>
-                          </td>
-                          {relevantMonths.map(mo => {
-                            const data = p.horasPorMes[mo];
-                            return (
-                              <td key={mo} className="px-3 py-3 text-center">
-                                {data && data.horas > 0 ? (
-                                  <div className="flex flex-col items-center justify-center gap-0.5">
-                                    <span className="text-sm font-bold text-foreground">{data.horas}h</span>
-                                    {data.fechas && data.fechas.length > 0 && (
-                                      <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded border border-border/50" title={`Días: ${data.fechas.join(', ')}`}>
-                                        {data.fechas.join(', ')}
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-300">—</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-3 text-center bg-primary/5">
-                            <span className="text-sm font-bold text-primary">{totalHoras}h</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {personalizados.map(p => (
+                      <PersonalizadoRowAccordion 
+                        key={p.id}
+                        alumno={p}
+                        selectedYear={selectedYear}
+                        allMonths={allMonths}
+                        MONTH_NAMES={MONTH_NAMES}
+                      />
+                    ))}
 
                     <tr className="bg-background font-bold">
                       <td className="px-4 py-3 text-sm text-foreground sticky left-0 bg-background">Total</td>

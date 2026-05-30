@@ -8,7 +8,7 @@ export interface SesionData {
   updatedAt?: any;
 }
 
-const getFirebaseFirestore = () => {
+export const getFirebaseFirestore = () => {
   if (typeof window === 'undefined' || !(window as any).firebase?.firestore) return null;
   const fb = (window as any).firebase;
   const app = fb.apps?.length ? fb.app() : fb.initializeApp(JSON.parse(localStorage.getItem('asist_firebase_config') || '{}'));
