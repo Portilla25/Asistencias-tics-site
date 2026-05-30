@@ -263,65 +263,67 @@ const GestionAlumnos: React.FC = () => {
       {/* Modal Form */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
               <h3 className="font-bold text-foreground">{editingId ? 'Editar Alumno' : 'Nuevo Alumno'}</h3>
               <button onClick={() => setShowForm(false)} className="p-1 text-muted-foreground hover:text-muted-foreground rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Nombre *</label>
-                  <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nombre" />
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Nombre *</label>
+                    <input required value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Nombre" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Apellido *</label>
+                    <input required value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Apellido" />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Apellido *</label>
-                  <input required value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Apellido" />
+                  <label className="block text-sm font-medium text-foreground mb-1">Email *</label>
+                  <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="email@instituto.edu" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Email *</label>
-                <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="email@instituto.edu" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">DNI *</label>
+                    <input required value={form.dni} onChange={e => setForm(f => ({ ...f, dni: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="42123456" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1">Curso *</label>
+                    <select value={form.curso} onChange={e => setForm(f => ({ ...f, curso: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      {['3°A', '3°B', '4°A', '4°B', '5°A', '5°B'].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">DNI *</label>
-                  <input required value={form.dni} onChange={e => setForm(f => ({ ...f, dni: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="42123456" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Curso *</label>
-                  <select value={form.curso} onChange={e => setForm(f => ({ ...f, curso: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    {['3°A', '3°B', '4°A', '4°B', '5°A', '5°B'].map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Materias</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {materias.map(m => (
-                    <label key={m.id} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-background">
-                      <input
-                        type="checkbox"
-                        checked={form.materias.includes(m.id)}
-                        onChange={e => setForm(f => ({
-                          ...f,
-                          materias: e.target.checked ? [...f.materias, m.id] : f.materias.filter(id => id !== m.id)
-                        }))}
-                        className="accent-indigo-600"
-                      />
-                      <span className="text-xs text-foreground">{m.nombre}</span>
-                    </label>
-                  ))}
+                  <label className="block text-sm font-medium text-foreground mb-2">Materias</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {materias.map(m => (
+                      <label key={m.id} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-background">
+                        <input
+                          type="checkbox"
+                          checked={form.materias.includes(m.id)}
+                          onChange={e => setForm(f => ({
+                            ...f,
+                            materias: e.target.checked ? [...f.materias, m.id] : f.materias.filter(id => id !== m.id)
+                          }))}
+                          className="accent-indigo-600"
+                        />
+                        <span className="text-xs text-foreground">{m.nombre}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 p-6 pt-4 border-t border-border flex-shrink-0 bg-card rounded-b-2xl">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg text-sm hover:bg-background transition-colors">
                   Cancelar
                 </button>

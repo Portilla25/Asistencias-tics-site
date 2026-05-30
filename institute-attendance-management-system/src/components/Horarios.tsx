@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2 } from 'lucide-react';
+import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2, List, Grid } from 'lucide-react';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
 import { getSesiones, recalcularNumerosClaseBatch, SesionData } from '../services/sesiones';
 
@@ -55,11 +55,14 @@ interface ClasePersonalizada {
   fecha: string;
   val: string;
   horas: number;
+  horaInicio?: string;
+  horaFin?: string;
 }
 interface AlumnoPersonalizado {
   id: number | string;
   nombre: string;
-  horasPorMes: Record<string, number>;
+  horasPorMes: Record<string, { horas: number; clases: number; fechas: string[] }>;
+  clases: ClasePersonalizada[];
 }
 const calcHoursFromTimes = (inicio: string, fin: string): number => {
   if (!inicio || !fin) return 0;
@@ -101,7 +104,7 @@ const parseClase = (str: unknown): ClasePersonalizada | null => {
     if (calculated > 0) horas = calculated;
   }
 
-  return { horas, fecha, val };
+  return { horas, fecha, val, horaInicio, horaFin };
 };
 
 type Tab = 'horarios' | 'horas';
@@ -256,6 +259,7 @@ const ModuleRowAccordion: React.FC<{
 const Horarios: React.FC = () => {
   const { materias, asistencias, alumnos, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('horarios');
+  const [viewMode, setViewMode] = useState<'resumen' | 'detalle'>('resumen');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -288,6 +292,7 @@ const Horarios: React.FC = () => {
               id: a.id || Date.now(),
               nombre: a.nombre || 'Sin nombre',
               horasPorMes,
+              clases: parsedClases,
             };
           });
           setPersonalizados(enriched);
@@ -368,6 +373,72 @@ const Horarios: React.FC = () => {
     });
     return [...months].sort();
   }, [horasPorMes]);
+
+  /* --- Detailed table data --- */
+  const clasesDetalladas = useMemo(() => {
+    const list: Array<{
+      id: string;
+      fechaStr: string;
+      fechaObj: Date;
+      diaStr: string;
+      entidad: string;
+      horario: string;
+      horas: number;
+      tipo: 'modulo' | 'personalizado';
+      color: string;
+    }> = [];
+
+    const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+
+    // 1. Regular Modules
+    materias.forEach(m => {
+      if (!misMateriaIds.has(m.id)) return;
+      const sched = MODULE_SCHEDULES[m.id];
+      const horasModulo = getHoursForModule(m.id);
+      
+      const materiaAsistencias = asistencias.filter(a => a.materiaId === m.id && a.fecha.startsWith(targetMonthStr));
+      const uniqueDates = new Set(materiaAsistencias.map(a => a.fecha));
+      
+      uniqueDates.forEach(dateStr => {
+        const dObj = new Date(`${dateStr}T12:00:00Z`); // Avoid timezone shift
+        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        list.push({
+          id: `mod-${m.id}-${dateStr}`,
+          fechaStr: dateStr,
+          fechaObj: dObj,
+          diaStr: days[dObj.getUTCDay()],
+          entidad: `${m.codigo} - ${m.nombre}`,
+          horario: sched ? sched.hora : 'Horario oficial',
+          horas: horasModulo,
+          tipo: 'modulo',
+          color: m.color
+        });
+      });
+    });
+
+    // 2. Personalizados
+    personalizados.forEach(p => {
+      const pClases = p.clases.filter(c => c.fecha.startsWith(targetMonthStr));
+      pClases.forEach((c, idx) => {
+        const dObj = new Date(`${c.fecha}T12:00:00Z`);
+        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        const horarioStr = (c.horaInicio && c.horaFin) ? `de ${c.horaInicio} a ${c.horaFin}` : 'Horas asignadas';
+        list.push({
+          id: `pers-${p.id}-${idx}`,
+          fechaStr: c.fecha,
+          fechaObj: dObj,
+          diaStr: days[dObj.getUTCDay()],
+          entidad: `Personalizado: ${p.nombre}`,
+          horario: horarioStr,
+          horas: c.horas,
+          tipo: 'personalizado',
+          color: '#6366f1'
+        });
+      });
+    });
+
+    return list.sort((a, b) => a.fechaObj.getTime() - b.fechaObj.getTime());
+  }, [materias, asistencias, personalizados, misMateriaIds, selectedYear, selectedMonth]);
 
   return (
     <div className="p-6 space-y-5">
@@ -501,11 +572,31 @@ const Horarios: React.FC = () => {
                 <option key={i} value={i + 1}>{name}</option>
               ))}
             </select>
+            
+            {/* View Mode Toggle */}
+            <div className="ml-auto flex items-center bg-card rounded-lg p-1 border border-border">
+              <button
+                onClick={() => setViewMode('resumen')}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'resumen' ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:bg-muted'}`}
+                title="Vista Resumen"
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('detalle')}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'detalle' ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:bg-muted'}`}
+                title="Vista Detallada"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          {careerGroups.map(({ career, materias: careerMaterias }) => {
-            const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-            const monthName = MONTH_NAMES[selectedMonth - 1].toUpperCase();
+          {viewMode === 'resumen' ? (
+            <>
+              {careerGroups.map(({ career, materias: careerMaterias }) => {
+                const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+                const monthName = MONTH_NAMES[selectedMonth - 1].toUpperCase();
 
             return (
             <div key={career.id} className="bg-[rgba(30,41,59,0.7)] backdrop-blur-[12px] shadow-lg border border-white/10 rounded-xl overflow-hidden mb-6">
@@ -665,10 +756,65 @@ const Horarios: React.FC = () => {
           )}
 
           {allMonths.length === 0 && (
-            <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border">
+            <div className="bg-card rounded-xl p-12 text-center shadow-sm border border-border mt-4">
               <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-muted-foreground font-medium">No hay registros de clases para {selectedYear}</p>
               <p className="text-muted-foreground text-sm mt-1">Las horas se calculan automáticamente a partir de la asistencia registrada</p>
+            </div>
+          )}
+            </>
+          ) : (
+            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden mt-4">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-background border-b border-border text-left">
+                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Módulo / Alumno</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hora Dictada</th>
+                      <th className="px-5 py-3 text-xs font-bold text-foreground uppercase text-right">Horas</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {clasesDetalladas.length > 0 ? (
+                      clasesDetalladas.map((c, index) => (
+                        <tr key={`${c.id}-${index}`} className="hover:bg-background transition-colors">
+                          <td className="px-5 py-3 font-medium text-foreground whitespace-nowrap text-sm">{c.fechaStr}</td>
+                          <td className="px-5 py-3 text-sm text-muted-foreground">{c.diaStr}</td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                              <span className="font-medium text-sm text-foreground">{c.entidad}</span>
+                              {c.tipo === 'personalizado' && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">PERS</span>}
+                            </div>
+                          </td>
+                          <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{c.horario}</td>
+                          <td className="px-5 py-3 text-right">
+                            <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-bold text-sm">
+                              {c.horas}h
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">
+                          No hay clases registradas para este mes.
+                        </td>
+                      </tr>
+                    )}
+                    {clasesDetalladas.length > 0 && (
+                      <tr className="bg-background font-bold border-t-2 border-border">
+                        <td colSpan={4} className="px-5 py-4 text-right text-foreground">Total Horas del Mes:</td>
+                        <td className="px-5 py-4 text-right text-lg text-indigo-600">
+                          {clasesDetalladas.reduce((acc, c) => acc + c.horas, 0)}h
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
