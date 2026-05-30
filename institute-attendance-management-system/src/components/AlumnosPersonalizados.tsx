@@ -69,7 +69,7 @@ const getMonthLabel = (dateStr: string) => {
   const parts = dateStr.split('-');
   if (parts.length >= 2) {
     const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
-    return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    return d.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
   }
   return dateStr;
 };
@@ -244,7 +244,7 @@ const AlumnosPersonalizados: React.FC = () => {
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     horaInicio: '',
     horaFin: '',
     horas: 0
@@ -307,7 +307,7 @@ const AlumnosPersonalizados: React.FC = () => {
         });
         persistPersonalizados(parsed);
         setIsClassModalOpen(false);
-        setClassForm({ fecha: new Date().toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
+        setClassForm({ fecha: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
         refreshLocalState();
       }
     } catch (err) {

@@ -24,7 +24,7 @@ const Header: React.FC = () => {
 
   const unread = notificaciones.filter(n => !n.leida && (n.destinatarioId === currentUser?.id || currentUser?.rol === 'admin')).length;
 
-  const today = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const themes = [
     { id: 'light', name: 'Claro', icon: <Sun className="w-4 h-4" /> },

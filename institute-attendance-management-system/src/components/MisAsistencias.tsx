@@ -136,7 +136,7 @@ const MisAsistencias: React.FC = () => {
           {misAsistencias.slice(0, 50).map(asis => {
             const materia = materias.find(m => m.id === asis.materiaId);
             const badge = estadoBadge[asis.estado];
-            const fecha = new Date(asis.fecha + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+            const fecha = new Date(asis.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
             return (
               <div key={asis.id} className="flex items-center gap-4 px-5 py-3 hover:bg-background/50">
                 <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: materia?.color || '#6366f1' }} />

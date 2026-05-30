@@ -38,7 +38,7 @@ const Notificaciones: React.FC = () => {
       <div className="space-y-3">
         {misNotificaciones.map(n => {
           const config = tipoConfig[n.tipo];
-          const fecha = new Date(n.fecha).toLocaleDateString('es-AR', {
+          const fecha = new Date(n.fecha + 'T12:00:00').toLocaleDateString('es-PE', {
             day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
           });
           return (

@@ -26,7 +26,7 @@ const Calendario: React.FC = () => {
   const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-  const monthName = currentDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const monthName = currentDate.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
 
   const misMaterias = currentUser?.rol === 'alumno' && alumnoActual
     ? materias.filter(m => alumnoActual.materias.includes(m.id))
@@ -160,7 +160,7 @@ const Calendario: React.FC = () => {
           <div className="px-5 py-4 border-b border-border bg-background">
             <h3 className="font-semibold text-foreground">
               {selectedDate
-                ? new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+                ? (selectedDate === today ? 'Hoy' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }))
                 : 'Seleccioná un día'}
             </h3>
             {selectedDate && <p className="text-xs text-muted-foreground">{selectedDayData.length} registros</p>}

@@ -87,7 +87,7 @@ const ReporteRedes: React.FC = () => {
       }
     } catch { /* ignore */ }
 
-    setLastUpdate(new Date().toLocaleTimeString('es-ES'));
+    setLastUpdate(new Date().toLocaleTimeString('es-PE'));
   }, []);
 
   useEffect(() => {
@@ -177,7 +177,7 @@ const ReporteRedes: React.FC = () => {
       {/* Migration date */}
       {report?.fecha && (
         <div className="text-xs text-muted-foreground font-mono">
-          Migración ejecutada: {new Date(report.fecha).toLocaleString('es-ES')} · Última carga: {lastUpdate}
+          Migración ejecutada: {new Date(report.fecha).toLocaleString('es-PE')} • Última carga: {lastUpdate}
         </div>
       )}
 
