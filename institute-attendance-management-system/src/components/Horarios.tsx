@@ -199,47 +199,61 @@ const ModuleRowAccordion: React.FC<{
                         <th className="px-4 py-2 font-medium">Fecha</th>
                         <th className="px-4 py-2 font-medium">Tema</th>
                         <th className="px-4 py-2 font-medium text-center">Nº Clase</th>
+                        <th className="px-4 py-2 font-medium text-center">Horas</th>
                         <th className="px-4 py-2 font-medium text-center">Modalidad</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {sesiones.map(s => (
-                        <tr key={s.fecha} className="hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-2.5 text-gray-300 font-mono text-xs">{s.fecha}</td>
-                          <td className="px-4 py-2.5 text-gray-200">{s.tema || <span className="text-gray-500 italic">Sin tema registrado</span>}</td>
-                          <td className="px-4 py-2.5 text-center">
-                            {editingId === s.fecha ? (
-                              <div className="flex items-center justify-center gap-1">
-                                <input
-                                  type="number"
-                                  autoFocus
-                                  defaultValue={s.numeroClase}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onBlur={() => handleEditSubmit(s)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleEditSubmit(s);
-                                    if (e.key === 'Escape') setEditingId(null);
-                                  }}
-                                  className="w-16 px-1 py-0.5 text-center bg-indigo-900/50 border border-indigo-500/50 rounded text-indigo-100 outline-none focus:ring-1 focus:ring-indigo-400 text-xs"
-                                />
+                      {sesiones.map(s => {
+                        const dayStr = new Date(s.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long' });
+                        const capDayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+                        return (
+                          <tr key={s.fecha} className="hover:bg-white/5 transition-colors">
+                            <td className="px-4 py-2.5 text-gray-300 font-mono text-xs">
+                              {s.fecha}
+                              <span className="ml-2 text-gray-500 font-sans">{capDayStr}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-gray-200">{s.tema || <span className="text-gray-500 italic">Sin tema registrado</span>}</td>
+                            <td className="px-4 py-2.5 text-center">
+                              {editingId === s.fecha ? (
+                                <div className="flex items-center justify-center gap-1">
+                                  <input
+                                    type="number"
+                                    autoFocus
+                                    defaultValue={s.numeroClase}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={() => handleEditSubmit(s)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSubmit(s);
+                                      if (e.key === 'Escape') setEditingId(null);
+                                    }}
+                                    className="w-16 px-1 py-0.5 text-center bg-indigo-900/50 border border-indigo-500/50 rounded text-indigo-100 outline-none focus:ring-1 focus:ring-indigo-400 text-xs"
+                                  />
+                                </div>
+                              ) : (
+                                <span 
+                                  onClick={() => { setEditingId(s.fecha); setEditValue(s.numeroClase.toString()); }}
+                                  className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-xs cursor-pointer hover:bg-indigo-500/40 hover:text-indigo-200 transition-colors border border-indigo-500/10 shadow-[0_0_10px_rgba(99,102,241,0.1)] hover:shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+                                  title="Haz clic para editar y recalcular"
+                                >
+                                  {s.numeroClase || 0}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-indigo-300">{s.horas || getHoursForModule(materia.id)}h</span>
+                                <span className="text-[10px] text-gray-500 font-mono">{MODULE_SCHEDULES[materia.id]?.hora || ''}</span>
                               </div>
-                            ) : (
-                              <span 
-                                onClick={() => { setEditingId(s.fecha); setEditValue(s.numeroClase.toString()); }}
-                                className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-xs cursor-pointer hover:bg-indigo-500/40 hover:text-indigo-200 transition-colors border border-indigo-500/10 shadow-[0_0_10px_rgba(99,102,241,0.1)] hover:shadow-[0_0_12px_rgba(99,102,241,0.2)]"
-                                title="Haz clic para editar y recalcular"
-                              >
-                                {s.numeroClase || 0}
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              <span className={`text-xs px-2 py-0.5 rounded-full border ${s.modalidad === 'Virtual' ? 'bg-sky-500/10 text-sky-300 border-sky-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
+                                {s.modalidad || 'Presencial'}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            <span className={`text-xs px-2 py-0.5 rounded-full border ${s.modalidad === 'Virtual' ? 'bg-sky-500/10 text-sky-300 border-sky-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
-                              {s.modalidad || 'Presencial'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -259,7 +273,6 @@ const ModuleRowAccordion: React.FC<{
 const Horarios: React.FC = () => {
   const { materias, asistencias, alumnos, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('horarios');
-  const [viewMode, setViewMode] = useState<'resumen' | 'detalle'>('resumen');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -374,73 +387,6 @@ const Horarios: React.FC = () => {
     return [...months].sort();
   }, [horasPorMes]);
 
-  /* --- Detailed table data --- */
-  const clasesDetalladas = useMemo(() => {
-    const list: Array<{
-      id: string;
-      fechaStr: string;
-      fechaObj: Date;
-      diaStr: string;
-      entidad: string;
-      horario: string;
-      horas: number;
-      tipo: 'modulo' | 'personalizado';
-      color: string;
-      materiaId?: string;
-    }> = [];
-
-    const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-
-    // 1. Regular Modules
-    materias.forEach(m => {
-      if (!misMateriaIds.has(m.id)) return;
-      const sched = MODULE_SCHEDULES[m.id];
-      const horasModulo = getHoursForModule(m.id);
-      
-      const materiaAsistencias = asistencias.filter(a => a.materiaId === m.id && a.fecha.startsWith(targetMonthStr));
-      const uniqueDates = new Set(materiaAsistencias.map(a => a.fecha));
-      
-      uniqueDates.forEach(dateStr => {
-        const dObj = new Date(`${dateStr}T12:00:00Z`); // Avoid timezone shift
-        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        list.push({
-          id: `mod-${m.id}-${dateStr}`,
-          fechaStr: dateStr,
-          fechaObj: dObj,
-          diaStr: days[dObj.getUTCDay()],
-          entidad: `${m.codigo} - ${m.nombre}`,
-          horario: sched ? sched.hora : 'Horario oficial',
-          horas: horasModulo,
-          tipo: 'modulo',
-          color: m.color,
-          materiaId: m.id
-        });
-      });
-    });
-
-    // 2. Personalizados
-    personalizados.forEach(p => {
-      const pClases = p.clases.filter(c => c.fecha.startsWith(targetMonthStr));
-      pClases.forEach((c, idx) => {
-        const dObj = new Date(`${c.fecha}T12:00:00Z`);
-        const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-        const horarioStr = (c.horaInicio && c.horaFin) ? `de ${c.horaInicio} a ${c.horaFin}` : 'Horas asignadas';
-        list.push({
-          id: `pers-${p.id}-${idx}`,
-          fechaStr: c.fecha,
-          fechaObj: dObj,
-          diaStr: days[dObj.getUTCDay()],
-          entidad: `Personalizado: ${p.nombre}`,
-          horario: horarioStr,
-          horas: c.horas,
-          tipo: 'personalizado',
-          color: '#6366f1'
-        });
-      });
-    });
-
-    return list.sort((a, b) => a.fechaObj.getTime() - b.fechaObj.getTime());
-  }, [materias, asistencias, personalizados, misMateriaIds, selectedYear, selectedMonth]);
 
   return (
     <div className="p-6 space-y-5">
@@ -574,28 +520,9 @@ const Horarios: React.FC = () => {
                 <option key={i} value={i + 1}>{name}</option>
               ))}
             </select>
-            
-            {/* View Mode Toggle */}
-            <div className="ml-auto flex items-center bg-card rounded-lg p-1 border border-border">
-              <button
-                onClick={() => setViewMode('resumen')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'resumen' ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:bg-muted'}`}
-                title="Vista Resumen"
-              >
-                <Grid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('detalle')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'detalle' ? 'bg-indigo-600 text-white' : 'text-muted-foreground hover:bg-muted'}`}
-                title="Vista Detallada"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
           </div>
 
-          {viewMode === 'resumen' ? (
-            <>
+          <>
               {careerGroups.map(({ career, materias: careerMaterias }) => {
                 const targetMonthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
                 const monthName = MONTH_NAMES[selectedMonth - 1].toUpperCase();
@@ -765,124 +692,6 @@ const Horarios: React.FC = () => {
             </div>
           )}
             </>
-          ) : (
-            <div className="space-y-6 mt-4">
-              {careerGroups.map(({ career, materias: careerMaterias }) => {
-                const careerClasses = clasesDetalladas.filter(c => 
-                  c.tipo === 'modulo' && careerMaterias.some(m => m.id === c.materiaId)
-                );
-                
-                if (careerClasses.length === 0) return null;
-
-                return (
-                  <div key={career.id} className="bg-[rgba(30,41,59,0.7)] backdrop-blur-[12px] shadow-lg border border-white/10 rounded-xl overflow-hidden">
-                    <div className="px-5 py-4 border-b border-white/10 flex items-center gap-3">
-                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: career.color }} />
-                      <h3 className="font-bold text-gray-100 text-sm">{career.nombre}</h3>
-                      <span className="text-xs text-gray-400">— Detalle de clases</span>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-white/5 border-b border-white/10 text-left">
-                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Fecha</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Día</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Módulo</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-gray-300 uppercase tracking-wider">Hora Dictada</th>
-                            <th className="px-5 py-3 text-xs font-bold text-white uppercase text-right">Horas</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {careerClasses.map((c, index) => (
-                            <tr key={`${c.id}-${index}`} className="hover:bg-white/5 transition-colors">
-                              <td className="px-5 py-3 font-medium text-gray-200 whitespace-nowrap text-sm">{c.fechaStr}</td>
-                              <td className="px-5 py-3 text-sm text-gray-400">{c.diaStr}</td>
-                              <td className="px-5 py-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                                  <span className="font-medium text-sm text-gray-200">{c.entidad}</span>
-                                </div>
-                              </td>
-                              <td className="px-5 py-3 font-mono text-sm text-gray-400">{c.horario}</td>
-                              <td className="px-5 py-3 text-right">
-                                <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 font-bold text-sm">
-                                  {c.horas}h
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="bg-white/5 font-bold border-t-2 border-white/10">
-                            <td colSpan={4} className="px-5 py-4 text-right text-gray-200">Total Horas del Mes:</td>
-                            <td className="px-5 py-4 text-right text-lg text-indigo-400">
-                              {careerClasses.reduce((acc, c) => acc + c.horas, 0)}h
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Personalizados Detailed Table */}
-              {(() => {
-                const persClasses = clasesDetalladas.filter(c => c.tipo === 'personalizado');
-                if (persClasses.length === 0) return null;
-
-                return (
-                  <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden mt-6">
-                    <div className="px-5 py-4 border-b border-border flex items-center gap-3">
-                      <span className="w-3 h-3 rounded-full bg-indigo-500" />
-                      <h3 className="font-bold text-foreground text-sm">Alumnos Personalizados</h3>
-                      <span className="text-xs text-muted-foreground">— Detalle de clases</span>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-background border-b border-border text-left">
-                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fecha</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Día</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Alumno</th>
-                            <th className="px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hora Dictada</th>
-                            <th className="px-5 py-3 text-xs font-bold text-foreground uppercase text-right">Horas</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {persClasses.map((c, index) => (
-                            <tr key={`${c.id}-${index}`} className="hover:bg-background transition-colors">
-                              <td className="px-5 py-3 font-medium text-foreground whitespace-nowrap text-sm">{c.fechaStr}</td>
-                              <td className="px-5 py-3 text-sm text-muted-foreground">{c.diaStr}</td>
-                              <td className="px-5 py-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                                  <span className="font-medium text-sm text-foreground">{c.entidad.replace('Personalizado: ', '')}</span>
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">PERS</span>
-                                </div>
-                              </td>
-                              <td className="px-5 py-3 font-mono text-sm text-muted-foreground">{c.horario}</td>
-                              <td className="px-5 py-3 text-right">
-                                <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-bold text-sm">
-                                  {c.horas}h
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="bg-background font-bold border-t-2 border-border">
-                            <td colSpan={4} className="px-5 py-4 text-right text-foreground">Total Horas Personalizadas:</td>
-                            <td className="px-5 py-4 text-right text-lg text-indigo-600">
-                              {persClasses.reduce((acc, c) => acc + c.horas, 0)}h
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
         </div>
       )}
     </div>
