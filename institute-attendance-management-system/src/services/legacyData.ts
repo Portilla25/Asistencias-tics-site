@@ -6,6 +6,7 @@ import {
   Notificacion,
   Periodo,
   User,
+  RegistroNotasMateria,
 } from '../types';
 import {
   alumnos as mockAlumnos,
@@ -58,6 +59,7 @@ export type InitialAppData = {
   horarios: ClaseHorario[];
   periodos: Periodo[];
   usuarios: User[];
+  notas?: Record<string, RegistroNotasMateria>;
   source: 'legacy' | 'mock';
 };
 

@@ -69,3 +69,12 @@ export interface Periodo {
   fechaFin: string;
   activo: boolean;
 }
+
+export interface CalificacionData {
+  nota1: number | null;
+  nota2: number | null;
+  nota3: number | null;
+  promedioFinal: number | null;
+}
+
+export type RegistroNotasMateria = Record<string, CalificacionData>;
