@@ -75,6 +75,7 @@ export interface CalificacionData {
   nota2: number | null;
   nota3: number | null;
   promedioFinal: number | null;
+  puntosExtra?: number;
 }
 
 export type RegistroNotasMateria = Record<string, CalificacionData>;
