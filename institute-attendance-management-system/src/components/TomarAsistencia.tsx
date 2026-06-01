@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X } from 'lucide-react';
 import { Asistencia } from '../types';
 import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
 import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
@@ -39,6 +39,11 @@ const TomarAsistencia: React.FC = () => {
   
   const [saved, setSaved] = useState(false);
   const [, setMarcarTodos] = useState<Estado | ''>('');
+
+  // Ruleta states
+  const [isRuletaOpen, setIsRuletaOpen] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [ruletaGanador, setRuletaGanador] = useState('');
 
   const misMaterias = currentUser?.rol === 'admin'
     ? materias
@@ -188,6 +193,28 @@ const TomarAsistencia: React.FC = () => {
 
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const iniciarRuleta = () => {
+    if (alumnosMateria.length === 0) return;
+    setIsSpinning(true);
+    setRuletaGanador('');
+    
+    let counter = 0;
+    const spins = 20 + Math.floor(Math.random() * 10); // Between 20 and 30 spins
+    const intervalTime = 100;
+    
+    const intervalId = setInterval(() => {
+      const randomIdx = Math.floor(Math.random() * alumnosMateria.length);
+      const alumno = alumnosMateria[randomIdx];
+      setRuletaGanador(`${alumno.nombre} ${alumno.apellido}`);
+      counter++;
+      
+      if (counter >= spins) {
+        clearInterval(intervalId);
+        setIsSpinning(false);
+      }
+    }, intervalTime);
   };
 
   const resumen = useMemo(() => {
@@ -461,14 +488,23 @@ const TomarAsistencia: React.FC = () => {
                   <h3 className="font-semibold text-foreground">{materia?.nombre}</h3>
                   <p className="text-xs text-muted-foreground">{alumnosMateria.length} alumnos · {fecha}</p>
                 </div>
-                <button
-                  onClick={handleGuardar}
-                  disabled={completados === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  Guardar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsRuletaOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 border border-indigo-500/20 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Dices className="w-4 h-4" />
+                    <span className="hidden sm:inline">Elegir Alumno</span>
+                  </button>
+                  <button
+                    onClick={handleGuardar}
+                    disabled={completados === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    Guardar
+                  </button>
+                </div>
               </div>
 
               {saved && (
@@ -597,6 +633,54 @@ const TomarAsistencia: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL RULETA DE PARTICIPACIÓN */}
+      {isRuletaOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !isSpinning && setIsRuletaOpen(false)}
+        >
+          <div 
+            className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-md p-8 relative overflow-hidden" 
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => !isSpinning && setIsRuletaOpen(false)} 
+              className="absolute top-5 right-5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              disabled={isSpinning}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="text-center mb-8 mt-2">
+              <div className="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-indigo-500/30">
+                <Dices className={`w-8 h-8 text-indigo-500 ${isSpinning ? 'animate-spin' : ''}`} />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground">Ruleta de Participación</h3>
+              <p className="text-sm text-muted-foreground mt-2">Elige un alumno al azar para que participe.</p>
+            </div>
+
+            <div className="h-32 bg-background border border-border rounded-2xl flex items-center justify-center mb-8 px-4 shadow-inner relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent z-10 pointer-events-none"></div>
+              <span className={`text-2xl sm:text-3xl font-extrabold text-center transition-all z-20 ${
+                isSpinning 
+                  ? 'text-muted-foreground blur-[1px]' 
+                  : 'text-indigo-500 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-110'
+              }`}>
+                {ruletaGanador || '¿Quién será?'}
+              </span>
+            </div>
+
+            <button 
+              onClick={iniciarRuleta}
+              disabled={isSpinning || alumnosMateria.length === 0}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white rounded-xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] active:scale-95"
+            >
+              {isSpinning ? 'Girando la ruleta...' : 'Girar Ruleta'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
