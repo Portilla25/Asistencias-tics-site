@@ -26,6 +26,7 @@ type LegacyStudent = {
   dni?: string | number;
   cel?: string | number;
   retirado?: boolean;
+  curso?: string;
 };
 
 type LegacyModule = {
@@ -703,7 +704,7 @@ export const loadInitialAppData = (): InitialAppData => {
           apellido: names.apellido,
           email,
           dni: formatDni(legacyStudent.dni),
-          curso: materia.codigo,
+          curso: legacyStudent.curso || materia.codigo,
           materias: [materia.id],
           legacyRefs: { [materia.id]: legacyStudentId },
         });
@@ -829,6 +830,43 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
     }
   } catch (error) {
     console.error("Error real al eliminar/actualizar en base de datos:", error);
+  }
+};
+
+export const persistNewAlumno = (alumno: Alumno) => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    let touched = false;
+
+    alumno.legacyRefs = alumno.legacyRefs || {};
+
+    alumno.materias.forEach(materiaId => {
+      const module = state[materiaId] || { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+      module.alumnos = module.alumnos || [];
+      
+      const newLegacyId = alumno.id.replace('a', '') + Math.floor(Math.random() * 1000);
+      module.alumnos.push({
+        id: newLegacyId,
+        nombre: `${alumno.apellido} ${alumno.nombre}`.trim(),
+        correo: alumno.email,
+        dni: alumno.dni,
+        curso: alumno.curso,
+        retirado: false
+      });
+      
+      alumno.legacyRefs![materiaId] = newLegacyId;
+      state[materiaId] = module;
+      touched = true;
+    });
+
+    if (touched) {
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      console.log(`Nuevo alumno guardado con éxito en la base de datos (LocalStorage).`);
+    }
+  } catch (error) {
+    console.error("Error al guardar nuevo alumno en base de datos:", error);
   }
 };
 

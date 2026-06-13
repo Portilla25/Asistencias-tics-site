@@ -73,6 +73,10 @@ const GestionAlumnos: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.materias.length === 0) {
+      alert("Debes seleccionar al menos una materia para registrar al alumno.");
+      return;
+    }
     if (editingId) {
       updateAlumno(editingId, form);
     } else {
