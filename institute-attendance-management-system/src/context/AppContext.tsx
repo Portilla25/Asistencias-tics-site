@@ -8,6 +8,7 @@ import {
   persistLegacyAttendanceBatch,
   persistAlumno,
   deleteLegacyAttendance,
+  persistNewAlumno,
 } from '../services/legacyData';
 
 interface AppContextType {
@@ -176,7 +177,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const addAlumno = useCallback((alumno: Omit<Alumno, 'id'>) => {
-    setAlumnos(prev => [...prev, { ...alumno, id: `a${Date.now()}` }]);
+    const newAlumno = { ...alumno, id: `a${Date.now()}` };
+    persistNewAlumno(newAlumno);
+    setAlumnos(prev => [...prev, newAlumno]);
   }, []);
 
   const updateAlumno = useCallback((id: string, data: Partial<Alumno>) => {
