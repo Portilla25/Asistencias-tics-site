@@ -3,6 +3,7 @@ import { User, Alumno, Materia, Asistencia, Notificacion, ClaseHorario, Periodo,
 import {
   ADMIN_EMAILS,
   createLegacyBackup,
+  importLegacyBackup,
   InitialAppData,
   loadInitialAppData,
   persistLegacyAttendanceBatch,
@@ -27,6 +28,7 @@ interface AppContextType {
   usuarios: User[];
   dataSource: InitialAppData['source'];
   exportBackup: () => void;
+  importBackup: (jsonString: string) => Promise<{ success: boolean; message: string }>;
   addAlumno: (alumno: Omit<Alumno, 'id'>) => void;
   updateAlumno: (id: string, alumno: Partial<Alumno>) => void;
   deleteAlumno: (id: string) => void;
@@ -280,6 +282,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       alumnos, materias, asistencias, notificaciones, horarios, periodos, usuarios,
       dataSource: initialData.source,
       exportBackup: createLegacyBackup,
+      importBackup: importLegacyBackup,
       addAlumno, updateAlumno, deleteAlumno,
       addMateria, updateMateria, deleteMateria,
       registrarAsistencia, registrarAsistenciaLote, updateAsistencia, limpiarAsistencia,

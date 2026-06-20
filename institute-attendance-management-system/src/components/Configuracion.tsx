@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Settings, Users, BookOpen, Calendar, Bell, Shield, Save, CheckCircle, Database, Download } from 'lucide-react';
+import { Settings, Users, BookOpen, Calendar, Bell, Shield, Save, CheckCircle, Database, Download, Upload } from 'lucide-react';
 
 const Configuracion: React.FC = () => {
-  const { alumnos, materias, usuarios, periodos, asistencias, dataSource, exportBackup } = useApp();
+  const { alumnos, materias, usuarios, periodos, asistencias, dataSource, exportBackup, importBackup } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [config, setConfig] = useState({
     umbralInasistencia: 25,
@@ -13,13 +14,37 @@ const Configuracion: React.FC = () => {
     notificarAlumnos: true,
     notificarPadres: false,
     diasHabiles: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'],
-    nombre: 'Instituto Central',
-    año: '2025',
+    nombre: 'Instituto Educativo',
+    cicloLec: '2026',
+    modoEstricto: true,
   });
+  const [importing, setImporting] = useState(false);
 
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const res = await importBackup(text);
+      if (res.success) {
+        alert(res.message);
+        window.location.reload();
+      } else {
+        alert(res.message);
+      }
+    } catch (error) {
+      alert('Error al procesar el archivo');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const statsGlobales = {
@@ -59,15 +84,31 @@ const Configuracion: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={exportBackup}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Descargar backup JSON
-        </button>
+        <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".json" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleImportFile} 
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <Upload className="w-4 h-4" />
+            {importing ? 'Importando...' : 'Importar backup'}
+          </button>
+          <button
+            onClick={exportBackup}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Descargar backup
+          </button>
+        </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Institución */}
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border">

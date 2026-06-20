@@ -1042,5 +1042,34 @@ export const createLegacyBackup = () => {
   anchor.href = url;
   anchor.download = `backup_asistencias_${new Date().toISOString().slice(0, 10)}.json`;
   anchor.click();
-  URL.revokeObjectURL(url);
+};
+
+export const importLegacyBackup = async (jsonString: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const backup = JSON.parse(jsonString);
+    if (!backup.state || typeof backup.state !== 'object') {
+      return { success: false, message: 'Archivo inválido: falta el estado principal.' };
+    }
+
+    // Guardar en LocalStorage
+    window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(backup.state));
+    if (backup.personalizados) window.localStorage.setItem('asist_personalizados', JSON.stringify(backup.personalizados));
+    if (backup.historial) window.localStorage.setItem('asist_historial', JSON.stringify(backup.historial));
+    if (backup.carreras) window.localStorage.setItem('asist_carreras', JSON.stringify(backup.carreras));
+    if (backup.horasLog) window.localStorage.setItem('horas_log', JSON.stringify(backup.horasLog));
+    if (backup.claseBaseConfig) window.localStorage.setItem('clase_base_config', JSON.stringify(backup.claseBaseConfig));
+
+    // Sincronizar todos los módulos a Firebase para que no se pierdan de nuevo
+    const db = getFirebaseFirestore();
+    if (db) {
+      const moduleIds = Object.keys(backup.state);
+      for (const moduleId of moduleIds) {
+        await syncLegacyModuleToFirestore(moduleId, backup.state[moduleId]);
+      }
+    }
+
+    return { success: true, message: 'Datos importados y sincronizados con éxito. Recargando página...' };
+  } catch (error) {
+    return { success: false, message: `Error al leer el archivo: ${error instanceof Error ? error.message : 'JSON inválido'}` };
+  }
 };
