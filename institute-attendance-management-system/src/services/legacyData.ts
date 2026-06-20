@@ -80,36 +80,27 @@ const readStorage = (key: string): string | null => {
 
 const DEFAULT_CAREERS: LegacyCareer[] = [
   {
+    id: 'info_gastro',
+    nombre: 'Tecnologías de la información - gastronomía',
+    color: '#0d9488',
+    secciones: [{ id: 'info_gastro_L_1', label: 'Lunes 10:30–12:20 (2h)', badge: 'Lunes' }],
+  },
+  {
     id: 'redes',
-    nombre: 'Redes & TICs',
+    nombre: 'Tecnologías turno mañana sábados',
     color: '#f59e0b',
     secciones: [
       { id: 'redes_M_1', label: 'Mañana - Módulo 1 (09:00–13:00)', badge: 'Mañana M1' },
       { id: 'redes_M_2', label: 'Mañana - Módulo 2 (09:00–13:00)', badge: 'Mañana M2' },
       { id: 'redes_M_3', label: 'Mañana - Módulo 3 (09:00–13:00)', badge: 'Mañana M3' },
       { id: 'redes_M_4', label: 'Mañana - Módulo 4 (09:00–13:00)', badge: 'Mañana M4' },
-      { id: 'redes_T_1', label: 'Tarde - Módulo 1 (14:00–18:00)', badge: 'Tarde M1' },
-      { id: 'redes_T_2', label: 'Tarde - Módulo 2 (14:00–18:00)', badge: 'Tarde M2' },
-      { id: 'redes_T_3', label: 'Tarde - Módulo 3 (14:00–18:00)', badge: 'Tarde M3' },
-      { id: 'redes_T_4', label: 'Tarde - Módulo 4 (14:00–18:00)', badge: 'Tarde M4' },
     ],
   },
   {
-    id: 'info_gastro',
-    nombre: 'Gastronomía · Tecnologías de la Información',
-    color: '#0d9488',
-    secciones: [{ id: 'info_gastro_L_1', label: 'Lunes 10:30–12:20 (2h)', badge: 'Lunes' }],
-  },
-
-  {
     id: 'redes_sabados',
-    nombre: 'Tecnologías de la Información y Redes',
+    nombre: 'Tecnologías turno tarde sábados',
     color: '#e11d48',
     secciones: [
-      { id: 'redes_S_M1', label: 'Sábado Mañana - Módulo 1', badge: 'Sáb Mañana M1' },
-      { id: 'redes_S_M2', label: 'Sábado Mañana - Módulo 2', badge: 'Sáb Mañana M2' },
-      { id: 'redes_S_M3', label: 'Sábado Mañana - Módulo 3', badge: 'Sáb Mañana M3' },
-      { id: 'redes_S_M4', label: 'Sábado Mañana - Módulo 4', badge: 'Sáb Mañana M4' },
       { id: 'redes_S_T1', label: 'Sábado Tarde - Módulo 1', badge: 'Sáb Tarde T1' },
       { id: 'redes_S_T2', label: 'Sábado Tarde - Módulo 2', badge: 'Sáb Tarde T2' },
       { id: 'redes_S_T3', label: 'Sábado Tarde - Módulo 3', badge: 'Sáb Tarde T3' },
@@ -130,7 +121,35 @@ const safeParse = <T,>(value: string | null, fallback: T): T => {
 };
 
 export const getCareers = (): LegacyCareer[] => {
-  return safeParse<LegacyCareer[]>(readStorage('asist_carreras'), DEFAULT_CAREERS);
+  let stored = safeParse<LegacyCareer[]>(readStorage('asist_carreras'), DEFAULT_CAREERS);
+  let needsSave = false;
+  
+  // Migration to strictly enforce user's requested names without losing their IDs
+  stored = stored.map(c => {
+    if (c.id === 'info_gastro' || c.nombre === 'Tecnologías de la Información' || c.nombre.includes('Gastronomía')) {
+      if (c.nombre !== 'Tecnologías de la información - gastronomía') {
+        c.nombre = 'Tecnologías de la información - gastronomía';
+        needsSave = true;
+      }
+    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || c.nombre.toLowerCase().includes('tic y redes')) {
+      if (c.nombre !== 'Tecnologías turno mañana sábados') {
+        c.nombre = 'Tecnologías turno mañana sábados';
+        needsSave = true;
+      }
+    } else if (c.id === 'redes_sabados' || c.nombre === 'Tecnologías Turno mañana sábados' || c.nombre.includes('Tecnologías de la Información y Redes')) {
+      if (c.nombre !== 'Tecnologías turno tarde sábados') {
+        c.nombre = 'Tecnologías turno tarde sábados';
+        needsSave = true;
+      }
+    }
+    return c;
+  });
+
+  if (needsSave) {
+    saveCareers(stored);
+  }
+  
+  return stored;
 };
 
 export const saveCareers = (careers: LegacyCareer[]) => {
