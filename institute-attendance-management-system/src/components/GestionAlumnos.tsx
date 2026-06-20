@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Search, Edit3, Trash2, X, Check, Eye, UserMinus, UserPlus, Users } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, X, Check, Eye, UserMinus, UserPlus, Users, ChevronUp, ChevronDown } from 'lucide-react';
 import { Alumno } from '../types';
 import { getCursoGroups } from '../utils/cursoGroups';
 
