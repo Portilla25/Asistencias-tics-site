@@ -78,7 +78,7 @@ const getMonthLabel = (dateStr: string) => {
 const getFirestore = () => {
   if (typeof window === 'undefined' || !(window as any).firebase?.firestore) return null;
   try {
-    const __B64_FB_CONF = "eyJhcGlLZXkiOiJBSXphU3lEY1l1blR4d1RvYnhqeWVSYUdnemRWZVhrcnZQbjJWV3MiLCJhdXRoRG9tYWluIjoic2lzdGVtYS1nZXN0aW9uLTJlZjA4LmZpcmViYXNlYXBwLmNvbSIsInByb2plY3RJZCI6InNpc3RlbWEtZ2VzdGlvbi0yZWYwOCIsInN0b3JhZ2VCdWNrZXQiOiJzaXN0ZW1hLWdlc3Rpb24tMmVmMDguZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiOTQzMDEyNDMxMTM4IiwiYXBwSWQiOiIxOjk0MzAxMjQzMTEzODp3ZWI6YTZkNGRiMzdiNDA0OTUxMWQyNTE3YiIsIm1lYXN1cmVtZW50SWQiOiJHLVNXQkUzWVlOWjAifQ==";
+    const __B64_FB_CONF = "eyJhcGlLZXkiOiJBSXphU3lBdmc4V2JJY09GQ0F0eVRVdTVpUHhhT1JPUzJNZXhzLVUiLCJhdXRoRG9tYWluIjoiYXNpc3RlbmNpYXMtcmVkZXMuZmlyZWJhc2VhcHAuY29tIiwicHJvamVjdElkIjoiYXNpc3RlbmNpYXMtcmVkZXMiLCJzdG9yYWdlQnVja2V0IjoiYXNpc3RlbmNpYXMtcmVkZXMuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNTExODI2OTk1NTE0IiwiYXBwSWQiOiIxOjUxMTgyNjk5NTUxNDp3ZWI6ZGE0NmQ0ZTJjYjlkNmFhMDkwODgwMyIsIm1lYXN1cmVtZW50SWQiOiJHLU1ZMjBRVk44RjIifQ==";
     const config = JSON.parse(atob(__B64_FB_CONF));
     if (!Object.keys(config).length) return null;
     const fb = (window as any).firebase;
