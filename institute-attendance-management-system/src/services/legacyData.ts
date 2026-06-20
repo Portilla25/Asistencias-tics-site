@@ -949,7 +949,8 @@ export const deleteLegacyAttendance = (alumnoId: string, materiaId: string, fech
       }
       
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
-      console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada con éxito de la base de datos (LocalStorage).`);
+      syncLegacyModuleToFirestore(materiaId, state[materiaId]);
+      console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada con éxito de la base de datos (LocalStorage y Firebase).`);
     }
   } catch (error) {
     console.error("Error real al limpiar asistencia en base de datos:", error);
@@ -962,6 +963,7 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
   try {
     const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
     let touched = false;
+    const touchedModules = new Set<string>();
 
     const alumno = currentAlumnos.find(a => a.id === alumnoId);
     if (!alumno) return;
@@ -975,13 +977,15 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
         if (updates.estado !== undefined) {
           legacyStudent.retirado = updates.estado === 'retirado';
           touched = true;
+          touchedModules.add(materiaId);
         }
       }
     });
 
     if (touched) {
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
-      console.log(`Alumno con ID ${alumnoId} actualizado/retirado con éxito de la base de datos (LocalStorage).`);
+      syncTouchedModules(touchedModules, state);
+      console.log(`Alumno con ID ${alumnoId} actualizado/retirado con éxito de la base de datos (LocalStorage y Firebase).`);
     }
   } catch (error) {
     console.error("Error real al eliminar/actualizar en base de datos:", error);
@@ -994,6 +998,7 @@ export const persistNewAlumno = (alumno: Alumno) => {
   try {
     const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
     let touched = false;
+    const touchedModules = new Set<string>();
 
     alumno.legacyRefs = alumno.legacyRefs || {};
 
@@ -1014,11 +1019,13 @@ export const persistNewAlumno = (alumno: Alumno) => {
       alumno.legacyRefs![materiaId] = newLegacyId;
       state[materiaId] = module;
       touched = true;
+      touchedModules.add(materiaId);
     });
 
     if (touched) {
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
-      console.log(`Nuevo alumno guardado con éxito en la base de datos (LocalStorage).`);
+      syncTouchedModules(touchedModules, state);
+      console.log(`Nuevo alumno guardado con éxito en la base de datos (LocalStorage y Firebase).`);
     }
   } catch (error) {
     console.error("Error al guardar nuevo alumno en base de datos:", error);
