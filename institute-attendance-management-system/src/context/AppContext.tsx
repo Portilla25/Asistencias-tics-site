@@ -92,11 +92,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDataSource(newData.source);
       }
     };
-    if (initialData.source === 'mock') {
+    if (initialData.source === 'mock' || dataSource === 'mock') {
        syncData();
     }
     return () => { mounted = false; };
-  }, [initialData.source]);
+  }, [initialData.source, currentUser]);
 
   const resolveGoogleUser = useCallback((email: string, displayName?: string | null): User | null => {
     const normalizedEmail = email.toLowerCase();
