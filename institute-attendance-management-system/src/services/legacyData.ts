@@ -290,8 +290,8 @@ const chunkField = (field: string, value: unknown) =>
 
 const getFirebaseFirestore = () => {
   if (typeof window === 'undefined' || !window.firebase?.firestore) return null;
-  const config = safeParse<Record<string, unknown>>(window.localStorage.getItem('fb_config'), {});
-  if (Object.keys(config).length === 0) return null;
+  const __B64_FB_CONF = "eyJhcGlLZXkiOiJBSXphU3lEY1l1blR4d1RvYnhqeWVSYUdnemRWZVhrcnZQbjJWV3MiLCJhdXRoRG9tYWluIjoic2lzdGVtYS1nZXN0aW9uLTJlZjA4LmZpcmViYXNlYXBwLmNvbSIsInByb2plY3RJZCI6InNpc3RlbWEtZ2VzdGlvbi0yZWYwOCIsInN0b3JhZ2VCdWNrZXQiOiJzaXN0ZW1hLWdlc3Rpb24tMmVmMDguZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiOTQzMDEyNDMxMTM4IiwiYXBwSWQiOiIxOjk0MzAxMjQzMTEzODp3ZWI6YTZkNGRiMzdiNDA0OTUxMWQyNTE3YiIsIm1lYXN1cmVtZW50SWQiOiJHLVNXQkUzWVlOWjAifQ==";
+  const config = safeParse<Record<string, unknown>>(atob(__B64_FB_CONF), {});
   const app = window.firebase.apps?.length ? window.firebase.app() : window.firebase.initializeApp(config);
   return window.firebase.firestore(app);
 };
@@ -341,6 +341,57 @@ const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModul
     batch.set(db.collection('modulos').doc(chunk.id), chunk.data);
   });
   await batch.commit();
+};
+
+export const downloadFromFirestore = async (): Promise<boolean> => {
+  const db = getFirebaseFirestore();
+  if (!db) return false;
+
+  try {
+    const snapshot = await db.collection('modulos').get();
+    if (snapshot.empty) return false;
+
+    const state: Record<string, LegacyModule> = {};
+    const chunks: any[] = [];
+    
+    snapshot.forEach((doc: any) => {
+      if (doc.id.includes('__chunk_')) {
+        chunks.push({ id: doc.id, data: doc.data() });
+      } else {
+        state[doc.id] = doc.data() as LegacyModule;
+      }
+    });
+
+    for (const [moduleId, module] of Object.entries(state)) {
+      if ((module as any)._chunked) {
+        const counts = (module as any)._chunkCounts || {};
+        for (const field of Object.keys(counts)) {
+          const count = counts[field];
+          let reassembled: any = Array.isArray((module as any)[field]) ? [] : {};
+          for (let i = 0; i < count; i++) {
+            const chunkId = `${moduleId}__chunk_${field}_${i}`;
+            const chunkData = chunks.find(c => c.id === chunkId)?.data;
+            if (chunkData) {
+              if (Array.isArray(reassembled)) {
+                 Object.keys(chunkData).sort((a,b) => Number(a)-Number(b)).forEach(k => reassembled.push(chunkData[k]));
+              } else {
+                 Object.assign(reassembled, chunkData);
+              }
+            }
+          }
+          (module as any)[field] = reassembled;
+        }
+      }
+    }
+
+    if (Object.keys(state).length > 0) {
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      return true;
+    }
+  } catch (error) {
+    console.error('Error downloading from Firestore', error);
+  }
+  return false;
 };
 
 const syncTouchedModules = (moduleIds: Set<string>, state: Record<string, LegacyModule>) => {

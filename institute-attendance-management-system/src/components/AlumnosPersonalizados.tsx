@@ -77,10 +77,9 @@ const getMonthLabel = (dateStr: string) => {
 /* ─── Firebase helpers for personalizados ─── */
 const getFirestore = () => {
   if (typeof window === 'undefined' || !(window as any).firebase?.firestore) return null;
-  const raw = window.localStorage.getItem('fb_config');
-  if (!raw) return null;
   try {
-    const config = JSON.parse(raw);
+    const __B64_FB_CONF = "eyJhcGlLZXkiOiJBSXphU3lEY1l1blR4d1RvYnhqeWVSYUdnemRWZVhrcnZQbjJWV3MiLCJhdXRoRG9tYWluIjoic2lzdGVtYS1nZXN0aW9uLTJlZjA4LmZpcmViYXNlYXBwLmNvbSIsInByb2plY3RJZCI6InNpc3RlbWEtZ2VzdGlvbi0yZWYwOCIsInN0b3JhZ2VCdWNrZXQiOiJzaXN0ZW1hLWdlc3Rpb24tMmVmMDguZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiOTQzMDEyNDMxMTM4IiwiYXBwSWQiOiIxOjk0MzAxMjQzMTEzODp3ZWI6YTZkNGRiMzdiNDA0OTUxMWQyNTE3YiIsIm1lYXN1cmVtZW50SWQiOiJHLVNXQkUzWVlOWjAifQ==";
+    const config = JSON.parse(atob(__B64_FB_CONF));
     if (!Object.keys(config).length) return null;
     const fb = (window as any).firebase;
     const app = fb.apps?.length ? fb.app() : fb.initializeApp(config);

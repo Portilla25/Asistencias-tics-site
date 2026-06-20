@@ -9,6 +9,7 @@ import {
   persistAlumno,
   deleteLegacyAttendance,
   persistNewAlumno,
+  downloadFromFirestore,
 } from '../services/legacyData';
 
 interface AppContextType {
@@ -48,10 +49,9 @@ const AppContext = createContext<AppContextType | null>(null);
 
 const getStoredFirebaseConfig = () => {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem('fb_config');
-  if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    const __B64_FB_CONF = "eyJhcGlLZXkiOiJBSXphU3lEY1l1blR4d1RvYnhqeWVSYUdnemRWZVhrcnZQbjJWV3MiLCJhdXRoRG9tYWluIjoic2lzdGVtYS1nZXN0aW9uLTJlZjA4LmZpcmViYXNlYXBwLmNvbSIsInByb2plY3RJZCI6InNpc3RlbWEtZ2VzdGlvbi0yZWYwOCIsInN0b3JhZ2VCdWNrZXQiOiJzaXN0ZW1hLWdlc3Rpb24tMmVmMDguZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiOTQzMDEyNDMxMTM4IiwiYXBwSWQiOiIxOjk0MzAxMjQzMTEzODp3ZWI6YTZkNGRiMzdiNDA0OTUxMWQyNTE3YiIsIm1lYXN1cmVtZW50SWQiOiJHLVNXQkUzWVlOWjAifQ==";
+    return JSON.parse(atob(__B64_FB_CONF));
   } catch {
     return null;
   }
@@ -77,6 +77,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [periodos] = useState(initialData.periodos);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dataSource, setDataSource] = useState(initialData.source);
+
+  useEffect(() => {
+    let mounted = true;
+    const syncData = async () => {
+      const didDownload = await downloadFromFirestore();
+      if (didDownload && mounted) {
+        const newData = loadInitialAppData();
+        setAlumnos(newData.alumnos);
+        setMaterias(newData.materias);
+        setAsistencias(newData.asistencias);
+        setNotificaciones(newData.notificaciones);
+        setDataSource(newData.source);
+      }
+    };
+    if (initialData.source === 'mock') {
+       syncData();
+    }
+    return () => { mounted = false; };
+  }, [initialData.source]);
 
   const resolveGoogleUser = useCallback((email: string, displayName?: string | null): User | null => {
     const normalizedEmail = email.toLowerCase();
