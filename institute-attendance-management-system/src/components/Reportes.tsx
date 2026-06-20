@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { Materia } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { exportToGastronomiaExcel } from '../utils/exportExcel';
@@ -7,12 +8,45 @@ import { obtenerNotasMateria } from '../services/notas';
 
 const Reportes: React.FC = () => {
   const { alumnos, materias, asistencias, currentUser } = useApp();
-  const [filterMateria, setFilterMateria] = useState('');
   const [filterCurso, setFilterCurso] = useState('');
+  const [filterModulo, setFilterModulo] = useState('');
   const [activeTab, setActiveTab] = useState<'general' | 'alumnos' | 'materias'>('general');
 
   const misMaterias = currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id);
-  const cursos = [...new Set(alumnos.map(a => a.curso))].sort();
+
+  // Group materias into courses the user actually has
+  const cursoGroups = useMemo(() => {
+    const groups: { id: string; label: string; materias: Materia[] }[] = [];
+
+    const gastro = misMaterias.filter(m => m.id.startsWith('info_gastro'));
+    const tiManana = misMaterias.filter(m => m.id.startsWith('redes_M_')).sort((a, b) => a.id.localeCompare(b.id));
+    const tiTarde = misMaterias.filter(m => m.id.startsWith('redes_T_')).sort((a, b) => a.id.localeCompare(b.id));
+    const sabManana = misMaterias.filter(m => m.id.startsWith('redes_S_M')).sort((a, b) => a.id.localeCompare(b.id));
+    const sabTarde = misMaterias.filter(m => m.id.startsWith('redes_S_T')).sort((a, b) => a.id.localeCompare(b.id));
+
+    if (gastro.length > 0) groups.push({ id: 'gastro', label: 'Gastronomía (Lunes)', materias: gastro });
+    if (tiManana.length > 0) groups.push({ id: 'ti_manana', label: 'Tecnologías de la Información - Mañana', materias: tiManana });
+    if (tiTarde.length > 0) groups.push({ id: 'ti_tarde', label: 'Tecnologías de la Información - Tarde', materias: tiTarde });
+    if (sabManana.length > 0) groups.push({ id: 'sab_manana', label: 'TI Sábado - Mañana', materias: sabManana });
+    if (sabTarde.length > 0) groups.push({ id: 'sab_tarde', label: 'TI Sábado - Tarde', materias: sabTarde });
+
+    // Any other materias that don't match these patterns
+    const knownIds = new Set([...gastro, ...tiManana, ...tiTarde, ...sabManana, ...sabTarde].map(m => m.id));
+    const otros = misMaterias.filter(m => !knownIds.has(m.id));
+    otros.forEach(m => groups.push({ id: m.id, label: m.nombre, materias: [m] }));
+
+    return groups;
+  }, [misMaterias]);
+
+  const selectedGroup = cursoGroups.find(g => g.id === filterCurso);
+  const modulosDisponibles = selectedGroup && selectedGroup.materias.length > 1 ? selectedGroup.materias : [];
+
+  // Determine which materia IDs to filter by
+  const activeMateriaIds = useMemo(() => {
+    if (filterModulo) return [filterModulo];
+    if (selectedGroup) return selectedGroup.materias.map(m => m.id);
+    return misMaterias.map(m => m.id);
+  }, [filterModulo, selectedGroup, misMaterias]);
 
   const filteredAsistencias = useMemo(() => {
     let filtered = asistencias;
@@ -20,13 +54,11 @@ const Reportes: React.FC = () => {
       const materiaIds = materias.filter(m => m.docenteId === currentUser.id).map(m => m.id);
       filtered = filtered.filter(a => materiaIds.includes(a.materiaId));
     }
-    if (filterMateria) filtered = filtered.filter(a => a.materiaId === filterMateria);
-    if (filterCurso) {
-      const alumnosCurso = alumnos.filter(a => a.curso === filterCurso).map(a => a.id);
-      filtered = filtered.filter(a => alumnosCurso.includes(a.alumnoId));
+    if (filterCurso || filterModulo) {
+      filtered = filtered.filter(a => activeMateriaIds.includes(a.materiaId));
     }
     return filtered;
-  }, [asistencias, currentUser, materias, filterMateria, filterCurso, alumnos]);
+  }, [asistencias, currentUser, materias, filterCurso, filterModulo, activeMateriaIds]);
 
   const generalStats = useMemo(() => {
     const total = filteredAsistencias.length;
@@ -45,8 +77,11 @@ const Reportes: React.FC = () => {
     const visibleAlumnos = currentUser?.rol === 'docente'
       ? alumnos.filter(a => a.materias.some(materiaId => misMaterias.some(m => m.id === materiaId)))
       : alumnos;
-    const filtAlumnos = filterCurso ? visibleAlumnos.filter(a => a.curso === filterCurso) : visibleAlumnos;
-    return filtAlumnos.map(alumno => {
+    // Only show alumnos that belong to the selected materias
+    const relevantAlumnos = (filterCurso || filterModulo)
+      ? visibleAlumnos.filter(a => a.materias.some(mId => activeMateriaIds.includes(mId)))
+      : visibleAlumnos;
+    return relevantAlumnos.map(alumno => {
       const asis = filteredAsistencias.filter(a => a.alumnoId === alumno.id);
       const presentes = asis.filter(a => a.estado === 'presente').length;
       const ausentes = asis.filter(a => a.estado === 'ausente').length;
@@ -55,17 +90,20 @@ const Reportes: React.FC = () => {
       const pct = asis.length > 0 ? Math.round((presentes / asis.length) * 100) : 0;
       return { ...alumno, presentes, ausentes, tardanzas, justificados, total: asis.length, pct };
     }).sort((a, b) => b.pct - a.pct);
-  }, [alumnos, filteredAsistencias, filterCurso, currentUser, misMaterias]);
+  }, [alumnos, filteredAsistencias, currentUser, misMaterias, filterCurso, filterModulo, activeMateriaIds]);
 
   const materiasReport = useMemo(() => {
-    return misMaterias.map(m => {
+    const visibleMaterias = (filterCurso || filterModulo) 
+      ? misMaterias.filter(m => activeMateriaIds.includes(m.id))
+      : misMaterias;
+    return visibleMaterias.map(m => {
       const asis = filteredAsistencias.filter(a => a.materiaId === m.id);
       const presentes = asis.filter(a => a.estado === 'presente').length;
       const pct = asis.length > 0 ? Math.round((presentes / asis.length) * 100) : 0;
       const clases = [...new Set(asis.map(a => a.fecha))].length;
       return { ...m, presentes, total: asis.length, pct, clases };
     }).sort((a, b) => b.pct - a.pct);
-  }, [misMaterias, filteredAsistencias]);
+  }, [misMaterias, filteredAsistencias, activeMateriaIds, filterCurso, filterModulo]);
 
   const tendenciaMensual = useMemo(() => {
     const meses = [...new Set(filteredAsistencias.map(a => a.fecha.slice(0, 7)).filter(Boolean))].sort();
@@ -103,26 +141,26 @@ const Reportes: React.FC = () => {
   const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const handleExportExcel = async () => {
-    if (!filterMateria) {
-      alert("Por favor, selecciona una materia específica en el filtro para generar su reporte oficial en Excel.");
+    const targetMateriaId = filterModulo || (selectedGroup?.materias.length === 1 ? selectedGroup.materias[0].id : '');
+    if (!targetMateriaId) {
+      alert("Selecciona un curso y módulo específico para generar el reporte oficial en Excel.");
       return;
     }
     
     setIsExportingExcel(true);
     try {
-      const materiaInfo = misMaterias.find(m => m.id === filterMateria);
-      const materiaName = materiaInfo ? materiaInfo.nombre : 'Gastronomia';
+      const materiaInfo = misMaterias.find(m => m.id === targetMateriaId);
+      const materiaName = materiaInfo ? materiaInfo.nombre : 'Reporte';
       
-      // Obtener notas desde Firebase si es posible (si no hay, devuelve {})
       let notasMateria = {};
       try {
-        notasMateria = await obtenerNotasMateria(filterMateria);
+        notasMateria = await obtenerNotasMateria(targetMateriaId);
       } catch (e) {
         console.warn("No se pudieron cargar las notas", e);
       }
 
       const success = await exportToGastronomiaExcel(
-        alumnosReport, // pasamos solo los alumnos filtrados
+        alumnosReport,
         filteredAsistencias,
         notasMateria,
         materiaName
@@ -142,18 +180,20 @@ const Reportes: React.FC = () => {
       <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex flex-wrap gap-3 items-center">
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <select value={filterMateria} onChange={e => setFilterMateria(e.target.value)}
-            className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="">Todas las materias</option>
-            {misMaterias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-          </select>
-          <select value={filterCurso} onChange={e => setFilterCurso(e.target.value)}
+          <select value={filterCurso} onChange={e => { setFilterCurso(e.target.value); setFilterModulo(''); }}
             className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todos los cursos</option>
-            {cursos.map(c => <option key={c} value={c}>{c}</option>)}
+            {cursoGroups.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
           </select>
+          {modulosDisponibles.length > 0 && (
+            <select value={filterModulo} onChange={e => setFilterModulo(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">Todos los módulos</option>
+              {modulosDisponibles.map((m, i) => <option key={m.id} value={m.id}>Módulo {i + 1}</option>)}
+            </select>
+          )}
           <button
-            onClick={() => { setFilterMateria(''); setFilterCurso(''); }}
+            onClick={() => { setFilterCurso(''); setFilterModulo(''); }}
             className="px-3 py-2 text-sm text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
           >
             Limpiar filtros
@@ -260,7 +300,7 @@ const Reportes: React.FC = () => {
             <thead>
               <tr className="bg-background border-b border-border">
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Alumno</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase">Curso</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase">Materia</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-green-600 uppercase">Presentes</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-red-600 uppercase">Ausentes</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-amber-600 uppercase">Tardanzas</th>
@@ -280,7 +320,9 @@ const Reportes: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">{a.curso}</span>
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full">
+                      {a.materias.map(mId => materias.find(m => m.id === mId)?.nombre).join(', ') || a.curso}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-center text-sm font-semibold text-green-600">{a.presentes}</td>
                   <td className="px-4 py-3 text-center text-sm font-semibold text-red-600">{a.ausentes}</td>
