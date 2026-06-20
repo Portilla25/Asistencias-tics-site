@@ -290,15 +290,8 @@ const chunkField = (field: string, value: unknown) =>
 
 const getFirebaseFirestore = () => {
   if (typeof window === 'undefined' || !window.firebase?.firestore) return null;
-  const config = {
-    apiKey: "AIzaSyDcYunTxwTobxjyeRaGgzdVeXkrvPn2VWs",
-    authDomain: "sistema-gestion-2ef08.firebaseapp.com",
-    projectId: "sistema-gestion-2ef08",
-    storageBucket: "sistema-gestion-2ef08.firebasestorage.app",
-    messagingSenderId: "943012431138",
-    appId: "1:943012431138:web:a6d4db37b4049511d2517b",
-    measurementId: "G-SWBE3YYNZ0"
-  };
+  const config = safeParse<Record<string, unknown>>(window.localStorage.getItem('fb_config'), {});
+  if (Object.keys(config).length === 0) return null;
   const app = window.firebase.apps?.length ? window.firebase.app() : window.firebase.initializeApp(config);
   return window.firebase.firestore(app);
 };

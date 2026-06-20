@@ -77,16 +77,11 @@ const getMonthLabel = (dateStr: string) => {
 /* ─── Firebase helpers for personalizados ─── */
 const getFirestore = () => {
   if (typeof window === 'undefined' || !(window as any).firebase?.firestore) return null;
-  const config = {
-    apiKey: "AIzaSyDcYunTxwTobxjyeRaGgzdVeXkrvPn2VWs",
-    authDomain: "sistema-gestion-2ef08.firebaseapp.com",
-    projectId: "sistema-gestion-2ef08",
-    storageBucket: "sistema-gestion-2ef08.firebasestorage.app",
-    messagingSenderId: "943012431138",
-    appId: "1:943012431138:web:a6d4db37b4049511d2517b",
-    measurementId: "G-SWBE3YYNZ0"
-  };
+  const raw = window.localStorage.getItem('fb_config');
+  if (!raw) return null;
   try {
+    const config = JSON.parse(raw);
+    if (!Object.keys(config).length) return null;
     const fb = (window as any).firebase;
     const app = fb.apps?.length ? fb.app() : fb.initializeApp(config);
     return fb.firestore(app);

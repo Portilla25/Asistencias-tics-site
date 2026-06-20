@@ -47,15 +47,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 const getStoredFirebaseConfig = () => {
-  return {
-    apiKey: "AIzaSyDcYunTxwTobxjyeRaGgzdVeXkrvPn2VWs",
-    authDomain: "sistema-gestion-2ef08.firebaseapp.com",
-    projectId: "sistema-gestion-2ef08",
-    storageBucket: "sistema-gestion-2ef08.firebasestorage.app",
-    messagingSenderId: "943012431138",
-    appId: "1:943012431138:web:a6d4db37b4049511d2517b",
-    measurementId: "G-SWBE3YYNZ0"
-  };
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem('fb_config');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 };
 
 const getFirebaseApp = () => {
