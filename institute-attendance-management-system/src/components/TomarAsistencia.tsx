@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw } from 'lucide-react';
 import { Asistencia } from '../types';
-import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
+import { DEFAULT_CAREERS, LegacyCareer, downloadFromFirestore } from '../services/legacyData';
 import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
 
 type Estado = Asistencia['estado'];
@@ -610,7 +610,25 @@ const TomarAsistencia: React.FC = () => {
               </div>
 
               {alumnosMateria.length > 0 && (
-                <div className="px-5 py-3 bg-muted border-t border-border flex justify-end">
+                <div className="px-5 py-3 bg-muted border-t border-border flex justify-end gap-3">
+                  <button
+                    onClick={async () => {
+                      const btn = document.getElementById('sync-btn');
+                      if (btn) btn.innerHTML = '<span class="animate-spin mr-2">⏳</span> Sincronizando...';
+                      const ok = await downloadFromFirestore();
+                      if (ok) {
+                        window.location.reload();
+                      } else {
+                        alert('Error al descargar de la nube. Asegúrese de tener conexión.');
+                        if (btn) btn.innerHTML = 'Error';
+                      }
+                    }}
+                    id="sync-btn"
+                    className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Forzar Sincronización
+                  </button>
                   <button
                     onClick={handleGuardar}
                     disabled={completados === 0}
