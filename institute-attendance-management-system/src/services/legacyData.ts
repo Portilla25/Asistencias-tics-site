@@ -345,11 +345,17 @@ const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModul
 
 export const downloadFromFirestore = async (): Promise<boolean> => {
   const db = getFirebaseFirestore();
-  if (!db) return false;
+  if (!db) {
+    if (typeof window !== 'undefined') window.alert('Firebase Error: No se pudo inicializar Firebase. Posiblemente los scripts de Firebase no cargaron o fueron bloqueados por el navegador.');
+    return false;
+  }
 
   try {
     const snapshot = await db.collection('modulos').get();
-    if (snapshot.empty) return false;
+    if (snapshot.empty) {
+      if (typeof window !== 'undefined') window.alert('Firestore OK pero la colección modulos está vacía');
+      return false;
+    }
 
     const state: Record<string, LegacyModule> = {};
     const chunks: any[] = [];
@@ -388,8 +394,9 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
       return true;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error downloading from Firestore', error);
+    if (typeof window !== 'undefined') window.alert('Firebase Error: ' + (error?.message || error));
   }
   return false;
 };
