@@ -145,6 +145,41 @@ export const getCareers = (): LegacyCareer[] => {
     return c;
   });
 
+  // Step 2: Ensure morning sections are in morning career, and afternoon in afternoon career
+  const manana = stored.find(c => c.nombre === 'Tecnologías turno mañana sábados');
+  let tarde = stored.find(c => c.nombre === 'Tecnologías turno tarde sábados');
+
+  if (manana) {
+    const isAfternoon = (s: any) => s.id.includes('_T_') || s.label.toLowerCase().includes('tarde');
+    const isMorning = (s: any) => s.id.includes('_M_') || s.label.toLowerCase().includes('mañana');
+
+    // Move afternoon sections out of morning
+    const afternoonFromManana = manana.secciones.filter(isAfternoon);
+    if (afternoonFromManana.length > 0) {
+      manana.secciones = manana.secciones.filter(s => !isAfternoon(s));
+      if (!tarde) {
+        tarde = { id: 'redes_sabados_auto', nombre: 'Tecnologías turno tarde sábados', color: '#e11d48', secciones: [] };
+        stored.push(tarde);
+      }
+      afternoonFromManana.forEach(s => {
+        if (!tarde!.secciones.some(ts => ts.id === s.id)) tarde!.secciones.push(s);
+      });
+      needsSave = true;
+    }
+
+    // Move morning sections out of afternoon (if tarde exists)
+    if (tarde) {
+      const morningFromTarde = tarde.secciones.filter(isMorning);
+      if (morningFromTarde.length > 0) {
+        tarde.secciones = tarde.secciones.filter(s => !isMorning(s));
+        morningFromTarde.forEach(s => {
+          if (!manana.secciones.some(ms => ms.id === s.id)) manana.secciones.push(s);
+        });
+        needsSave = true;
+      }
+    }
+  }
+
   if (needsSave) {
     saveCareers(stored);
   }
