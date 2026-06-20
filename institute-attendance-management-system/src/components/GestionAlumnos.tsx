@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Search, Edit3, Trash2, X, Check, Users, Eye, ChevronDown, ChevronUp, UserMinus, UserPlus } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, X, Check, Eye, UserMinus, UserPlus, Users } from 'lucide-react';
 import { Alumno } from '../types';
+import { getCursoGroups } from '../utils/cursoGroups';
 
 const GestionAlumnos: React.FC = () => {
   const { alumnos, materias, asistencias, addAlumno, updateAlumno, deleteAlumno } = useApp();
@@ -308,21 +309,30 @@ const GestionAlumnos: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Materias</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {materias.map(m => (
-                      <label key={m.id} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-background">
-                        <input
-                          type="checkbox"
-                          checked={form.materias.includes(m.id)}
-                          onChange={e => setForm(f => ({
-                            ...f,
-                            materias: e.target.checked ? [...f.materias, m.id] : f.materias.filter(id => id !== m.id)
-                          }))}
-                          className="accent-indigo-600"
-                        />
-                        <span className="text-xs text-foreground">{m.nombre}</span>
-                      </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Materias (Módulos)</label>
+                  <div className="space-y-4">
+                    {getCursoGroups(materias).map(group => (
+                      <div key={group.id} className="p-3 bg-muted/50 rounded-xl border border-border">
+                        <div className="font-semibold text-xs text-foreground mb-2 px-1">{group.label}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {group.materias.map(m => (
+                            <label key={m.id} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-background bg-card shadow-sm transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={form.materias.includes(m.id)}
+                                onChange={e => setForm(f => ({
+                                  ...f,
+                                  materias: e.target.checked ? [...f.materias, m.id] : f.materias.filter(id => id !== m.id)
+                                }))}
+                                className="accent-indigo-600 rounded border-gray-300"
+                              />
+                              <span className="text-[11px] text-foreground font-medium leading-tight">
+                                {m.nombre.includes('·') ? m.nombre.split('·')[1].trim() : m.nombre}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

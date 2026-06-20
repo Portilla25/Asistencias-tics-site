@@ -3,19 +3,43 @@ import { useApp } from '../context/AppContext';
 import { BookOpen, Save, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { obtenerNotasMateria, guardarNotasBatch } from '../services/notas';
 import { RegistroNotasMateria, CalificacionData } from '../types';
+import { getCursoGroups } from '../utils/cursoGroups';
 
 const Notas: React.FC = () => {
-  const { materias, alumnos } = useApp();
+  const { materias, alumnos, currentUser } = useApp();
+  const misMaterias = currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id);
   
   // Filtrar explícitamente materias para excluir 'Alumnos Personalizados' si existe alguna con ese nombre/código
   const modulosRegulares = useMemo(() => {
-    return materias.filter(m => 
+    return misMaterias.filter(m => 
       !m.nombre.toLowerCase().includes('personalizado') && 
       !m.codigo.toLowerCase().includes('personalizado')
     );
-  }, [materias]);
+  }, [misMaterias]);
 
-  const [selectedMateriaId, setSelectedMateriaId] = useState<string>(modulosRegulares[0]?.id || '');
+  const cursoGroups = useMemo(() => getCursoGroups(modulosRegulares), [modulosRegulares]);
+
+  const [selectedCursoId, setSelectedCursoId] = useState<string>('');
+  const [selectedModuloId, setSelectedModuloId] = useState<string>('');
+
+  const selectedGroup = cursoGroups.find(g => g.id === selectedCursoId);
+  const modulosDisponibles = selectedGroup && selectedGroup.materias.length > 1 ? selectedGroup.materias : [];
+
+  const selectedMateriaId = useMemo(() => {
+    if (selectedModuloId) return selectedModuloId;
+    if (selectedGroup && selectedGroup.materias.length === 1) return selectedGroup.materias[0].id;
+    return '';
+  }, [selectedModuloId, selectedGroup]);
+
+  // Select the first course by default if none is selected
+  useEffect(() => {
+    if (!selectedCursoId && cursoGroups.length > 0) {
+      setSelectedCursoId(cursoGroups[0].id);
+      if (cursoGroups[0].materias.length > 1) {
+        setSelectedModuloId(cursoGroups[0].materias[0].id);
+      }
+    }
+  }, [cursoGroups, selectedCursoId]);
   const [notasLocales, setNotasLocales] = useState<RegistroNotasMateria>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -113,19 +137,32 @@ const Notas: React.FC = () => {
         <div className="flex items-center gap-4 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none sm:min-w-[250px]">
             <select
-              value={selectedMateriaId}
-              onChange={(e) => setSelectedMateriaId(e.target.value)}
+              value={selectedCursoId}
+              onChange={(e) => { setSelectedCursoId(e.target.value); setSelectedModuloId(''); }}
               className="w-full pl-4 pr-10 py-2.5 bg-background border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm transition-all hover:bg-muted/30"
               disabled={loading || saving}
             >
-              {modulosRegulares.length === 0 && <option value="">No hay módulos disponibles</option>}
-              {modulosRegulares.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.nombre} ({m.codigo})
-                </option>
+              {cursoGroups.length === 0 && <option value="">No hay cursos disponibles</option>}
+              {cursoGroups.map(g => (
+                <option key={g.id} value={g.id}>{g.label}</option>
               ))}
             </select>
           </div>
+          
+          {modulosDisponibles.length > 0 && (
+            <div className="relative flex-1 sm:flex-none sm:min-w-[150px]">
+              <select
+                value={selectedModuloId}
+                onChange={(e) => setSelectedModuloId(e.target.value)}
+                className="w-full pl-4 pr-10 py-2.5 bg-background border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm transition-all hover:bg-muted/30"
+                disabled={loading || saving}
+              >
+                {modulosDisponibles.map((m, i) => (
+                  <option key={m.id} value={m.id}>Módulo {i + 1}</option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <button
             onClick={handleGuardar}

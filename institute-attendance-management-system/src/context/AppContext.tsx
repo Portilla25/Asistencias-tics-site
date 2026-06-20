@@ -29,7 +29,7 @@ interface AppContextType {
   addAlumno: (alumno: Omit<Alumno, 'id'>) => void;
   updateAlumno: (id: string, alumno: Partial<Alumno>) => void;
   deleteAlumno: (id: string) => void;
-  addMateria: (materia: Omit<Materia, 'id'>) => void;
+  addMateria: (materia: Omit<Materia, 'id'> | Materia) => void;
   updateMateria: (id: string, materia: Partial<Materia>) => void;
   deleteMateria: (id: string) => void;
   registrarAsistencia: (asistencia: Omit<Asistencia, 'id'>) => void;
@@ -192,8 +192,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAsistencias(prev => prev.filter(a => a.alumnoId !== id));
   }, []);
 
-  const addMateria = useCallback((materia: Omit<Materia, 'id'>) => {
-    setMaterias(prev => [...prev, { ...materia, id: `m${Date.now()}` }]);
+  const addMateria = useCallback((materia: Omit<Materia, 'id'> | Materia) => {
+    setMaterias(prev => [...prev, { ...materia, id: 'id' in materia ? materia.id : `m${Date.now()}` }]);
   }, []);
 
   const updateMateria = useCallback((id: string, data: Partial<Materia>) => {

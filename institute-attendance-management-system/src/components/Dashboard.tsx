@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { getCursoGroups } from '../utils/cursoGroups';
 import { Users, BookOpen, CheckCircle, XCircle, Clock, TrendingUp, AlertTriangle, Award } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 
@@ -16,13 +17,16 @@ const Dashboard: React.FC = () => {
     return { totalAsistencias, presentes, ausentes, tardanzas, justificados, porcentajeAsistencia };
   }, [asistencias]);
 
-  const asistenciasPorMateria = useMemo(() => {
-    return materias.map(m => {
-      const asis = asistencias.filter(a => a.materiaId === m.id);
+  const asistenciasPorCurso = useMemo(() => {
+    const grupos = getCursoGroups(materias);
+    return grupos.map(g => {
+      const materiaIds = g.materias.map(m => m.id);
+      const asis = asistencias.filter(a => materiaIds.includes(a.materiaId));
       const presentes = asis.filter(a => a.estado === 'presente').length;
       const total = asis.length;
       return {
-        name: m.nombre.split(' ')[0],
+        name: g.label.length > 15 ? g.label.substring(0, 15) + '...' : g.label,
+        originalName: g.label,
         Presentes: presentes,
         Ausentes: asis.filter(a => a.estado === 'ausente').length,
         Tardanzas: asis.filter(a => a.estado === 'tardanza').length,
@@ -92,10 +96,10 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
-            <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={asistenciasPorMateria.filter(m => misMaterias.some(mm => mm.nombre.startsWith(m.name)))}>
+          <div className="bg-card rounded-xl p-5 shadow-sm border border-border lg:col-span-2">
+            <h3 className="font-semibold text-foreground mb-4">Asistencia por Curso</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={asistenciasPorCurso.filter(c => getCursoGroups(misMaterias).some(g => g.label === c.originalName))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -162,7 +166,7 @@ const Dashboard: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Alumnos" value={alumnos.length} icon={<Users className="w-5 h-5 text-blue-600" />} color="bg-blue-100" subtitle={`${alumnos.length} matriculados`} />
-        <StatCard title="Materias" value={materias.length} icon={<BookOpen className="w-5 h-5 text-purple-600" />} color="bg-purple-100" />
+        <StatCard title="Cursos Activos" value={getCursoGroups(materias).length} icon={<BookOpen className="w-5 h-5 text-indigo-600" />} color="bg-indigo-100" />
         <StatCard title="% Asistencia" value={`${stats.porcentajeAsistencia}%`} icon={<TrendingUp className="w-5 h-5 text-green-600" />} color="bg-green-100" subtitle="Promedio general" />
         <StatCard title="Alertas" value={alumnosEnRiesgo.length} icon={<AlertTriangle className="w-5 h-5 text-red-600" />} color="bg-red-100" subtitle="Alumnos en riesgo" />
       </div>
@@ -178,9 +182,9 @@ const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl p-5 shadow-sm border border-border">
-          <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia</h3>
+          <h3 className="font-semibold text-foreground mb-4">Asistencia por Curso</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={asistenciasPorMateria}>
+            <BarChart data={asistenciasPorCurso}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />

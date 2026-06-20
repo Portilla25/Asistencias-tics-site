@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Plus, Edit3, Trash2, X, Check, BookOpen } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Check, BookOpen, Layers } from 'lucide-react';
 import { Materia } from '../types';
-import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
+import { createModuloForCareer } from '../services/legacyData';
+import { getCursoGroups } from '../utils/cursoGroups';
 
 const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6', '#f97316', '#84cc16'];
 
@@ -23,19 +24,17 @@ const GestionMaterias: React.FC = () => {
   const docentes = usuarios.filter(u => u.rol === 'docente');
   const misMaterias = currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id);
 
-  const careerGroups = useMemo(() => {
-    const groups: { career: LegacyCareer; materias: Materia[] }[] = [];
+  const careerGroups = useMemo(() => getCursoGroups(misMaterias), [misMaterias]);
 
-    DEFAULT_CAREERS.forEach((career) => {
-      const careerMateriaIds = new Set(career.secciones.map((s) => s.id));
-      const careerMaterias = misMaterias.filter((m) => careerMateriaIds.has(m.id));
-      if (careerMaterias.length > 0) {
-        groups.push({ career, materias: careerMaterias });
-      }
-    });
-
-    return groups;
-  }, [misMaterias]);
+  const handleAddModuleToCourse = (cursoId: string) => {
+    try {
+      const newMateria = createModuloForCareer(cursoId);
+      addMateria(newMateria);
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo añadir el módulo a este curso libre. Asegúrate de que sea una carrera predeterminada.");
+    }
+  };
 
   const getMateriaStats = (materiaId: string) => {
     const asis = asistencias.filter(a => a.materiaId === materiaId);
@@ -83,20 +82,30 @@ const GestionMaterias: React.FC = () => {
 
       {/* Grouped by Careers */}
       <div className="space-y-8">
-        {careerGroups.map(({ career, materias: groupMaterias }) => (
-          <div key={career.id} className="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-sm">
+        {careerGroups.map((group) => (
+          <div key={group.id} className="bg-card/50 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-sm">
             <div className="flex items-center gap-4 mb-6 border-b border-border pb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl shadow-sm">
-                {CAREER_ICONS[career.id] || '📚'}
+                {CAREER_ICONS[group.id] || '📚'}
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground tracking-tight">{career.nombre}</h2>
-                <p className="text-sm font-medium text-muted-foreground">{groupMaterias.length} módulos asignados a esta carrera</p>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-foreground tracking-tight">{group.label}</h2>
+                <p className="text-sm font-medium text-muted-foreground">{group.materias.length} módulos asignados a esta carrera</p>
               </div>
+              {currentUser?.rol === 'admin' && (
+                <button 
+                  onClick={() => handleAddModuleToCourse(group.id)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium transition-colors"
+                  title="Añade un nuevo módulo automáticamente a este curso"
+                >
+                  <Layers className="w-4 h-4" />
+                  + Añadir Módulo
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {groupMaterias.map(materia => {
+              {group.materias.map(materia => {
                 const stats = getMateriaStats(materia.id);
                 const docente = usuarios.find(u => u.id === materia.docenteId);
                 return (

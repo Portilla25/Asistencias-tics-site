@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { getCursoGroups } from '../utils/cursoGroups';
 import { Materia } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
@@ -14,29 +15,8 @@ const Reportes: React.FC = () => {
 
   const misMaterias = currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id);
 
-  // Group materias into courses the user actually has
-  const cursoGroups = useMemo(() => {
-    const groups: { id: string; label: string; materias: Materia[] }[] = [];
-
-    const gastro = misMaterias.filter(m => m.id.startsWith('info_gastro'));
-    const tiManana = misMaterias.filter(m => m.id.startsWith('redes_M_')).sort((a, b) => a.id.localeCompare(b.id));
-    const tiTarde = misMaterias.filter(m => m.id.startsWith('redes_T_')).sort((a, b) => a.id.localeCompare(b.id));
-    const sabManana = misMaterias.filter(m => m.id.startsWith('redes_S_M')).sort((a, b) => a.id.localeCompare(b.id));
-    const sabTarde = misMaterias.filter(m => m.id.startsWith('redes_S_T')).sort((a, b) => a.id.localeCompare(b.id));
-
-    if (gastro.length > 0) groups.push({ id: 'gastro', label: 'Gastronomía (Lunes)', materias: gastro });
-    if (tiManana.length > 0) groups.push({ id: 'ti_manana', label: 'Tecnologías de la Información - Mañana', materias: tiManana });
-    if (tiTarde.length > 0) groups.push({ id: 'ti_tarde', label: 'Tecnologías de la Información - Tarde', materias: tiTarde });
-    if (sabManana.length > 0) groups.push({ id: 'sab_manana', label: 'TI Sábado - Mañana', materias: sabManana });
-    if (sabTarde.length > 0) groups.push({ id: 'sab_tarde', label: 'TI Sábado - Tarde', materias: sabTarde });
-
-    // Any other materias that don't match these patterns
-    const knownIds = new Set([...gastro, ...tiManana, ...tiTarde, ...sabManana, ...sabTarde].map(m => m.id));
-    const otros = misMaterias.filter(m => !knownIds.has(m.id));
-    otros.forEach(m => groups.push({ id: m.id, label: m.nombre, materias: [m] }));
-
-    return groups;
-  }, [misMaterias]);
+  // Group materias into courses
+  const cursoGroups = useMemo(() => getCursoGroups(misMaterias), [misMaterias]);
 
   const selectedGroup = cursoGroups.find(g => g.id === filterCurso);
   const modulosDisponibles = selectedGroup && selectedGroup.materias.length > 1 ? selectedGroup.materias : [];

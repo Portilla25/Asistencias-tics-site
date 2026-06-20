@@ -73,6 +73,11 @@ const CHUNK_LIMIT = 700_000;
 const CHUNK_FIELDS = ['alumnos', 'retirados', 'asistencias', 'motivos', 'notas', 'participacion'] as const;
 const ARRAY_CHUNK_FIELDS = new Set<string>(['alumnos', 'retirados']);
 
+const readStorage = (key: string): string | null => {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(key);
+};
+
 const DEFAULT_CAREERS: LegacyCareer[] = [
   {
     id: 'redes',
@@ -115,8 +120,6 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
 
 export { DEFAULT_CAREERS };
 
-const COLORS = ['#f59e0b', '#0d9488', '#2563eb', '#16a34a', '#dc2626', '#7c3aed', '#0284c7', '#f97316'];
-
 const safeParse = <T,>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -124,6 +127,54 @@ const safeParse = <T,>(value: string | null, fallback: T): T => {
   } catch {
     return fallback;
   }
+};
+
+export const getCareers = (): LegacyCareer[] => {
+  return safeParse<LegacyCareer[]>(readStorage('asist_carreras'), DEFAULT_CAREERS);
+};
+
+export const saveCareers = (careers: LegacyCareer[]) => {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('asist_carreras', JSON.stringify(careers));
+  }
+};
+
+export const createModuloForCareer = (careerId: string): Omit<Materia, 'id'> & { id: string } => {
+  const careers = getCareers();
+  const career = careers.find(c => c.id === careerId);
+  if (!career) throw new Error('Career not found');
+
+  const moduleNumber = (career.secciones?.length || 0) + 1;
+  const newModuleId = `${careerId}_${Date.now()}`;
+  const newSectionLabel = `Módulo ${moduleNumber}`;
+  const newBadge = `Mod ${moduleNumber}`;
+
+  career.secciones = career.secciones || [];
+  career.secciones.push({
+    id: newModuleId,
+    label: newSectionLabel,
+    badge: newBadge,
+  });
+
+  saveCareers(careers);
+
+  // also create empty state for it so it persists fully
+  if (typeof window !== 'undefined') {
+    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    if (!state[newModuleId]) {
+      state[newModuleId] = { alumnos: [], fechas: [], asistencias: {} };
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+    }
+  }
+
+  return {
+    id: newModuleId,
+    nombre: `${career.nombre} · ${newSectionLabel}`,
+    codigo: newBadge,
+    docenteId: DOCENTE_ID,
+    descripcion: `Módulo ${moduleNumber} creado manualmente.`,
+    color: career.color || '#6366f1',
+  };
 };
 
 const cloneJson = <T,>(value: T): T => JSON.parse(JSON.stringify(value ?? null)) as T;
@@ -246,10 +297,7 @@ const syncTouchedModules = (moduleIds: Set<string>, state: Record<string, Legacy
   });
 };
 
-const readStorage = (key: string) => {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(key);
-};
+
 
 const normalize = (value: string) =>
   value
@@ -279,6 +327,8 @@ const splitName = (fullName: string) => {
     nombre: parts.slice(2).join(' ') || parts.slice(0, 1).join(' '),
   };
 };
+
+const COLORS = ['#f59e0b', '#0d9488', '#2563eb', '#16a34a', '#dc2626', '#7c3aed', '#0284c7', '#f97316'];
 
 const labelFor = (careers: LegacyCareer[], moduleId: string) => {
   for (const career of careers) {

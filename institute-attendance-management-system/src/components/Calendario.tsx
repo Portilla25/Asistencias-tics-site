@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getCursoGroups } from '../utils/cursoGroups';
 
 const estadoColors: Record<string, string> = {
   presente: 'bg-green-400',
@@ -86,7 +87,15 @@ const Calendario: React.FC = () => {
             <select value={selectedMateria} onChange={e => setSelectedMateria(e.target.value)}
               className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">Todas las materias</option>
-              {misMaterias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              {getCursoGroups(misMaterias).map(group => (
+                <optgroup key={group.id} label={group.label}>
+                  {group.materias.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nombre.includes('·') ? m.nombre.split('·')[1].trim() : m.nombre}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 

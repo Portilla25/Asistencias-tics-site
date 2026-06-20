@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { CheckCircle, XCircle, Clock, FileText, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { getCursoGroups } from '../utils/cursoGroups';
 
 const estadoBadge: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   presente: { label: 'Presente', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-3.5 h-3.5" /> },
@@ -119,7 +120,15 @@ const MisAsistencias: React.FC = () => {
           <select value={filterMateria} onChange={e => setFilterMateria(e.target.value)}
             className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Todas las materias</option>
-            {materias.filter(m => alumno.materias.includes(m.id)).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            {getCursoGroups(materias.filter(m => alumno.materias.includes(m.id))).map(group => (
+              <optgroup key={group.id} label={group.label}>
+                {group.materias.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.nombre.includes('·') ? m.nombre.split('·')[1].trim() : m.nombre}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
           <select value={filterMes} onChange={e => setFilterMes(e.target.value)}
             className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
