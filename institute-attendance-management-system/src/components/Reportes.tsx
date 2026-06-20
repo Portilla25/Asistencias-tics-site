@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle } from 'lucide-react';
+import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { exportToGastronomiaExcel } from '../utils/exportExcel';
+import { obtenerNotasMateria } from '../services/notas';
 
 const Reportes: React.FC = () => {
   const { alumnos, materias, asistencias, currentUser } = useApp();
@@ -98,6 +100,42 @@ const Reportes: React.FC = () => {
     a.click();
   };
 
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (!filterMateria) {
+      alert("Por favor, selecciona una materia específica en el filtro para generar su reporte oficial en Excel.");
+      return;
+    }
+    
+    setIsExportingExcel(true);
+    try {
+      const materiaInfo = misMaterias.find(m => m.id === filterMateria);
+      const materiaName = materiaInfo ? materiaInfo.nombre : 'Gastronomia';
+      
+      // Obtener notas desde Firebase si es posible (si no hay, devuelve {})
+      let notasMateria = {};
+      try {
+        notasMateria = await obtenerNotasMateria(filterMateria);
+      } catch (e) {
+        console.warn("No se pudieron cargar las notas", e);
+      }
+
+      const success = await exportToGastronomiaExcel(
+        alumnosReport, // pasamos solo los alumnos filtrados
+        filteredAsistencias,
+        notasMateria,
+        materiaName
+      );
+      
+      if (!success) {
+        alert("Hubo un error al generar el archivo Excel.");
+      }
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-5">
       {/* Filters */}
@@ -120,9 +158,17 @@ const Reportes: React.FC = () => {
           >
             Limpiar filtros
           </button>
-          <button onClick={handleExport} className="ml-auto flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
+          <button onClick={handleExport} className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Download className="w-4 h-4" />
             Exportar CSV
+          </button>
+          <button 
+            onClick={handleExportExcel} 
+            disabled={isExportingExcel}
+            className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors ${isExportingExcel ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            {isExportingExcel ? 'Generando...' : 'Exportar Oficial (Excel)'}
           </button>
         </div>
       </div>
