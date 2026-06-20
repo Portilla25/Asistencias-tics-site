@@ -150,8 +150,8 @@ export const getCareers = (): LegacyCareer[] => {
   let tarde = stored.find(c => c.nombre === 'Tecnologías turno tarde sábados');
 
   if (manana) {
-    const isAfternoon = (s: any) => s.id.includes('_T_') || s.label.toLowerCase().includes('tarde');
-    const isMorning = (s: any) => s.id.includes('_M_') || s.label.toLowerCase().includes('mañana');
+    const isAfternoon = (s: any) => s.id.includes('_T_') || s.label.toLowerCase().includes('tarde') || s.label.includes('Módulo 3') || s.label.includes('Módulo 4');
+    const isMorning = (s: any) => s.id.includes('_M_') || s.label.toLowerCase().includes('mañana') || s.label.includes('Módulo 1') || s.label.includes('Módulo 2');
 
     // Move afternoon sections out of morning
     const afternoonFromManana = manana.secciones.filter(isAfternoon);
