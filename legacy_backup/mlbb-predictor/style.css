@@ -1,0 +1,362 @@
+:root {
+    /* Color Palette - Premium Dark Esports Theme */
+    --bg-main: #0B0E14;
+    --bg-secondary: #151A22;
+    --bg-card: #1D232E;
+    --bg-card-hover: #252B36;
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #8B949E;
+    --text-muted: #586069;
+    
+    --accent-gold: #E5B539;
+    --accent-blue: #3B82F6;
+    --accent-red: #EF4444;
+    --accent-green: #10B981;
+    
+    --border-color: rgba(255, 255, 255, 0.05);
+    --border-highlight: rgba(255, 255, 255, 0.1);
+    
+    --font-main: 'Outfit', sans-serif;
+    --font-heading: 'Rajdhani', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+.text-accent {
+    color: var(--accent-gold);
+}
+
+/* Layout Grid */
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+}
+
+.logo-container {
+    padding: 0 24px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-container h1 {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.logo-container span {
+    color: var(--accent-gold);
+}
+
+.main-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px;
+    flex-grow: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-weight: 400;
+}
+
+.nav-item:hover {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background-color: rgba(229, 181, 57, 0.1);
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.user-status {
+    padding: 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.db-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+/* Main Content */
+.main-content {
+    flex-grow: 1;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.header-titles h2 {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    margin-bottom: 4px;
+}
+
+.header-titles p {
+    color: var(--text-secondary);
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-main);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--accent-gold);
+    color: #000;
+}
+
+.btn-primary:hover {
+    background-color: #f6c84c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(229, 181, 57, 0.3);
+}
+
+/* Stats Section */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--accent-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.stat-info h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 400;
+}
+
+.stat-info p {
+    font-size: 24px;
+    font-weight: 600;
+    font-family: var(--font-heading);
+}
+
+/* Predictions Section */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.league-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-highlight);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.badge:hover {
+    background-color: var(--bg-card-hover);
+}
+
+.badge.active {
+    background-color: var(--accent-gold);
+    color: #000;
+    border-color: var(--accent-gold);
+}
+
+/* Matches Grid */
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+}
+
+.match-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.match-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    border-color: var(--border-highlight);
+}
+
+.match-header {
+    background-color: rgba(255,255,255,0.02);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.match-teams {
+    padding: 24px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.team {
+    text-align: center;
+    flex: 1;
+}
+
+.team-logo {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.team-name {
+    font-weight: 600;
+    font-size: 18px;
+    font-family: var(--font-heading);
+}
+
+.vs {
+    font-weight: 800;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0 16px;
+}
+
+.prediction-bar {
+    height: 6px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    width: 100%;
+}
+
+.prob-t1 {
+    height: 100%;
+    background-color: var(--accent-blue);
+}
+
+.prob-t2 {
+    height: 100%;
+    background-color: var(--accent-red);
+}
+
+.prediction-stats {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.stat-t1 { color: var(--accent-blue); }
+.stat-t2 { color: var(--accent-red); }
+
+.loading-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+    font-size: 18px;
+}
+
+.loading-state i {
+    font-size: 32px;
+    color: var(--accent-gold);
+    margin-bottom: 16px;
+}
