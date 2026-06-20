@@ -68,6 +68,24 @@ export const ADMIN_EMAILS = ['fer250423@gmail.com'];
 const DOCENTE_ID = 'u-docente-principal';
 const ALUMNO_DEMO_ID = 'u-alumno-demo';
 const STORAGE_STATE_KEY = 'asist_state';
+
+const saveStateLocally = (state: Record<string, LegacyModule>) => {
+  if (typeof window !== 'undefined') {
+    (window as any).__inMemoryState = state;
+    try {
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("localStorage quota exceeded, state kept in memory", e);
+    }
+  }
+};
+
+const getStateLocally = (): Record<string, LegacyModule> => {
+  if (typeof window !== 'undefined' && (window as any).__inMemoryState) {
+    return (window as any).__inMemoryState;
+  }
+  return safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
+};
 const FIRESTORE_LIMIT = 800_000;
 const CHUNK_LIMIT = 700_000;
 const CHUNK_FIELDS = ['alumnos', 'retirados', 'asistencias', 'motivos', 'notas', 'participacion'] as const;
@@ -214,10 +232,10 @@ export const createModuloForCareer = (careerId: string): Omit<Materia, 'id'> & {
 
   // also create empty state for it so it persists fully
   if (typeof window !== 'undefined') {
-    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    const state = getStateLocally();
     if (!state[newModuleId]) {
       state[newModuleId] = { alumnos: [], fechas: [], asistencias: {} };
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
     }
   }
 
@@ -391,7 +409,7 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
     }
 
     if (Object.keys(state).length > 0) {
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
       return true;
     }
   } catch (error: any) {
@@ -713,7 +731,7 @@ const runMigrations = () => {
     } catch {
       console.warn('[REDES_MIGRACION_V2] No se pudo guardar backup en localStorage (cuota excedida). Usa el backup descargado.');
     }
-    window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+    saveStateLocally(state);
     window.localStorage.setItem(MIGRATION_FLAG_TURNO, new Date().toISOString());
     console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos.`);
   } catch (e) {
@@ -793,7 +811,7 @@ const runMigrationsV3 = () => {
       } catch {
         // Ignore quota error for backup
       }
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
       console.log(`[REDES_MIGRACION_V3] Completada. ${totalMigrated} alumnos migrados de tics_S a redes_M.`);
     }
     window.localStorage.setItem(MIGRATION_FLAG_TICS_SAB, new Date().toISOString());
@@ -807,7 +825,7 @@ export const loadInitialAppData = (): InitialAppData => {
   runMigrations();
   runMigrationsV3();
 
-  const state = safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
+  const state = getStateLocally();
   const hasLegacyState = Object.keys(state).length > 0;
   if (!hasLegacyState) {
     return {
@@ -915,7 +933,7 @@ export const loadInitialAppData = (): InitialAppData => {
 export const persistLegacyAttendanceBatch = (items: Omit<Asistencia, 'id'>[], alumnos: Alumno[]) => {
   if (typeof window === 'undefined' || items.length === 0) return;
 
-  const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+  const state = getStateLocally();
   const touchedModules = new Set<string>();
   items.forEach((item) => {
     const alumno = alumnos.find((candidate) => candidate.id === item.alumnoId);
@@ -936,7 +954,7 @@ export const persistLegacyAttendanceBatch = (items: Omit<Asistencia, 'id'>[], al
     touchedModules.add(item.materiaId);
   });
 
-  window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+  saveStateLocally(state);
   syncTouchedModules(touchedModules, state);
 };
 
@@ -944,7 +962,7 @@ export const deleteLegacyAttendance = (alumnoId: string, materiaId: string, fech
   if (typeof window === 'undefined') return;
 
   try {
-    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    const state = getStateLocally();
     const alumno = alumnos.find((a) => a.id === alumnoId);
     const legacyStudentId = alumno?.legacyRefs?.[materiaId];
 
@@ -955,7 +973,7 @@ export const deleteLegacyAttendance = (alumnoId: string, materiaId: string, fech
         delete state[materiaId].motivos![legacyStudentId][fecha];
       }
       
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
       syncLegacyModuleToFirestore(materiaId, state[materiaId]);
       console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada con éxito de la base de datos (LocalStorage y Firebase).`);
     }
@@ -968,7 +986,7 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
   if (typeof window === 'undefined') return;
 
   try {
-    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    const state = getStateLocally();
     let touched = false;
     const touchedModules = new Set<string>();
 
@@ -990,7 +1008,7 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
     });
 
     if (touched) {
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
       syncTouchedModules(touchedModules, state);
       console.log(`Alumno con ID ${alumnoId} actualizado/retirado con éxito de la base de datos (LocalStorage y Firebase).`);
     }
@@ -1003,7 +1021,7 @@ export const persistNewAlumno = (alumno: Alumno) => {
   if (typeof window === 'undefined') return;
 
   try {
-    const state = safeParse<Record<string, LegacyModule>>(window.localStorage.getItem(STORAGE_STATE_KEY), {});
+    const state = getStateLocally();
     let touched = false;
     const touchedModules = new Set<string>();
 
@@ -1030,7 +1048,7 @@ export const persistNewAlumno = (alumno: Alumno) => {
     });
 
     if (touched) {
-      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
+      saveStateLocally(state);
       syncTouchedModules(touchedModules, state);
       console.log(`Nuevo alumno guardado con éxito en la base de datos (LocalStorage y Firebase).`);
     }
@@ -1041,7 +1059,7 @@ export const persistNewAlumno = (alumno: Alumno) => {
 
 export const createLegacyBackup = () => {
   const backup = {
-    state: safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {}),
+    state: getStateLocally(),
     personalizados: safeParse<unknown[]>(readStorage('asist_personalizados'), []),
     historial: safeParse<unknown[]>(readStorage('asist_historial'), []),
     carreras: safeParse<LegacyCareer[]>(readStorage('asist_carreras'), DEFAULT_CAREERS),
@@ -1066,7 +1084,7 @@ export const importLegacyBackup = async (jsonString: string): Promise<{ success:
     }
 
     // Guardar en LocalStorage
-    window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(backup.state));
+    saveStateLocally(backup.state);
     if (backup.personalizados) window.localStorage.setItem('asist_personalizados', JSON.stringify(backup.personalizados));
     if (backup.historial) window.localStorage.setItem('asist_historial', JSON.stringify(backup.historial));
     if (backup.carreras) window.localStorage.setItem('asist_carreras', JSON.stringify(backup.carreras));
