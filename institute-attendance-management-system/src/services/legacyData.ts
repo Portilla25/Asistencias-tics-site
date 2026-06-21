@@ -416,6 +416,20 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
     for (const [moduleId, module] of Object.entries(state)) {
       if ((module as any)._chunked) {
         const counts = (module as any)._chunkCounts || {};
+        const unflattenObject = (entries: Array<{ path: string[]; value: unknown }>, target: Record<string, unknown> = {}) => {
+          for (const { path, value } of entries) {
+            if (!path || path.length === 0) continue;
+            let current = target;
+            for (let i = 0; i < path.length - 1; i++) {
+              const key = path[i];
+              if (!current[key] || typeof current[key] !== 'object') current[key] = {};
+              current = current[key] as Record<string, unknown>;
+            }
+            current[path[path.length - 1]] = value;
+          }
+          return target;
+        };
+
         for (const field of Object.keys(counts)) {
           const count = counts[field];
           let reassembled: any = ARRAY_CHUNK_FIELDS.has(field) ? [] : {};
@@ -424,9 +438,17 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
             const chunkData = chunks.find(c => c.id === chunkId)?.data;
             if (chunkData) {
               if (Array.isArray(reassembled)) {
-                 Object.keys(chunkData).sort((a,b) => Number(a)-Number(b)).forEach(k => reassembled.push(chunkData[k]));
+                 // Array chunks are stored as { [field]: [...] }
+                 const chunkArray = chunkData[field];
+                 if (Array.isArray(chunkArray)) {
+                   chunkArray.forEach(item => reassembled.push(item));
+                 }
               } else {
-                 Object.assign(reassembled, chunkData);
+                 if (chunkData._flat && Array.isArray(chunkData.entries)) {
+                   unflattenObject(chunkData.entries, reassembled);
+                 } else {
+                   Object.assign(reassembled, chunkData);
+                 }
               }
             }
           }
