@@ -84,9 +84,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     let mounted = true;
     const syncData = async () => {
+      console.log('[AppContext] syncData starting...');
       const didDownload = await downloadFromFirestore();
+      console.log('[AppContext] downloadFromFirestore returned:', didDownload, 'mounted:', mounted);
       if (didDownload && mounted) {
         const newData = loadInitialAppData();
+        console.log('[AppContext] Setting new data:', newData.asistencias.length, 'asistencias');
         setAlumnos(newData.alumnos);
         setMaterias(newData.materias);
         setAsistencias(newData.asistencias);

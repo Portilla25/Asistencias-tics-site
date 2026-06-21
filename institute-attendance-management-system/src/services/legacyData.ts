@@ -436,6 +436,20 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
     }
 
     if (Object.keys(state).length > 0) {
+      // Count total asistencias across all modules for debugging
+      let totalAsist = 0;
+      let latestDate = '';
+      for (const [mid, mod] of Object.entries(state)) {
+        for (const [sid, byDate] of Object.entries((mod as any).asistencias || {})) {
+          if (typeof byDate === 'object' && byDate !== null) {
+            for (const fecha of Object.keys(byDate)) {
+              totalAsist++;
+              if (fecha > latestDate) latestDate = fecha;
+            }
+          }
+        }
+      }
+      console.log(`[FIREBASE_DOWNLOAD] OK: ${Object.keys(state).length} modules, ${totalAsist} asistencias, latest date: ${latestDate}`);
       saveStateLocally(state);
       __firebaseDownloadedThisSession = true;
       return true;
@@ -856,6 +870,7 @@ export const loadInitialAppData = (): InitialAppData => {
 
   const state = getStateLocally();
   const hasLegacyState = Object.keys(state).length > 0;
+  console.log(`[LOAD_INITIAL] firebaseDownloaded=${__firebaseDownloadedThisSession}, stateKeys=${Object.keys(state).length}, hasLegacy=${hasLegacyState}`);
   if (!hasLegacyState) {
     return {
       alumnos: mockAlumnos,
@@ -945,6 +960,13 @@ export const loadInitialAppData = (): InitialAppData => {
   const alumnos = [...alumnosByKey.values()].sort((a, b) =>
     `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`, 'es', { sensitivity: 'base' })
   );
+  console.log(`[LOAD_INITIAL] Built ${alumnos.length} alumnos, ${asistencias.length} asistencias, ${materias.length} materias`);
+  // Find latest asistencia date
+  if (asistencias.length > 0) {
+    const latestAsist = asistencias.reduce((latest, a) => a.fecha > latest ? a.fecha : latest, '');
+    console.log(`[LOAD_INITIAL] Latest asistencia date: ${latestAsist}`);
+  }
+
   const usuarios = buildUsers(alumnos);
 
   return {
