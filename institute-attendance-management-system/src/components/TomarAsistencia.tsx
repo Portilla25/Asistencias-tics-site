@@ -482,7 +482,11 @@ const TomarAsistencia: React.FC = () => {
             </div>
 
             {/* Lista de alumnos */}
-            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+            <div className="bg-yellow-100 p-2 mb-4 text-xs font-mono text-yellow-800 rounded">
+            DEBUG: {asistencias.length} asist totales | En {selectedMateria} para {fecha}: {asistencias.filter(a => a.materiaId === selectedMateria && a.fecha === fecha).length} asist. Alumnos: {alumnosMateria.length}
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-3 border-b border-border bg-muted flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-foreground">{materia?.nombre}</h3>
