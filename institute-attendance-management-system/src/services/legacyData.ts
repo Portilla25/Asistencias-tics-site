@@ -216,9 +216,11 @@ export const getCareers = (): LegacyCareer[] => {
     });
 
     // Strip out legacy IDs that were deleted
-    const oldLen = storedCareer!.secciones.length;
-    storedCareer!.secciones = storedCareer!.secciones.filter(s => !['M-1','M-2','M-3','M-4','T-1','T-2','T-3','T-4'].includes(s.id));
-    if (oldLen !== storedCareer!.secciones.length) needsSave = true;
+    if (storedCareer!.secciones) {
+      const oldLen = storedCareer!.secciones.length;
+      storedCareer!.secciones = storedCareer!.secciones.filter(s => !['M-1','M-2','M-3','M-4','T-1','T-2','T-3','T-4'].includes(s.id));
+      if (oldLen !== storedCareer!.secciones.length) needsSave = true;
+    }
   });
 
   if (needsSave && typeof window !== 'undefined') {
@@ -887,18 +889,7 @@ export const loadInitialAppData = (): InitialAppData => {
   runMigrations();
   runMigrationsV3();
 
-  if (forceSource === 'mock') {
-    return {
-      alumnos: mockAlumnos,
-      materias: mockMaterias,
-      asistencias: mockAsistencias,
-      notificaciones: mockNotificaciones,
-      horarios: mockHorarios,
-      periodos: mockPeriodos,
-      usuarios: mockUsuarios,
-      source: 'mock',
-    };
-  }
+
 
   // Use legacy state
   const state = getStateLocally();
