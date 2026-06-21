@@ -96,42 +96,59 @@ const TomarAsistencia: React.FC = () => {
       });
   }, [selectedMateria, alumnos]);
 
-  // Pre-fill with existing attendance
+  const contextRef = React.useRef({ materia: selectedMateria, fecha });
+
   React.useEffect(() => {
     if (!selectedMateria || !fecha) return;
-    const newEstados: Record<string, Estado> = {};
-    const newObs: Record<string, string> = {};
-    alumnosMateria.forEach(alumno => {
-      const existing = asistencias.find(a => a.alumnoId === alumno.id && a.materiaId === selectedMateria && a.fecha === fecha);
-      if (existing) {
-        newEstados[alumno.id] = existing.estado;
-        newObs[alumno.id] = existing.observacion || '';
-      }
-    });
-    setEstados(newEstados);
-    setObservaciones(newObs);
-    setSaved(false);
 
-    // Fetch session data
-    getSesion(selectedMateria, fecha).then(sesion => {
-      if (sesion) {
-        setTema(sesion.tema || '');
-        setNumeroClase(sesion.numeroClase || '');
-        setModalidad(sesion.modalidad || 'Presencial');
-      } else {
-        setTema('');
-        setModalidad('Presencial');
-        // Auto-calculate next numeroClase if empty
-        getSesiones(selectedMateria).then(sesiones => {
-          if (sesiones.length > 0) {
-            const max = Math.max(...sesiones.map(s => s.numeroClase || 0));
-            setNumeroClase(max + 1);
-          } else {
-            setNumeroClase(1);
-          }
-        });
-      }
+    const contextChanged = contextRef.current.materia !== selectedMateria || contextRef.current.fecha !== fecha;
+    contextRef.current = { materia: selectedMateria, fecha };
+
+    setEstados(prev => {
+      const newEstados: Record<string, Estado> = contextChanged ? {} : { ...prev };
+      alumnosMateria.forEach(alumno => {
+        const existing = asistencias.find(a => a.alumnoId === alumno.id && a.materiaId === selectedMateria && a.fecha === fecha);
+        if (existing && !newEstados[alumno.id]) {
+          newEstados[alumno.id] = existing.estado;
+        }
+      });
+      return newEstados;
     });
+
+    setObservaciones(prev => {
+      const newObs: Record<string, string> = contextChanged ? {} : { ...prev };
+      alumnosMateria.forEach(alumno => {
+        const existing = asistencias.find(a => a.alumnoId === alumno.id && a.materiaId === selectedMateria && a.fecha === fecha);
+        if (existing && !newObs[alumno.id]) {
+          newObs[alumno.id] = existing.observacion || '';
+        }
+      });
+      return newObs;
+    });
+    
+    if (contextChanged) {
+      setSaved(false);
+      // Fetch session data
+      getSesion(selectedMateria, fecha).then(sesion => {
+        if (sesion) {
+          setTema(sesion.tema || '');
+          setNumeroClase(sesion.numeroClase || '');
+          setModalidad(sesion.modalidad || 'Presencial');
+        } else {
+          setTema('');
+          setModalidad('Presencial');
+          // Auto-calculate next numeroClase if empty
+          getSesiones(selectedMateria).then(sesiones => {
+            if (sesiones.length > 0) {
+              const max = Math.max(...sesiones.map(s => s.numeroClase || 0));
+              setNumeroClase(max + 1);
+            } else {
+              setNumeroClase(1);
+            }
+          });
+        }
+      });
+    }
   }, [selectedMateria, fecha, alumnosMateria, asistencias]);
 
   const handleEstado = (alumnoId: string, estado: Estado) => {
