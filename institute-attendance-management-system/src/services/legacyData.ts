@@ -128,28 +128,38 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
     id: 'info_gastro',
     nombre: 'Tecnologías de la información - gastronomía',
     color: '#0d9488',
-    secciones: [{ id: 'info_gastro_L_1', label: 'Lunes 10:30–12:20 (2h)', badge: 'Lunes' }],
+    secciones: [
+      { id: 'info_gastro_L_1', label: 'Lunes 10:30-12:20 (2h)', badge: 'Gastro Lunes' }
+    ],
   },
   {
     id: 'redes',
-    nombre: 'Tecnologías turno mañana sábados',
+    nombre: 'Tecnologías de la información turno mañana',
     color: '#f59e0b',
     secciones: [
-      { id: 'redes_M_1', label: 'Mañana - Módulo 1 (09:00–13:00)', badge: 'Mañana M1' },
-      { id: 'redes_M_2', label: 'Mañana - Módulo 2 (09:00–13:00)', badge: 'Mañana M2' },
-      { id: 'redes_M_3', label: 'Mañana - Módulo 3 (09:00–13:00)', badge: 'Mañana M3' },
-      { id: 'redes_M_4', label: 'Mañana - Módulo 4 (09:00–13:00)', badge: 'Mañana M4' },
+      { id: 'redes_M_1', label: 'Módulo 1 (Mañana)', badge: 'Mañana M1' },
+      { id: 'redes_M_2', label: 'Módulo 2 (Mañana)', badge: 'Mañana M2' },
+      { id: 'redes_M_3', label: 'Módulo 3 (Mañana)', badge: 'Mañana M3' },
+      { id: 'redes_M_4', label: 'Módulo 4 (Mañana)', badge: 'Mañana M4' },
+      { id: 'M-1', label: 'Módulo 1 (Mañana)', badge: 'Mañana M1' },
+      { id: 'M-2', label: 'Módulo 2 (Mañana)', badge: 'Mañana M2' },
+      { id: 'M-3', label: 'Módulo 3 (Mañana)', badge: 'Mañana M3' },
+      { id: 'M-4', label: 'Módulo 4 (Mañana)', badge: 'Mañana M4' },
     ],
   },
   {
     id: 'redes_sabados',
-    nombre: 'Tecnologías turno tarde sábados',
+    nombre: 'Tecnologías de la información turno tarde',
     color: '#e11d48',
     secciones: [
-      { id: 'redes_S_T1', label: 'Sábado Tarde - Módulo 1', badge: 'Sáb Tarde T1' },
-      { id: 'redes_S_T2', label: 'Sábado Tarde - Módulo 2', badge: 'Sáb Tarde T2' },
-      { id: 'redes_S_T3', label: 'Sábado Tarde - Módulo 3', badge: 'Sáb Tarde T3' },
-      { id: 'redes_S_T4', label: 'Sábado Tarde - Módulo 4', badge: 'Sáb Tarde T4' },
+      { id: 'redes_T_1', label: 'Módulo 1 (Tarde)', badge: 'Tarde M1' },
+      { id: 'redes_T_2', label: 'Módulo 2 (Tarde)', badge: 'Tarde M2' },
+      { id: 'redes_T_3', label: 'Módulo 3 (Tarde)', badge: 'Tarde M3' },
+      { id: 'redes_T_4', label: 'Módulo 4 (Tarde)', badge: 'Tarde M4' },
+      { id: 'T-1', label: 'Módulo 1 (Tarde)', badge: 'Tarde M1' },
+      { id: 'T-2', label: 'Módulo 2 (Tarde)', badge: 'Tarde M2' },
+      { id: 'T-3', label: 'Módulo 3 (Tarde)', badge: 'Tarde M3' },
+      { id: 'T-4', label: 'Módulo 4 (Tarde)', badge: 'Tarde M4' },
     ],
   },
 ];
@@ -176,59 +186,49 @@ export const getCareers = (): LegacyCareer[] => {
         c.nombre = 'Tecnologías de la información - gastronomía';
         needsSave = true;
       }
-    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || c.nombre.toLowerCase().includes('tic y redes')) {
-      if (c.nombre !== 'Tecnologías turno mañana sábados') {
-        c.nombre = 'Tecnologías turno mañana sábados';
+    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || c.nombre.toLowerCase().includes('tic y redes') || c.nombre.includes('sábados')) {
+      if (c.nombre !== 'Tecnologías de la información turno mañana') {
+        c.nombre = 'Tecnologías de la información turno mañana';
         needsSave = true;
       }
     } else if (c.id === 'redes_sabados' || c.nombre === 'Tecnologías Turno mañana sábados' || c.nombre.includes('Tecnologías de la Información y Redes')) {
-      if (c.nombre !== 'Tecnologías turno tarde sábados') {
-        c.nombre = 'Tecnologías turno tarde sábados';
+      if (c.nombre !== 'Tecnologías de la información turno tarde') {
+        c.nombre = 'Tecnologías de la información turno tarde';
         needsSave = true;
       }
     }
     return c;
   });
 
-  // Step 2: Ensure morning sections are in morning career, and afternoon in afternoon career
-  const manana = stored.find(c => c.nombre === 'Tecnologías turno mañana sábados');
-  let tarde = stored.find(c => c.nombre === 'Tecnologías turno tarde sábados');
-
-  if (manana) {
-    const isAfternoon = (s: any) => s.id.includes('_T_') || s.label.toLowerCase().includes('tarde') || s.label.includes('Módulo 3') || s.label.includes('Módulo 4');
-    const isMorning = (s: any) => s.id.includes('_M_') || s.label.toLowerCase().includes('mañana') || s.label.includes('Módulo 1') || s.label.includes('Módulo 2');
-
-    // Move afternoon sections out of morning
-    const afternoonFromManana = manana.secciones.filter(isAfternoon);
-    if (afternoonFromManana.length > 0) {
-      manana.secciones = manana.secciones.filter(s => !isAfternoon(s));
-      if (!tarde) {
-        tarde = { id: 'redes_sabados_auto', nombre: 'Tecnologías turno tarde sábados', color: '#e11d48', secciones: [] };
-        stored.push(tarde);
-      }
-      afternoonFromManana.forEach(s => {
-        if (!tarde!.secciones.some(ts => ts.id === s.id)) tarde!.secciones.push(s);
-      });
+  // Force sync sections from DEFAULT_CAREERS to ensure all mappings (M-1, T-1, etc.) exist
+  DEFAULT_CAREERS.forEach(defaultCareer => {
+    let storedCareer = stored.find(c => c.id === defaultCareer.id);
+    if (!storedCareer) {
+      storedCareer = { ...defaultCareer, secciones: [] };
+      stored.push(storedCareer);
       needsSave = true;
     }
-
-    // Move morning sections out of afternoon (if tarde exists)
-    if (tarde) {
-      const morningFromTarde = tarde.secciones.filter(isMorning);
-      if (morningFromTarde.length > 0) {
-        tarde.secciones = tarde.secciones.filter(s => !isMorning(s));
-        morningFromTarde.forEach(s => {
-          if (!manana.secciones.some(ms => ms.id === s.id)) manana.secciones.push(s);
-        });
+    defaultCareer.secciones.forEach(ds => {
+      if (!storedCareer!.secciones.some(ss => ss.id === ds.id)) {
+        storedCareer!.secciones.push(ds);
         needsSave = true;
+      } else {
+        // Also update the badge/label if they changed
+        const existing = storedCareer!.secciones.find(ss => ss.id === ds.id);
+        if (existing && (existing.badge !== ds.badge || existing.label !== ds.label)) {
+          existing.badge = ds.badge;
+          existing.label = ds.label;
+          needsSave = true;
+        }
       }
-    }
-  }
+    });
+  });
 
-  if (needsSave) {
-    saveCareers(stored);
+  if (needsSave && typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem('asist_carreras', JSON.stringify(stored));
+    } catch {}
   }
-  
   return stored;
 };
 
