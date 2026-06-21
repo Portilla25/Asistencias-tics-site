@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw, Plus } from 'lucide-react';
 import { Asistencia } from '../types';
-import { DEFAULT_CAREERS, LegacyCareer, downloadFromFirestore } from '../services/legacyData';
+import { DEFAULT_CAREERS, LegacyCareer, downloadFromFirestore, createModuloForCareer } from '../services/legacyData';
 import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
 
 type Estado = Asistencia['estado'];
@@ -279,12 +279,12 @@ const TomarAsistencia: React.FC = () => {
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
                   {(() => {
                     const getShiftInfo = (id: string) => {
-                      if (id.includes('_S_M')) return { name: 'Sábado Mañana', icon: '☀️', color: 'text-amber-500', border: 'border-amber-200' };
-                      if (id.includes('_S_T')) return { name: 'Sábado Tarde', icon: '🌙', color: 'text-indigo-400', border: 'border-indigo-200' };
+                      if (id.includes('_S_M')) return { name: 'Sábado Mañana', icon: '🌅', color: 'text-amber-500', border: 'border-amber-200' };
+                      if (id.includes('_S_T')) return { name: 'Sábado Tarde', icon: '🌆', color: 'text-indigo-400', border: 'border-indigo-200' };
                       if (id.includes('_S_')) return { name: 'Sábados', icon: '📅', color: 'text-emerald-500', border: 'border-emerald-200' };
-                      if (id.includes('_M_')) return { name: 'Turno Mañana', icon: '☀️', color: 'text-amber-500', border: 'border-amber-200' };
-                      if (id.includes('_T_')) return { name: 'Turno Tarde', icon: '🌙', color: 'text-indigo-400', border: 'border-indigo-200' };
-                      if (id.includes('_L_')) return { name: 'Lunes', icon: '📅', color: 'text-emerald-500', border: 'border-emerald-200' };
+                      if (id.includes('_M_') || id.includes('M-')) return { name: 'Turno Mañana', icon: '🌅', color: 'text-amber-500', border: 'border-amber-200' };
+                      if (id.includes('_T_') || id.includes('T-')) return { name: 'Turno Tarde', icon: '🌆', color: 'text-indigo-400', border: 'border-indigo-200' };
+                      if (id.includes('_L_') || id.includes('L-')) return { name: 'Lunes', icon: '📅', color: 'text-emerald-500', border: 'border-emerald-200' };
                       return null;
                     };
 
