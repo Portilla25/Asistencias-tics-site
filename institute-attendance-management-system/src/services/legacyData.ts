@@ -69,9 +69,14 @@ const DOCENTE_ID = 'u-docente-principal';
 const ALUMNO_DEMO_ID = 'u-alumno-demo';
 const STORAGE_STATE_KEY = 'asist_state';
 
+// In-memory flags to avoid re-running migrations when localStorage is full
+let __inMemoryState: Record<string, LegacyModule> | null = null;
+let __firebaseDownloadedThisSession = false;
+const __inMemoryFlags = new Set<string>();
+
 const saveStateLocally = (state: Record<string, LegacyModule>) => {
   if (typeof window !== 'undefined') {
-    (window as any).__inMemoryState = state;
+    __inMemoryState = state;
     try {
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -81,10 +86,32 @@ const saveStateLocally = (state: Record<string, LegacyModule>) => {
 };
 
 const getStateLocally = (): Record<string, LegacyModule> => {
-  if (typeof window !== 'undefined' && (window as any).__inMemoryState) {
-    return (window as any).__inMemoryState;
+  if (__inMemoryState) {
+    return __inMemoryState;
   }
   return safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
+};
+
+/** Check a migration flag - checks both memory and localStorage */
+const hasMigrationFlag = (flag: string): boolean => {
+  if (__inMemoryFlags.has(flag)) return true;
+  if (typeof window !== 'undefined' && window.localStorage.getItem(flag)) {
+    __inMemoryFlags.add(flag);
+    return true;
+  }
+  return false;
+};
+
+/** Set a migration flag - always sets in memory, tries localStorage */
+const setMigrationFlag = (flag: string) => {
+  __inMemoryFlags.add(flag);
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(flag, new Date().toISOString());
+    } catch {
+      // Quota exceeded - flag is still stored in memory
+    }
+  }
 };
 const FIRESTORE_LIMIT = 800_000;
 const CHUNK_LIMIT = 700_000;
@@ -364,14 +391,14 @@ const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModul
 export const downloadFromFirestore = async (): Promise<boolean> => {
   const db = getFirebaseFirestore();
   if (!db) {
-    if (typeof window !== 'undefined') window.alert('Firebase Error: No se pudo inicializar Firebase. Posiblemente los scripts de Firebase no cargaron o fueron bloqueados por el navegador.');
+    console.warn('Firebase: No se pudo inicializar Firestore');
     return false;
   }
 
   try {
     const snapshot = await db.collection('modulos').get();
     if (snapshot.empty) {
-      if (typeof window !== 'undefined') window.alert('Firestore OK pero la colección modulos está vacía');
+      console.warn('Firestore: colección modulos está vacía');
       return false;
     }
 
@@ -410,11 +437,11 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
 
     if (Object.keys(state).length > 0) {
       saveStateLocally(state);
+      __firebaseDownloadedThisSession = true;
       return true;
     }
   } catch (error: any) {
     console.error('Error downloading from Firestore', error);
-    if (typeof window !== 'undefined') window.alert('Firebase Error: ' + (error?.message || error));
   }
   return false;
 };
@@ -628,7 +655,8 @@ const MIGRATION_FLAG_TURNO = 'redes_turno_migration_v2';
 
 const runMigrations = () => {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem(MIGRATION_FLAG_TURNO)) return;
+  if (__firebaseDownloadedThisSession) return; // Firebase data is authoritative, skip
+  if (hasMigrationFlag(MIGRATION_FLAG_TURNO)) return;
 
   const raw = window.localStorage.getItem(STORAGE_STATE_KEY);
   if (!raw) return;
@@ -732,7 +760,7 @@ const runMigrations = () => {
       console.warn('[REDES_MIGRACION_V2] No se pudo guardar backup en localStorage (cuota excedida). Usa el backup descargado.');
     }
     saveStateLocally(state);
-    window.localStorage.setItem(MIGRATION_FLAG_TURNO, new Date().toISOString());
+    setMigrationFlag(MIGRATION_FLAG_TURNO);
     console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos.`);
   } catch (e) {
     console.error('[REDES_MIGRACION_V2] Error:', e);
@@ -744,7 +772,8 @@ const MIGRATION_FLAG_TICS_SAB = 'tics_sabados_to_redes_M_v1';
 
 const runMigrationsV3 = () => {
   if (typeof window === 'undefined') return;
-  if (window.localStorage.getItem(MIGRATION_FLAG_TICS_SAB)) return;
+  if (__firebaseDownloadedThisSession) return; // Firebase data is authoritative, skip
+  if (hasMigrationFlag(MIGRATION_FLAG_TICS_SAB)) return;
 
   const raw = window.localStorage.getItem(STORAGE_STATE_KEY);
   if (!raw) return;
@@ -814,7 +843,7 @@ const runMigrationsV3 = () => {
       saveStateLocally(state);
       console.log(`[REDES_MIGRACION_V3] Completada. ${totalMigrated} alumnos migrados de tics_S a redes_M.`);
     }
-    window.localStorage.setItem(MIGRATION_FLAG_TICS_SAB, new Date().toISOString());
+    setMigrationFlag(MIGRATION_FLAG_TICS_SAB);
   } catch (e) {
     console.error('[REDES_MIGRACION_V3] Error:', e);
   }
