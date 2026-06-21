@@ -418,7 +418,7 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
         const counts = (module as any)._chunkCounts || {};
         for (const field of Object.keys(counts)) {
           const count = counts[field];
-          let reassembled: any = Array.isArray((module as any)[field]) ? [] : {};
+          let reassembled: any = ARRAY_CHUNK_FIELDS.has(field) ? [] : {};
           for (let i = 0; i < count; i++) {
             const chunkId = `${moduleId}__chunk_${field}_${i}`;
             const chunkData = chunks.find(c => c.id === chunkId)?.data;
