@@ -141,10 +141,6 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
       { id: 'redes_M_2', label: 'Módulo 2 (Mañana)', badge: 'Mañana M2' },
       { id: 'redes_M_3', label: 'Módulo 3 (Mañana)', badge: 'Mañana M3' },
       { id: 'redes_M_4', label: 'Módulo 4 (Mañana)', badge: 'Mañana M4' },
-      { id: 'M-1', label: 'Módulo 1 (Mañana)', badge: 'Mañana M1' },
-      { id: 'M-2', label: 'Módulo 2 (Mañana)', badge: 'Mañana M2' },
-      { id: 'M-3', label: 'Módulo 3 (Mañana)', badge: 'Mañana M3' },
-      { id: 'M-4', label: 'Módulo 4 (Mañana)', badge: 'Mañana M4' },
     ],
   },
   {
@@ -156,10 +152,6 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
       { id: 'redes_T_2', label: 'Módulo 2 (Tarde)', badge: 'Tarde M2' },
       { id: 'redes_T_3', label: 'Módulo 3 (Tarde)', badge: 'Tarde M3' },
       { id: 'redes_T_4', label: 'Módulo 4 (Tarde)', badge: 'Tarde M4' },
-      { id: 'T-1', label: 'Módulo 1 (Tarde)', badge: 'Tarde M1' },
-      { id: 'T-2', label: 'Módulo 2 (Tarde)', badge: 'Tarde M2' },
-      { id: 'T-3', label: 'Módulo 3 (Tarde)', badge: 'Tarde M3' },
-      { id: 'T-4', label: 'Módulo 4 (Tarde)', badge: 'Tarde M4' },
     ],
   },
 ];
@@ -222,6 +214,11 @@ export const getCareers = (): LegacyCareer[] => {
         }
       }
     });
+
+    // Strip out legacy IDs that were deleted
+    const oldLen = storedCareer!.secciones.length;
+    storedCareer!.secciones = storedCareer!.secciones.filter(s => !['M-1','M-2','M-3','M-4','T-1','T-2','T-3','T-4'].includes(s.id));
+    if (oldLen !== storedCareer!.secciones.length) needsSave = true;
   });
 
   if (needsSave && typeof window !== 'undefined') {
@@ -890,7 +887,27 @@ export const loadInitialAppData = (): InitialAppData => {
   runMigrations();
   runMigrationsV3();
 
+  if (forceSource === 'mock') {
+    return {
+      alumnos: mockAlumnos,
+      materias: mockMaterias,
+      asistencias: mockAsistencias,
+      notificaciones: mockNotificaciones,
+      horarios: mockHorarios,
+      periodos: mockPeriodos,
+      usuarios: mockUsuarios,
+      source: 'mock',
+    };
+  }
+
+  // Use legacy state
   const state = getStateLocally();
+
+  // Cleanup legacy duplicates that were deleted from Firebase
+  ['M-1', 'M-2', 'M-3', 'M-4', 'T-1', 'T-2', 'T-3', 'T-4'].forEach(id => {
+    delete state[id];
+  });
+
   const hasLegacyState = Object.keys(state).length > 0;
   console.log(`[LOAD_INITIAL] firebaseDownloaded=${__firebaseDownloadedThisSession}, stateKeys=${Object.keys(state).length}, hasLegacy=${hasLegacyState}`);
   if (!hasLegacyState) {
