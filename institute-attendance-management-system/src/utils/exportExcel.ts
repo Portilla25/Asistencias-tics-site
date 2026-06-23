@@ -9,7 +9,7 @@ export const exportToGastronomiaExcel = async (
 ) => {
   try {
     // Fetch template
-    const response = await fetch('/GASTRONOMIA.xlsx');
+    const response = await fetch('./GASTRONOMIA.xlsx');
     const arrayBuffer = await response.arrayBuffer();
 
     // Load workbook
