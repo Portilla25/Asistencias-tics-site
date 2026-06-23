@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { getCursoGroups } from '../utils/cursoGroups';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
-import { exportToGastronomiaExcel } from '../utils/exportExcel';
+import { exportToGastronomiaExcel, exportToCleanAttendanceExcel } from '../utils/exportExcel';
 import { obtenerNotasMateria } from '../services/notas';
 
 const Reportes: React.FC = () => {
@@ -118,6 +118,7 @@ const Reportes: React.FC = () => {
   };
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingClean, setIsExportingClean] = useState(false);
 
   const handleExportExcel = async () => {
     const targetMateriaId = filterModulo || (selectedGroup?.materias.length === 1 ? selectedGroup.materias[0].id : '');
@@ -153,6 +154,32 @@ const Reportes: React.FC = () => {
     }
   };
 
+  const handleExportCleanExcel = async () => {
+    const targetMateriaId = filterModulo || (selectedGroup?.materias.length === 1 ? selectedGroup.materias[0].id : '');
+    if (!targetMateriaId) {
+      alert("Selecciona un curso y módulo específico para generar el reporte de asistencias en Excel.");
+      return;
+    }
+    
+    setIsExportingClean(true);
+    try {
+      const materiaInfo = misMaterias.find(m => m.id === targetMateriaId);
+      const materiaName = materiaInfo ? materiaInfo.nombre : 'Reporte';
+      
+      const success = await exportToCleanAttendanceExcel(
+        alumnosReport,
+        filteredAsistencias,
+        materiaName
+      );
+      
+      if (!success) {
+        alert("Hubo un error al generar el archivo Excel de asistencias.");
+      }
+    } finally {
+      setIsExportingClean(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-5">
       {/* Filters */}
@@ -180,6 +207,14 @@ const Reportes: React.FC = () => {
           <button onClick={handleExport} className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Download className="w-4 h-4" />
             Exportar CSV
+          </button>
+          <button 
+            onClick={handleExportCleanExcel} 
+            disabled={isExportingClean}
+            className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors ${isExportingClean ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            {isExportingClean ? 'Generando...' : 'Exportar Asistencias (Excel)'}
           </button>
           <button 
             onClick={handleExportExcel} 
