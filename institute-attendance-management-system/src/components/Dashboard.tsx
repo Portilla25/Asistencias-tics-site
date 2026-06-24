@@ -98,7 +98,7 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-xl p-5 shadow-sm border border-border lg:col-span-2">
             <h3 className="font-semibold text-foreground mb-4">Asistencia por Curso</h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="99%" height={250}>
               <BarChart data={asistenciasPorCurso.filter(c => getCursoGroups(misMaterias).some(g => g.label === c.originalName))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
 
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <h3 className="font-semibold text-foreground mb-4">Tendencia de Asistencia (%)</h3>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="99%" height={200}>
             <LineChart data={tendencia}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
@@ -183,7 +183,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl p-5 shadow-sm border border-border">
           <h3 className="font-semibold text-foreground mb-4">Asistencia por Curso</h3>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="99%" height={220}>
             <BarChart data={asistenciasPorCurso}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
 
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <h3 className="font-semibold text-foreground mb-4">Distribución General</h3>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="99%" height={180}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={3}>
                 {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -225,7 +225,7 @@ const Dashboard: React.FC = () => {
         {/* Tendencia */}
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <h3 className="font-semibold text-foreground mb-4">Tendencia de Asistencia (%)</h3>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="99%" height={180}>
             <LineChart data={tendencia}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} />

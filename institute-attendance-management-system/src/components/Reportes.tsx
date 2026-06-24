@@ -260,7 +260,7 @@ const Reportes: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
             <h3 className="font-semibold text-foreground mb-4">Tendencia Mensual (%)</h3>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="99%" height={220}>
               <LineChart data={tendenciaMensual}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
@@ -273,7 +273,7 @@ const Reportes: React.FC = () => {
 
           <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
             <h3 className="font-semibold text-foreground mb-4">Distribución de Estados</h3>
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="99%" height={180}>
               <PieChart>
                 <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3}>
                   {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -293,7 +293,7 @@ const Reportes: React.FC = () => {
 
           <div className="lg:col-span-2 bg-card rounded-xl p-5 shadow-sm border border-border">
             <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia (%)</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="99%" height={200}>
               <BarChart data={materiasReport}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="nombre" tick={{ fontSize: 11 }} />

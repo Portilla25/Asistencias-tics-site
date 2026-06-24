@@ -100,7 +100,7 @@ const MisAsistencias: React.FC = () => {
       {/* Gráfico por materia */}
       <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
         <h3 className="font-semibold text-foreground mb-4">Asistencia por Materia (%)</h3>
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="99%" height={180}>
           <BarChart data={porMateria}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="nombre" tick={{ fontSize: 11 }} />
