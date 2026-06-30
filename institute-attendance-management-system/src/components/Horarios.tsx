@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2 } from 'lucide-react';
+import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2, BookOpen, Hash, Monitor } from 'lucide-react';
+import { Alumno, Asistencia, Materia } from '../types';
 import { getCareers, LegacyCareer } from '../services/legacyData';
 import { getSesiones, recalcularNumerosClaseBatch, SesionData, getFirebaseFirestore } from '../services/sesiones';
 import DateLabel from './DateLabel';
@@ -111,12 +112,14 @@ const parseClase = (str: unknown): ClasePersonalizada | null => {
 type Tab = 'horarios' | 'horas';
 
 const ModuleRowAccordion: React.FC<{ 
-  materia: any; 
-  data: any; 
+  materia: Materia;
+  data: { horas: number; clases: number; fechas: string[] } | undefined;
   targetMonthStr: string; 
   totalHoras: number; 
   totalClases: number;
-}> = ({ materia, data, targetMonthStr, totalHoras, totalClases }) => {
+  asistencias: Asistencia[];
+  alumnos: Alumno[];
+}> = ({ materia, data, targetMonthStr, totalHoras, totalClases, asistencias, alumnos }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [sesiones, setSesiones] = useState<SesionData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -145,15 +148,28 @@ const ModuleRowAccordion: React.FC<{
     
     return allDates.map(fecha => {
       const fbData = sesiones.find(s => s.fecha === fecha);
+      const attendanceForDate = asistencias.filter(a => a.materiaId === materia.id && a.fecha === fecha);
+      const attendedRecords = attendanceForDate.filter(a => a.estado === 'presente' || a.estado === 'tardanza');
+      const asistentes = attendedRecords
+        .map(record => alumnos.find(alumno => alumno.id === record.alumnoId))
+        .filter((alumno): alumno is Alumno => Boolean(alumno))
+        .sort((a, b) => `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`, 'es'));
+
       return {
         fecha,
         numeroClase: fbData?.numeroClase || 0,
         tema: fbData?.tema || '',
         modalidad: fbData?.modalidad || 'Presencial',
-        horas: fbData?.horas || getHoursForModule(materia.id)
+        horas: fbData?.horas || getHoursForModule(materia.id),
+        asistentes,
+        presentes: attendanceForDate.filter(a => a.estado === 'presente').length,
+        tardanzas: attendanceForDate.filter(a => a.estado === 'tardanza').length,
+        ausentes: attendanceForDate.filter(a => a.estado === 'ausente').length,
+        justificados: attendanceForDate.filter(a => a.estado === 'justificado').length,
+        totalRegistros: attendanceForDate.length,
       };
     });
-  }, [data?.fechas, sesiones, targetMonthStr, materia.id]);
+  }, [data?.fechas, sesiones, targetMonthStr, materia.id, asistencias, alumnos]);
 
   const handleEditSubmit = async (sesion: any) => {
     if (editValue.trim() === '') return;
@@ -233,7 +249,122 @@ const ModuleRowAccordion: React.FC<{
                 </div>
               ) : displaySesiones.length > 0 ? (
                 <div className="rounded-lg border border-white/5 overflow-hidden bg-black/20">
-                  <table className="w-full text-sm text-left">
+                  <div className="space-y-3 p-3">
+                    {displaySesiones.map(s => {
+                      const visibleAsistentes = s.asistentes.slice(0, 8);
+                      const extraAsistentes = Math.max(0, s.asistentes.length - visibleAsistentes.length);
+
+                      return (
+                        <div key={s.fecha} className="rounded-xl border border-white/10 bg-black/20 p-4 shadow-inner">
+                          <div className="grid grid-cols-1 xl:grid-cols-[180px_1fr_270px] gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2 text-gray-200">
+                                <Calendar className="w-4 h-4 mt-0.5 text-indigo-300" />
+                                <DateLabel date={s.fecha} dateClassName="font-mono text-xs" weekdayClassName="text-gray-500" />
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <Clock className="w-3.5 h-3.5 text-gray-500" />
+                                <span className="font-mono">{MODULE_SCHEDULES[materia.id]?.hora || 'Horario no definido'}</span>
+                              </div>
+                              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-xs font-bold text-indigo-300">
+                                {s.horas || getHoursForModule(materia.id)}h
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                <BookOpen className="w-3.5 h-3.5" />
+                                Tema tratado
+                              </div>
+                              <p className="text-sm font-semibold text-gray-100">
+                                {s.tema || <span className="font-normal italic text-gray-500">Sin tema registrado</span>}
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                {editingId === s.fecha ? (
+                                  <input
+                                    type="number"
+                                    autoFocus
+                                    defaultValue={s.numeroClase}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={() => handleEditSubmit(s)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSubmit(s);
+                                      if (e.key === 'Escape') setEditingId(null);
+                                    }}
+                                    className="w-20 px-2 py-1 text-center bg-indigo-900/50 border border-indigo-500/50 rounded-lg text-indigo-100 outline-none focus:ring-1 focus:ring-indigo-400 text-xs"
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setEditingId(s.fecha); setEditValue(s.numeroClase.toString()); }}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-xs font-bold text-indigo-300 transition-colors hover:bg-indigo-500/20"
+                                    title="Editar numero de clase"
+                                  >
+                                    <Hash className="w-3.5 h-3.5" />
+                                    Clase {s.numeroClase || 0}
+                                  </button>
+                                )}
+                                <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold ${s.modalidad === 'Virtual' ? 'bg-sky-500/10 text-sky-300 border-sky-500/20' : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'}`}>
+                                  <Monitor className="w-3.5 h-3.5" />
+                                  {s.modalidad || 'Presencial'}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-gray-200">
+                                  <Users className="w-3.5 h-3.5 text-indigo-300" />
+                                  {s.asistentes.length} asistieron
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-4 gap-1.5 text-center">
+                                <div className="rounded-lg bg-emerald-500/10 px-2 py-1">
+                                  <p className="text-[10px] text-emerald-300">Pres.</p>
+                                  <p className="text-sm font-bold text-emerald-200">{s.presentes}</p>
+                                </div>
+                                <div className="rounded-lg bg-amber-500/10 px-2 py-1">
+                                  <p className="text-[10px] text-amber-300">Tard.</p>
+                                  <p className="text-sm font-bold text-amber-200">{s.tardanzas}</p>
+                                </div>
+                                <div className="rounded-lg bg-red-500/10 px-2 py-1">
+                                  <p className="text-[10px] text-red-300">Aus.</p>
+                                  <p className="text-sm font-bold text-red-200">{s.ausentes}</p>
+                                </div>
+                                <div className="rounded-lg bg-indigo-500/10 px-2 py-1">
+                                  <p className="text-[10px] text-indigo-300">Just.</p>
+                                  <p className="text-sm font-bold text-indigo-200">{s.justificados}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 border-t border-white/10 pt-3">
+                            <div className="mb-2 flex items-center justify-between gap-3">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Alumnos que asistieron</p>
+                              <p className="text-xs text-gray-500">{s.totalRegistros} registros marcados</p>
+                            </div>
+                            {visibleAsistentes.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {visibleAsistentes.map(alumno => (
+                                  <span key={alumno.id} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-gray-200">
+                                    {alumno.apellido}, {alumno.nombre}
+                                  </span>
+                                ))}
+                                {extraAsistentes > 0 && (
+                                  <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-xs font-bold text-indigo-300">
+                                    +{extraAsistentes} mas
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-sm italic text-gray-500">No hay alumnos presentes o con tardanza en esta fecha.</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <table className="hidden w-full text-sm text-left">
                     <thead className="bg-white/5 text-xs uppercase text-gray-400">
                       <tr>
                         <th className="px-4 py-2 font-medium">Fecha</th>
@@ -700,6 +831,8 @@ const Horarios: React.FC = () => {
                           targetMonthStr={targetMonthStr}
                           totalHoras={totalHoras}
                           totalClases={totalClases}
+                          asistencias={asistencias}
+                          alumnos={alumnos}
                         />
                       );
                     })}
