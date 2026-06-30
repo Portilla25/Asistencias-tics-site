@@ -158,6 +158,42 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
 
 export { DEFAULT_CAREERS };
 
+const HIDDEN_CAREER_IDS = new Set<string>([
+  'redes',
+  'redes_sabados',
+]);
+
+const HIDDEN_MODULE_IDS = new Set<string>([
+  'redes_M_1',
+  'redes_M_2',
+  'redes_M_3',
+  'redes_M_4',
+  'redes_T_1',
+  'redes_T_2',
+  'redes_T_3',
+  'redes_T_4',
+  'redes_S_M1',
+  'redes_S_M2',
+  'redes_S_M3',
+  'redes_S_M4',
+  'redes_S_T1',
+  'redes_S_T2',
+  'redes_S_T3',
+  'redes_S_T4',
+  'tics_S_1',
+  'tics_S_2',
+  'tics_S_3',
+  'tics_S_4',
+]);
+
+export const isHiddenCareerId = (id: string) => HIDDEN_CAREER_IDS.has(id);
+
+export const isHiddenMateriaId = (id: string) =>
+  HIDDEN_MODULE_IDS.has(id) ||
+  id === 'redes' ||
+  id.startsWith('redes_') ||
+  id.startsWith('tics_S_');
+
 const safeParse = <T,>(value: string | null, fallback: T): T => {
   if (!value) return fallback;
   try {
@@ -236,7 +272,7 @@ export const getCareers = (): LegacyCareer[] => {
       window.localStorage.setItem('asist_carreras', JSON.stringify(stored));
     } catch {}
   }
-  return stored;
+  return stored.filter((career) => !isHiddenCareerId(career.id));
 };
 
 export const saveCareers = (careers: LegacyCareer[]) => {
@@ -927,7 +963,7 @@ export const loadInitialAppData = (): InitialAppData => {
   careers.forEach((career) => career.secciones?.forEach((section) => moduleIds.add(section.id)));
   Object.keys(state).forEach((key) => moduleIds.add(key));
 
-  const materias = [...moduleIds].sort().map((moduleId, index): Materia => {
+  const materias = [...moduleIds].filter((moduleId) => !isHiddenMateriaId(moduleId)).sort().map((moduleId, index): Materia => {
     const meta = labelFor(careers, moduleId);
     return {
       id: moduleId,
