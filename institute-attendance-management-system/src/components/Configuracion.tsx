@@ -1,9 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Settings, Users, BookOpen, Calendar, Bell, Shield, Save, CheckCircle, Database, Download, Upload } from 'lucide-react';
+import DateLabel from './DateLabel';
 
 const Configuracion: React.FC = () => {
-  const { alumnos, materias, usuarios, periodos, asistencias, dataSource, exportBackup, importBackup } = useApp();
+  const {
+    alumnos,
+    materias,
+    usuarios,
+    periodos,
+    asistencias,
+    dataSource,
+    exportBackup,
+    importBackup,
+    showWeekdayLabels,
+    setShowWeekdayLabels,
+  } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [config, setConfig] = useState({
@@ -110,6 +122,28 @@ const Configuracion: React.FC = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Visualizacion */}
+        <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-4 h-4 text-indigo-600" />
+            <h3 className="font-semibold text-foreground">Visualizacion de fechas</h3>
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer p-2 hover:bg-background rounded-lg">
+            <input
+              type="checkbox"
+              checked={showWeekdayLabels}
+              onChange={e => setShowWeekdayLabels(e.target.checked)}
+              className="accent-indigo-600 w-4 h-4 mt-0.5"
+            />
+            <div>
+              <p className="text-sm font-medium text-foreground">Mostrar dia de la semana sobre cada fecha</p>
+              <p className="text-xs text-muted-foreground">
+                Usa la zona horaria de Peru para calcular el dia correcto.
+              </p>
+            </div>
+          </label>
+        </div>
+
         {/* Institución */}
         <div className="bg-card rounded-xl p-5 shadow-sm border border-border">
           <div className="flex items-center gap-2 mb-4">
@@ -219,7 +253,9 @@ const Configuracion: React.FC = () => {
               <div key={p.id} className={`flex items-center justify-between p-3 rounded-lg border ${p.activo ? 'bg-indigo-50 border-indigo-200' : 'bg-background border-border'}`}>
                 <div>
                   <p className="text-sm font-medium text-foreground">{p.nombre}</p>
-                  <p className="text-xs text-muted-foreground">{p.fechaInicio} → {p.fechaFin}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <DateLabel date={p.fechaInicio} /> <span>→</span> <DateLabel date={p.fechaFin} />
+                  </p>
                 </div>
                 {p.activo && (
                   <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs rounded-full font-semibold">Activo</span>

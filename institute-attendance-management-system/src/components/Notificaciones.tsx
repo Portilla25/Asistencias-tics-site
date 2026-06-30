@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Bell, CheckCircle, AlertTriangle, Info, XCircle, Check } from 'lucide-react';
+import { formatDateTimeInPeru, getWeekdayInPeru } from '../utils/dateUtils';
 
 const tipoConfig = {
   success: { icon: <CheckCircle className="w-4 h-4" />, color: 'text-green-400', bg: 'border-green-500/30' },
@@ -10,7 +11,7 @@ const tipoConfig = {
 };
 
 const Notificaciones: React.FC = () => {
-  const { notificaciones, currentUser, marcarNotificacionLeida, marcarTodasLeidas } = useApp();
+  const { notificaciones, currentUser, marcarNotificacionLeida, marcarTodasLeidas, showWeekdayLabels } = useApp();
 
   const misNotificaciones = notificaciones.filter(
     n => n.destinatarioId === currentUser?.id || currentUser?.rol === 'admin'
@@ -38,7 +39,7 @@ const Notificaciones: React.FC = () => {
       <div className="space-y-3">
         {misNotificaciones.map(n => {
           const config = tipoConfig[n.tipo];
-          const fecha = new Date(n.fecha + 'T12:00:00').toLocaleDateString('es-PE', {
+          const fecha = formatDateTimeInPeru(n.fecha, {
             day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
           });
           return (
@@ -57,7 +58,12 @@ const Notificaciones: React.FC = () => {
                 <div className="flex items-start justify-between gap-2">
                   <p className={`text-sm font-semibold text-gray-100`}>{n.titulo}</p>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-gray-400">{fecha}</span>
+                    <span className="text-xs text-gray-400 inline-flex flex-col text-right leading-tight">
+                      {showWeekdayLabels && (
+                        <span className="text-[10px] uppercase tracking-wide capitalize">{getWeekdayInPeru(n.fecha)}</span>
+                      )}
+                      <span>{fecha}</span>
+                    </span>
                     {!n.leida && (
                       <div className="w-2 h-2 bg-indigo-500 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
                     )}

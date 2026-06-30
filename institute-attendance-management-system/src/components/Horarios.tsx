@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2 } from 'lucide-react';
 import { getCareers, LegacyCareer } from '../services/legacyData';
 import { getSesiones, recalcularNumerosClaseBatch, SesionData, getFirebaseFirestore } from '../services/sesiones';
+import DateLabel from './DateLabel';
 
 /* ─── Schedule definitions for each module ─── */
 const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: string }> = {
@@ -244,13 +245,10 @@ const ModuleRowAccordion: React.FC<{
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {displaySesiones.map(s => {
-                        const dayStr = new Date(s.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long' });
-                        const capDayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
                         return (
                           <tr key={s.fecha} className="hover:bg-white/5 transition-colors">
-                            <td className="px-4 py-2.5 text-gray-300 font-mono text-xs">
-                              {s.fecha}
-                              <span className="ml-2 text-gray-500 font-sans">{capDayStr}</span>
+                            <td className="px-4 py-2.5 text-gray-300">
+                              <DateLabel date={s.fecha} dateClassName="font-mono text-xs" weekdayClassName="text-gray-500" />
                             </td>
                             <td className="px-4 py-2.5 text-gray-200">{s.tema || <span className="text-gray-500 italic">Sin tema registrado</span>}</td>
                             <td className="px-4 py-2.5 text-center">
@@ -377,14 +375,11 @@ const PersonalizadoRowAccordion: React.FC<{
                     </thead>
                     <tbody className="divide-y divide-border">
                       {yearClasses.map((c, index) => {
-                        const dayStr = new Date(c.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long' });
-                        const capDayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
                         const horarioStr = (c.horaInicio && c.horaFin) ? `de ${c.horaInicio} a ${c.horaFin}` : 'Horas asignadas';
                         return (
                           <tr key={`${c.fecha}-${index}`} className="hover:bg-muted/50 transition-colors">
-                            <td className="px-4 py-2.5 text-foreground font-mono text-xs">
-                              {c.fecha}
-                              <span className="ml-2 text-muted-foreground font-sans">{capDayStr}</span>
+                            <td className="px-4 py-2.5 text-foreground">
+                              <DateLabel date={c.fecha} dateClassName="font-mono text-xs" />
                             </td>
                             <td className="px-4 py-2.5 text-foreground">
                               <span className={`text-xs px-2 py-0.5 rounded-full border ${c.val === 'Presente' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'}`}>

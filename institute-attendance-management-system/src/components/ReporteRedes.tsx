@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Users, AlertTriangle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { formatDateTimeInPeru, PERU_TIME_ZONE } from '../utils/dateUtils';
 
 interface MigrationReport {
   fecha: string;
@@ -87,7 +88,7 @@ const ReporteRedes: React.FC = () => {
       }
     } catch { /* ignore */ }
 
-    setLastUpdate(new Date().toLocaleTimeString('es-PE'));
+    setLastUpdate(new Date().toLocaleTimeString('es-PE', { timeZone: PERU_TIME_ZONE }));
   }, []);
 
   useEffect(() => {
@@ -177,7 +178,7 @@ const ReporteRedes: React.FC = () => {
       {/* Migration date */}
       {report?.fecha && (
         <div className="text-xs text-muted-foreground font-mono">
-          Migración ejecutada: {new Date(report.fecha).toLocaleString('es-PE')} • Última carga: {lastUpdate}
+          Migración ejecutada: {formatDateTimeInPeru(report.fecha)} • Última carga: {lastUpdate}
         </div>
       )}
 

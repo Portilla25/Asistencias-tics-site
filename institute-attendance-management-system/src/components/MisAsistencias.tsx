@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext';
 import { CheckCircle, XCircle, Clock, FileText, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getCursoGroups } from '../utils/cursoGroups';
+import DateLabel from './DateLabel';
+import { formatDateInPeru } from '../utils/dateUtils';
 
 const estadoBadge: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   presente: { label: 'Presente', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-3.5 h-3.5" /> },
@@ -52,7 +54,7 @@ const MisAsistencias: React.FC = () => {
     const values = [...new Set(asistencias.map(a => a.fecha.slice(0, 7)).filter(Boolean))].sort().reverse();
     return values.map(value => ({
       value,
-      label: new Date(`${value}-01T12:00:00`).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }),
+      label: formatDateInPeru(`${value}-01`, { month: 'long', year: 'numeric' }),
     }));
   }, [asistencias]);
 
@@ -145,13 +147,12 @@ const MisAsistencias: React.FC = () => {
           {misAsistencias.slice(0, 50).map(asis => {
             const materia = materias.find(m => m.id === asis.materiaId);
             const badge = estadoBadge[asis.estado];
-            const fecha = new Date(asis.fecha + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
             return (
               <div key={asis.id} className="flex items-center gap-4 px-5 py-3 hover:bg-background/50">
                 <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: materia?.color || '#6366f1' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{materia?.nombre}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{fecha}</p>
+                  <DateLabel date={asis.fecha} format="long" className="text-xs text-muted-foreground" />
                   {asis.observacion && <p className="text-xs text-muted-foreground italic mt-0.5">{asis.observacion}</p>}
                 </div>
                 <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${badge.color}`}>

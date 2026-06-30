@@ -4,6 +4,8 @@ import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight,
 import { Asistencia } from '../types';
 import { LegacyCareer, downloadFromFirestore, getCareers } from '../services/legacyData';
 import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
+import DateLabel from './DateLabel';
+import { getTodayInPeru } from '../utils/dateUtils';
 
 type Estado = Asistencia['estado'];
 
@@ -24,7 +26,7 @@ const CAREER_ICONS: Record<string, string> = {
 const TomarAsistencia: React.FC = () => {
   const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno, limpiarAsistencia } = useApp();
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = getTodayInPeru();
   const [fecha, setFecha] = useState(today);
   const [selectedMateria, setSelectedMateria] = useState('');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(['info_gastro']));
@@ -393,6 +395,12 @@ const TomarAsistencia: React.FC = () => {
                 onChange={e => setFecha(e.target.value)}
                 className="w-full px-3 py-2.5 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
+              <DateLabel
+                date={fecha}
+                format="long"
+                className="mt-1 text-xs text-muted-foreground"
+                weekdayClassName="text-primary"
+              />
             </div>
             {materia && (
               <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border bg-muted">
@@ -501,7 +509,9 @@ const TomarAsistencia: React.FC = () => {
               <div className="px-5 py-3 border-b border-border bg-muted flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-foreground">{materia?.nombre}</h3>
-                  <p className="text-xs text-muted-foreground">{alumnosMateria.length} alumnos · {fecha}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {alumnosMateria.length} alumnos · <DateLabel date={fecha} />
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button

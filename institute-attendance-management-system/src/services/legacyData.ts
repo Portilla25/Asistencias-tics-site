@@ -17,6 +17,7 @@ import {
   periodos as mockPeriodos,
   usuarios as mockUsuarios,
 } from '../data/mockData';
+import { getTodayInPeru } from '../utils/dateUtils';
 
 type LegacyStudent = {
   id?: string | number;
@@ -610,7 +611,7 @@ const uniqueDates = (state: Record<string, LegacyModule>) => {
 };
 
 const buildPeriodos = (dates: string[]): Periodo[] => {
-  const activeDate = dates[dates.length - 1] || new Date().toLocaleDateString('en-CA');
+  const activeDate = dates[dates.length - 1] || getTodayInPeru();
   const [year, month] = activeDate.split('-').map(Number);
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
   const end = new Date(year, month, 0).toISOString().slice(0, 10);

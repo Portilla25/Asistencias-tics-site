@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCursoGroups } from '../utils/cursoGroups';
+import DateLabel from './DateLabel';
+import { getTodayInPeru } from '../utils/dateUtils';
 
 const estadoColors: Record<string, string> = {
   presente: 'bg-green-400',
@@ -64,7 +66,7 @@ const Calendario: React.FC = () => {
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = getTodayInPeru();
 
   return (
     <div className="p-6 space-y-5">
@@ -169,9 +171,10 @@ const Calendario: React.FC = () => {
           <div className="px-5 py-4 border-b border-border bg-background">
             <h3 className="font-semibold text-foreground">
               {selectedDate
-                ? (selectedDate === today ? 'Hoy' : new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' }))
+                ? (selectedDate === today ? 'Hoy' : <DateLabel date={selectedDate} format="long" />)
                 : 'Seleccioná un día'}
             </h3>
+            {selectedDate === today && <DateLabel date={selectedDate} format="long" className="mt-1 text-xs text-muted-foreground" />}
             {selectedDate && <p className="text-xs text-muted-foreground">{selectedDayData.length} registros</p>}
           </div>
 

@@ -45,9 +45,12 @@ interface AppContextType {
   setActiveSection: (section: string) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  showWeekdayLabels: boolean;
+  setShowWeekdayLabels: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+const SHOW_WEEKDAY_LABELS_KEY = 'show-weekday-labels';
 
 const getStoredFirebaseConfig = () => {
   if (typeof window === 'undefined') return null;
@@ -80,6 +83,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataSource, setDataSource] = useState(initialData.source);
+  const [showWeekdayLabelsState, setShowWeekdayLabelsState] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem(SHOW_WEEKDAY_LABELS_KEY) !== 'false';
+  });
+
+  const setShowWeekdayLabels = useCallback((show: boolean) => {
+    setShowWeekdayLabelsState(show);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SHOW_WEEKDAY_LABELS_KEY, String(show));
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -292,6 +306,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       marcarNotificacionLeida, marcarTodasLeidas,
       activeSection, setActiveSection,
       sidebarOpen, setSidebarOpen,
+      showWeekdayLabels: showWeekdayLabelsState,
+      setShowWeekdayLabels,
     }}>
       {children}
     </AppContext.Provider>

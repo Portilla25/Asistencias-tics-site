@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { Alumno, Asistencia, RegistroNotasMateria } from '../types';
+import { getTodayInPeru } from './dateUtils';
 
 export const exportToGastronomiaExcel = async (
   alumnos: Alumno[],
@@ -98,7 +99,7 @@ export const exportToGastronomiaExcel = async (
     anchor.href = url;
     
     const safeMateriaName = materiaNombre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `Registro_${safeMateriaName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const fileName = `Registro_${safeMateriaName}_${getTodayInPeru()}.xlsx`;
     anchor.download = fileName;
     
     document.body.appendChild(anchor);
@@ -223,7 +224,7 @@ export const exportToCleanAttendanceExcel = async (
     anchor.href = url;
     
     const safeMateriaName = materiaNombre.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `Asistencias_Limpio_${safeMateriaName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const fileName = `Asistencias_Limpio_${safeMateriaName}_${getTodayInPeru()}.xlsx`;
     anchor.download = fileName;
     
     document.body.appendChild(anchor);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
 import { Bell, Search, Moon, Sun, Monitor, Palette } from 'lucide-react';
+import { formatDateInPeru } from '../utils/dateUtils';
 
 const sectionTitles: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -24,7 +25,7 @@ const Header: React.FC = () => {
 
   const unread = notificaciones.filter(n => !n.leida && (n.destinatarioId === currentUser?.id || currentUser?.rol === 'admin')).length;
 
-  const today = new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const today = formatDateInPeru(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const themes = [
     { id: 'light', name: 'Claro', icon: <Sun className="w-4 h-4" /> },

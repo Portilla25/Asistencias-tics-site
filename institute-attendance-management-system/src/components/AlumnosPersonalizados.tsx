@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X, Trash2, Loader2 } from 'lucide-react';
 import mergedData from '../data/merged_personalizados.json';
+import DateLabel from './DateLabel';
+import { getTodayInPeru } from '../utils/dateUtils';
 
 interface ClasePersonalizada {
   fecha: string;
@@ -243,7 +245,7 @@ const AlumnosPersonalizados: React.FC = () => {
   
   const [selectedStudentId, setSelectedStudentId] = useState<string | number>('');
   const [classForm, setClassForm] = useState({
-    fecha: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+    fecha: getTodayInPeru(),
     horaInicio: '',
     horaFin: '',
     horas: 0
@@ -306,7 +308,7 @@ const AlumnosPersonalizados: React.FC = () => {
         });
         persistPersonalizados(parsed);
         setIsClassModalOpen(false);
-        setClassForm({ fecha: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], horaInicio: '', horaFin: '', horas: 1 });
+        setClassForm({ fecha: getTodayInPeru(), horaInicio: '', horaFin: '', horas: 1 });
         refreshLocalState();
       }
     } catch (err) {
@@ -575,7 +577,7 @@ const AlumnosPersonalizados: React.FC = () => {
                             <div className="flex justify-between items-center mb-1">
                               <span className="font-semibold text-foreground flex items-center gap-2">
                                 <Calendar className="w-3.5 h-3.5 text-primary" />
-                                {clase.fecha}
+                                <DateLabel date={clase.fecha} dateClassName="font-mono" />
                               </span>
                               <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-bold">
                                 {clase.horas} hrs
@@ -655,6 +657,12 @@ const AlumnosPersonalizados: React.FC = () => {
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-1.5">Fecha</label>
                 <input type="date" required value={classForm.fecha} onChange={e => updateClassForm({ fecha: e.target.value })} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <DateLabel
+                  date={classForm.fecha}
+                  format="long"
+                  className="mt-1 text-xs text-muted-foreground"
+                  weekdayClassName="text-indigo-300"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -692,7 +700,7 @@ const AlumnosPersonalizados: React.FC = () => {
             </div>
             <h3 className="font-bold text-lg text-foreground mb-2">¿Eliminar registro?</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Estás a punto de eliminar la clase del <strong className="text-foreground">{classToDelete.clase.fecha}</strong> ({classToDelete.clase.horas} hrs). Esta acción no se puede deshacer.
+              Estás a punto de eliminar la clase del <strong className="text-foreground"><DateLabel date={classToDelete.clase.fecha} /></strong> ({classToDelete.clase.horas} hrs). Esta acción no se puede deshacer.
             </p>
             <div className="flex justify-center gap-3 w-full">
               <button 

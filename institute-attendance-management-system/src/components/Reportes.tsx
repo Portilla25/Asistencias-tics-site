@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { exportToGastronomiaExcel, exportToCleanAttendanceExcel } from '../utils/exportExcel';
 import { obtenerNotasMateria } from '../services/notas';
+import { formatDateInPeru, getTodayInPeru } from '../utils/dateUtils';
 
 const Reportes: React.FC = () => {
   const { alumnos, materias, asistencias, currentUser } = useApp();
@@ -86,13 +87,13 @@ const Reportes: React.FC = () => {
 
   const tendenciaMensual = useMemo(() => {
     const meses = [...new Set(filteredAsistencias.map(a => a.fecha.slice(0, 7)).filter(Boolean))].sort();
-    const visibleMeses = meses.length ? meses : [new Date().toLocaleDateString('en-CA').slice(0, 7)];
+    const visibleMeses = meses.length ? meses : [getTodayInPeru().slice(0, 7)];
     return visibleMeses.map((mes) => {
       const asis = filteredAsistencias.filter(a => a.fecha.startsWith(mes));
       const presentes = asis.filter(a => a.estado === 'presente').length;
       const pct = asis.length > 0 ? Math.round((presentes / asis.length) * 100) : 0;
       return {
-        mes: new Date(`${mes}-01T12:00:00`).toLocaleDateString('es-PE', { month: 'short' }),
+        mes: formatDateInPeru(`${mes}-01`, { month: 'short' }),
         Asistencia: pct,
         total: asis.length,
       };
@@ -113,7 +114,7 @@ const Reportes: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reporte-asistencias-${new Date().toLocaleDateString('en-CA')}.csv`;
+    a.download = `reporte-asistencias-${getTodayInPeru()}.csv`;
     a.click();
   };
 
