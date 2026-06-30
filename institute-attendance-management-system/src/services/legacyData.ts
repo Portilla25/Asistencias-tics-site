@@ -159,19 +159,10 @@ const DEFAULT_CAREERS: LegacyCareer[] = [
 export { DEFAULT_CAREERS };
 
 const HIDDEN_CAREER_IDS = new Set<string>([
-  'redes',
-  'redes_sabados',
+  'tics_sabados',
 ]);
 
 const HIDDEN_MODULE_IDS = new Set<string>([
-  'redes_M_1',
-  'redes_M_2',
-  'redes_M_3',
-  'redes_M_4',
-  'redes_T_1',
-  'redes_T_2',
-  'redes_T_3',
-  'redes_T_4',
   'redes_S_M1',
   'redes_S_M2',
   'redes_S_M3',
@@ -190,8 +181,6 @@ export const isHiddenCareerId = (id: string) => HIDDEN_CAREER_IDS.has(id);
 
 export const isHiddenMateriaId = (id: string) =>
   HIDDEN_MODULE_IDS.has(id) ||
-  id === 'redes' ||
-  id.startsWith('redes_') ||
   id.startsWith('tics_S_');
 
 const safeParse = <T,>(value: string | null, fallback: T): T => {
@@ -262,7 +251,17 @@ export const getCareers = (): LegacyCareer[] => {
     // Strip out legacy IDs that were deleted
     if (storedCareer!.secciones) {
       const oldLen = storedCareer!.secciones.length;
-      storedCareer!.secciones = storedCareer!.secciones.filter(s => !['M-1','M-2','M-3','M-4','T-1','T-2','T-3','T-4'].includes(s.id));
+      const currentDefaultSectionIds = new Set(defaultCareer.secciones.map((s) => s.id));
+      const belongsToAnotherDefaultCareer = (sectionId: string) =>
+        DEFAULT_CAREERS.some((career) =>
+          career.id !== defaultCareer.id && career.secciones.some((section) => section.id === sectionId)
+        );
+
+      storedCareer!.secciones = storedCareer!.secciones.filter((s) =>
+        !['M-1','M-2','M-3','M-4','T-1','T-2','T-3','T-4'].includes(s.id) &&
+        !isHiddenMateriaId(s.id) &&
+        (currentDefaultSectionIds.has(s.id) || !belongsToAnotherDefaultCareer(s.id))
+      );
       if (oldLen !== storedCareer!.secciones.length) needsSave = true;
     }
   });
