@@ -128,8 +128,8 @@ const Configuracion: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Año Lectivo</label>
               <input
-                value={config.año}
-                onChange={e => setConfig(c => ({ ...c, año: e.target.value }))}
+                value={config.cicloLec}
+                onChange={e => setConfig(c => ({ ...c, cicloLec: e.target.value }))}
                 className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>

@@ -283,7 +283,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{
       currentUser, login, loginAsRole, loginWithGoogle, logout,
       alumnos, materias, asistencias, notificaciones, horarios, periodos, usuarios,
-      dataSource: initialData.source,
+      dataSource,
       exportBackup: createLegacyBackup,
       importBackup: importLegacyBackup,
       addAlumno, updateAlumno, deleteAlumno,

@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw, Plus } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw } from 'lucide-react';
 import { Asistencia } from '../types';
-import { DEFAULT_CAREERS, LegacyCareer, downloadFromFirestore, createModuloForCareer } from '../services/legacyData';
+import { LegacyCareer, downloadFromFirestore, getCareers } from '../services/legacyData';
 import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
 
 type Estado = Asistencia['estado'];
@@ -27,7 +27,6 @@ const TomarAsistencia: React.FC = () => {
   const today = new Date().toLocaleDateString('en-CA');
   const [fecha, setFecha] = useState(today);
   const [selectedMateria, setSelectedMateria] = useState('');
-  const [selectedCareer, setSelectedCareer] = useState('info_gastro'); // Lunes por defecto
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(['info_gastro']));
   const [estados, setEstados] = useState<Record<string, Estado>>({});
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
@@ -53,7 +52,7 @@ const TomarAsistencia: React.FC = () => {
   const careerGroups = useMemo(() => {
     const groups: { career: LegacyCareer; materias: typeof misMaterias }[] = [];
 
-    DEFAULT_CAREERS.forEach((career) => {
+    getCareers().forEach((career) => {
       const careerMateriaIds = new Set(career.secciones.map((s) => s.id));
       const careerMaterias = misMaterias.filter((m) => careerMateriaIds.has(m.id));
       if (careerMaterias.length > 0) {
@@ -78,7 +77,6 @@ const TomarAsistencia: React.FC = () => {
   };
 
   const selectCareerAndMateria = (careerId: string, materiaId: string) => {
-    setSelectedCareer(careerId);
     setSelectedMateria(materiaId);
     setExpandedCareers((prev) => new Set(prev).add(careerId));
   };

@@ -10,6 +10,7 @@ test-asist.mjs
 spiderfoot.ps1
 old_index.html
 RESUMEN_DE_CAMBIOS.md
+HISTORIAL_DE_CAMBIOS.md
 institute-attendance-management-system/test-full-flow.mjs
 institute-attendance-management-system/extract_students.cjs
 institute-attendance-management-system/refactor_theme.cjs

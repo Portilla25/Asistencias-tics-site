@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2, List, Grid } from 'lucide-react';
-import { DEFAULT_CAREERS, LegacyCareer } from '../services/legacyData';
+import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2 } from 'lucide-react';
+import { getCareers, LegacyCareer } from '../services/legacyData';
 import { getSesiones, recalcularNumerosClaseBatch, SesionData, getFirebaseFirestore } from '../services/sesiones';
 
 /* ─── Schedule definitions for each module ─── */
@@ -313,8 +313,7 @@ const PersonalizadoRowAccordion: React.FC<{
   alumno: AlumnoPersonalizado;
   selectedYear: number;
   allMonths: string[];
-  MONTH_NAMES: string[];
-}> = ({ alumno, selectedYear, allMonths, MONTH_NAMES }) => {
+}> = ({ alumno, selectedYear, allMonths }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const relevantMonths = allMonths.filter(mo => {
@@ -420,7 +419,7 @@ const PersonalizadoRowAccordion: React.FC<{
 const Horarios: React.FC = () => {
   const { materias, asistencias, alumnos, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>('horarios');
-  const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(DEFAULT_CAREERS.map(c => c.id)));
+  const [expandedCareers, setExpandedCareers] = useState<Set<string>>(() => new Set(getCareers().map(c => c.id)));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [personalizados, setPersonalizados] = useState<AlumnoPersonalizado[]>([]);
@@ -475,7 +474,7 @@ const Horarios: React.FC = () => {
   // Group materias by career
   const careerGroups = useMemo(() => {
     const groups: { career: LegacyCareer; materias: typeof materias }[] = [];
-    DEFAULT_CAREERS.forEach((career) => {
+    getCareers().forEach((career) => {
       const ids = new Set(career.secciones.map(s => s.id));
       const careerMaterias = materias.filter(m => ids.has(m.id) && misMateriaIds.has(m.id));
       if (careerMaterias.length > 0) {
@@ -767,7 +766,6 @@ const Horarios: React.FC = () => {
                         alumno={p}
                         selectedYear={selectedYear}
                         allMonths={allMonths}
-                        MONTH_NAMES={MONTH_NAMES}
                       />
                     ))}
 

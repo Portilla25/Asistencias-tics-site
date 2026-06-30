@@ -173,19 +173,27 @@ export const getCareers = (): LegacyCareer[] => {
   
   // Migration to strictly enforce user's requested names without losing their IDs
   stored = stored.map(c => {
+    const normalizedName = c.nombre.toLowerCase();
+    const isAfternoonCareer =
+      c.id === 'redes_sabados' ||
+      normalizedName.includes('turno tarde') ||
+      normalizedName.includes('tarde sábados') ||
+      c.nombre === 'Tecnologías Turno mañana sábados' ||
+      c.nombre.includes('Tecnologías de la Información y Redes');
+
     if (c.id === 'info_gastro' || c.nombre === 'Tecnologías de la Información' || c.nombre.includes('Gastronomía')) {
       if (c.nombre !== 'Tecnologías de la información - gastronomía') {
         c.nombre = 'Tecnologías de la información - gastronomía';
         needsSave = true;
       }
-    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || c.nombre.toLowerCase().includes('tic y redes') || c.nombre.includes('sábados')) {
-      if (c.nombre !== 'Tecnologías de la información turno mañana') {
-        c.nombre = 'Tecnologías de la información turno mañana';
-        needsSave = true;
-      }
-    } else if (c.id === 'redes_sabados' || c.nombre === 'Tecnologías Turno mañana sábados' || c.nombre.includes('Tecnologías de la Información y Redes')) {
+    } else if (isAfternoonCareer) {
       if (c.nombre !== 'Tecnologías de la información turno tarde') {
         c.nombre = 'Tecnologías de la información turno tarde';
+        needsSave = true;
+      }
+    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || normalizedName.includes('tic y redes') || normalizedName.includes('turno mañana') || c.nombre.includes('sábados')) {
+      if (c.nombre !== 'Tecnologías de la información turno mañana') {
+        c.nombre = 'Tecnologías de la información turno mañana';
         needsSave = true;
       }
     }
@@ -460,8 +468,8 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
       // Count total asistencias across all modules for debugging
       let totalAsist = 0;
       let latestDate = '';
-      for (const [mid, mod] of Object.entries(state)) {
-        for (const [sid, byDate] of Object.entries((mod as any).asistencias || {})) {
+      for (const mod of Object.values(state)) {
+        for (const byDate of Object.values((mod as any).asistencias || {})) {
           if (typeof byDate === 'object' && byDate !== null) {
             for (const fecha of Object.keys(byDate)) {
               totalAsist++;
@@ -914,7 +922,7 @@ export const loadInitialAppData = (): InitialAppData => {
     };
   }
 
-  const careers = safeParse<LegacyCareer[]>(readStorage('asist_carreras'), DEFAULT_CAREERS);
+  const careers = getCareers();
   const moduleIds = new Set<string>();
   careers.forEach((career) => career.secciones?.forEach((section) => moduleIds.add(section.id)));
   Object.keys(state).forEach((key) => moduleIds.add(key));
