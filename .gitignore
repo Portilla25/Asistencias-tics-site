@@ -1,3 +1,21 @@
+# Respaldos y archivos locales
 backups/
+legacy_backup/
+*.zip
+*.patch
+*.apk
+
+# Archivos de diagnóstico/prueba
+test-asist.mjs
+spiderfoot.ps1
+old_index.html
+RESUMEN_DE_CAMBIOS.md
+institute-attendance-management-system/test-full-flow.mjs
+institute-attendance-management-system/extract_students.cjs
+institute-attendance-management-system/refactor_theme.cjs
+institute-attendance-management-system/redes_students.json
+institute-attendance-management-system/redes_unique_students.json
+
+# Build output (ya se copia a la raíz)
 institute-attendance-management-system/node_modules/
 institute-attendance-management-system/dist/
