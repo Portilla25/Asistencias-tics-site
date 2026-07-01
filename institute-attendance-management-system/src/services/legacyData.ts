@@ -554,6 +554,34 @@ const hash = (value: string) => {
 
 const formatDni = (value: unknown) => String(value ?? '').replace(/\.0$/, '');
 
+const normalizeDateKey = (value: unknown): string => {
+  const raw = String(value ?? '').trim();
+  const isoMatch = raw.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+  }
+
+  const localMatch = raw.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (localMatch) {
+    return `${localMatch[3]}-${localMatch[2].padStart(2, '0')}-${localMatch[1].padStart(2, '0')}`;
+  }
+
+  return raw;
+};
+
+const isFullDateKey = (value: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(normalizeDateKey(value));
+
+const asPlainRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+
+const legacyAttendanceValue = (value: unknown): string => {
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return String(record.estado ?? record.val ?? record.value ?? record.status ?? record.asistencia ?? record.attendance ?? '');
+  }
+  return String(value ?? '');
+};
+
 const splitName = (fullName: string) => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length <= 1) return { nombre: fullName || 'Alumno', apellido: '' };
@@ -586,6 +614,10 @@ const labelFor = (careers: LegacyCareer[], moduleId: string) => {
 
 const legacyToEstado = (value: string): Asistencia['estado'] => {
   const normalized = normalize(value);
+  if (['j', 'justificada', 'justificado', 'permiso'].includes(normalized)) return 'justificado';
+  if (['t', 'tarde', 'tardanza'].includes(normalized)) return 'tardanza';
+  if (['a', 'ausente', 'falta', 'false', '0', 'no'].includes(normalized)) return 'ausente';
+  if (['p', 'presente', 'true', '1', 'si', 's'].includes(normalized)) return 'presente';
   if (normalized.includes('permiso') || normalized.includes('just')) return 'justificado';
   if (normalized.includes('tard')) return 'tardanza';
   if (normalized.includes('falt') || normalized.includes('aus')) return 'ausente';
@@ -602,12 +634,16 @@ const estadoToLegacy = (estado: Asistencia['estado']) => {
 const uniqueDates = (state: Record<string, LegacyModule>) => {
   const dates = new Set<string>();
   Object.values(state).forEach((module) => {
-    module.fechas?.forEach((date) => dates.add(date));
-    Object.values(module.asistencias || {}).forEach((byDate) => {
-      Object.keys(byDate || {}).forEach((date) => dates.add(date));
+    module.fechas?.forEach((date) => dates.add(normalizeDateKey(date)));
+    Object.entries(asPlainRecord(module.asistencias)).forEach(([outerKey, outerValue]) => {
+      if (isFullDateKey(outerKey)) {
+        dates.add(normalizeDateKey(outerKey));
+        return;
+      }
+      Object.keys(asPlainRecord(outerValue)).forEach((date) => dates.add(normalizeDateKey(date)));
     });
   });
-  return [...dates].sort();
+  return [...dates].filter((date) => isFullDateKey(date)).sort();
 };
 
 const buildPeriodos = (dates: string[]): Periodo[] => {
@@ -977,7 +1013,20 @@ export const loadInitialAppData = (): InitialAppData => {
 
   const alumnosByKey = new Map<string, Alumno>();
   const legacyRefToAlumno = new Map<string, string>();
+  const addLegacyRef = (materiaId: string, key: unknown, alumnoId: string) => {
+    const rawKey = String(key ?? '').trim();
+    if (!rawKey) return;
+    const scopedKey = `${materiaId}:${rawKey}`;
+    if (!legacyRefToAlumno.has(scopedKey)) legacyRefToAlumno.set(scopedKey, alumnoId);
 
+    const normalizedKey = normalize(rawKey);
+    if (normalizedKey) {
+      const scopedNormalizedKey = `${materiaId}:${normalizedKey}`;
+      if (!legacyRefToAlumno.has(scopedNormalizedKey)) legacyRefToAlumno.set(scopedNormalizedKey, alumnoId);
+    }
+  };
+
+  let unmatchedAttendanceCount = 0;
   materias.forEach((materia) => {
     const module = state[materia.id];
     module?.alumnos?.forEach((legacyStudent) => {
@@ -991,6 +1040,7 @@ export const loadInitialAppData = (): InitialAppData => {
       const names = splitName(fullName);
       const current = alumnosByKey.get(alumnoId);
       const legacyStudentId = String(legacyStudent.id ?? `${materia.id}-${hash(fullName)}`);
+      const dni = formatDni(legacyStudent.dni);
 
       if (current) {
         if (!current.materias.includes(materia.id)) current.materias.push(materia.id);
@@ -1001,35 +1051,93 @@ export const loadInitialAppData = (): InitialAppData => {
           nombre: names.nombre,
           apellido: names.apellido,
           email,
-          dni: formatDni(legacyStudent.dni),
+          dni,
           curso: legacyStudent.curso || materia.codigo,
           materias: [materia.id],
           legacyRefs: { [materia.id]: legacyStudentId },
         });
       }
-      legacyRefToAlumno.set(`${materia.id}:${legacyStudentId}`, alumnoId);
+
+      addLegacyRef(materia.id, legacyStudentId, alumnoId);
+      addLegacyRef(materia.id, alumnoId, alumnoId);
+      addLegacyRef(materia.id, legacyStudent.id, alumnoId);
+      addLegacyRef(materia.id, hash(identity), alumnoId);
+      addLegacyRef(materia.id, hash(fullName), alumnoId);
+      addLegacyRef(materia.id, `${materia.id}-${hash(fullName)}`, alumnoId);
+      addLegacyRef(materia.id, fullName, alumnoId);
+      addLegacyRef(materia.id, `${names.apellido} ${names.nombre}`, alumnoId);
+      addLegacyRef(materia.id, `${names.apellido}, ${names.nombre}`, alumnoId);
+      addLegacyRef(materia.id, dni, alumnoId);
+      addLegacyRef(materia.id, email, alumnoId);
     });
   });
 
-  const asistencias: Asistencia[] = [];
+  const asistenciasByKey = new Map<string, Asistencia>();
+  const findAlumnoIdForLegacyKey = (materiaId: string, legacyKey: unknown) => {
+    const rawKey = String(legacyKey ?? '').trim();
+    if (!rawKey) return undefined;
+    const directMatch = legacyRefToAlumno.get(`${materiaId}:${rawKey}`) || legacyRefToAlumno.get(`${materiaId}:${normalize(rawKey)}`);
+    if (directMatch) return directMatch;
+
+    const normalizedParts = normalize(rawKey).split(' ').filter(Boolean);
+    const suffix = normalizedParts[normalizedParts.length - 1];
+    if (suffix && suffix.length >= 4) {
+      return legacyRefToAlumno.get(`${materiaId}:${suffix}`);
+    }
+    return undefined;
+  };
+
+  const getMotivo = (module: LegacyModule | undefined, legacyStudentId: string, rawFecha: string, fecha: string) => {
+    const motivos = asPlainRecord(module?.motivos);
+    const byStudent = asPlainRecord(motivos[legacyStudentId]);
+    const byRawDate = asPlainRecord(motivos[rawFecha]);
+    const byNormalizedDate = asPlainRecord(motivos[fecha]);
+    const value = byStudent[rawFecha] ?? byStudent[fecha] ?? byRawDate[legacyStudentId] ?? byNormalizedDate[legacyStudentId];
+    return value ? String(value) : undefined;
+  };
+
   materias.forEach((materia) => {
     const module = state[materia.id];
-    Object.entries(module?.asistencias || {}).forEach(([legacyStudentId, byDate]) => {
-      const alumnoId = legacyRefToAlumno.get(`${materia.id}:${legacyStudentId}`);
-      if (!alumnoId) return;
-      Object.entries(byDate || {}).forEach(([fecha, estado]) => {
-        asistencias.push({
-          id: `as-${materia.id}-${legacyStudentId}-${fecha}`,
-          alumnoId,
-          materiaId: materia.id,
-          fecha,
-          estado: legacyToEstado(estado),
-          observacion: module?.motivos?.[legacyStudentId]?.[fecha],
-          registradoPor: DOCENTE_ID,
-        });
+    const rawAsistencias = asPlainRecord(module?.asistencias);
+    const addAsistencia = (legacyStudentId: string, rawFecha: string, rawEstado: unknown) => {
+      const alumnoId = findAlumnoIdForLegacyKey(materia.id, legacyStudentId);
+      const estadoValue = legacyAttendanceValue(rawEstado);
+      if (!alumnoId || !estadoValue) {
+        if (estadoValue) unmatchedAttendanceCount++;
+        return;
+      }
+
+      const fecha = normalizeDateKey(rawFecha);
+      if (!isFullDateKey(fecha)) return;
+
+      const key = `${alumnoId}:${materia.id}:${fecha}`;
+      asistenciasByKey.set(key, {
+        id: `as-${materia.id}-${legacyStudentId}-${fecha}`,
+        alumnoId,
+        materiaId: materia.id,
+        fecha,
+        estado: legacyToEstado(estadoValue),
+        observacion: getMotivo(module, legacyStudentId, rawFecha, fecha),
+        registradoPor: DOCENTE_ID,
       });
+    };
+
+    Object.entries(rawAsistencias).forEach(([outerKey, outerValue]) => {
+      const innerRecord = asPlainRecord(outerValue);
+      if (isFullDateKey(outerKey)) {
+        const fecha = normalizeDateKey(outerKey);
+        Object.entries(innerRecord).forEach(([legacyStudentId, estado]) => addAsistencia(legacyStudentId, fecha, estado));
+        return;
+      }
+
+      Object.entries(innerRecord).forEach(([rawFecha, estado]) => addAsistencia(outerKey, rawFecha, estado));
     });
   });
+
+  const asistencias = [...asistenciasByKey.values()];
+  if (unmatchedAttendanceCount > 0) {
+    console.warn(`[LOAD_INITIAL] ${unmatchedAttendanceCount} asistencias de Firebase no pudieron asociarse a alumnos visibles.`);
+  }
 
   const alumnos = [...alumnosByKey.values()].sort((a, b) =>
     `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`, 'es', { sensitivity: 'base' })
