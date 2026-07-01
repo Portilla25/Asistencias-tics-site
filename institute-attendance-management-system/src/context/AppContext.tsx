@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Alumno, Materia, Asistencia, Notificacion, ClaseHorario, Periodo, Role } from '../types';
 import {
   ADMIN_EMAILS,
@@ -77,7 +77,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [materias, setMaterias] = useState(initialData.materias);
   const [asistencias, setAsistencias] = useState(initialData.asistencias);
   const [notificaciones, setNotificaciones] = useState(initialData.notificaciones);
-  const [usuarios] = useState(initialData.usuarios);
+  const [usuarios, setUsuarios] = useState(initialData.usuarios);
   const [horarios] = useState(initialData.horarios);
   const [periodos] = useState(initialData.periodos);
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -95,27 +95,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  const syncStateRef = useRef({ initialTried: false, authenticatedTried: false, succeeded: false });
   useEffect(() => {
     let mounted = true;
     const syncData = async () => {
+      if (syncStateRef.current.succeeded) return;
+      const attemptKey = currentUser ? 'authenticatedTried' : 'initialTried';
+      if (syncStateRef.current[attemptKey]) return;
+      syncStateRef.current[attemptKey] = true;
+
       console.log('[AppContext] syncData starting...');
       const didDownload = await downloadFromFirestore();
       console.log('[AppContext] downloadFromFirestore returned:', didDownload, 'mounted:', mounted);
       if (didDownload && mounted) {
+        syncStateRef.current.succeeded = true;
         const newData = loadInitialAppData();
         console.log('[AppContext] Setting new data:', newData.asistencias.length, 'asistencias');
         setAlumnos(newData.alumnos);
         setMaterias(newData.materias);
         setAsistencias(newData.asistencias);
         setNotificaciones(newData.notificaciones);
+        setUsuarios(newData.usuarios);
         setDataSource(newData.source);
       }
     };
-    if (true) {
-       syncData();
-    }
+    syncData();
     return () => { mounted = false; };
-  }, [initialData.source, currentUser]);
+  }, [currentUser?.email]);
 
   const resolveGoogleUser = useCallback((email: string, displayName?: string | null): User | null => {
     const normalizedEmail = email.toLowerCase();
@@ -158,6 +164,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const user = resolveGoogleUser(authUser.email, authUser.displayName);
       if (user) {
         setCurrentUser(prev => {
+          if (prev?.email === user.email && prev.rol === user.rol) {
+            return prev;
+          }
           if (!prev || prev.email !== user.email) {
             setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
           }

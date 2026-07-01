@@ -32,6 +32,7 @@ type LegacyStudent = {
 
 type LegacyModule = {
   alumnos?: LegacyStudent[];
+  retirados?: LegacyStudent[];
   fechas?: string[];
   asistencias?: Record<string, Record<string, string>>;
   motivos?: Record<string, Record<string, string>>;
@@ -1029,8 +1030,7 @@ export const loadInitialAppData = (): InitialAppData => {
   let unmatchedAttendanceCount = 0;
   materias.forEach((materia) => {
     const module = state[materia.id];
-    module?.alumnos?.forEach((legacyStudent) => {
-      if (legacyStudent.retirado) return;
+    const addLegacyStudent = (legacyStudent: LegacyStudent, isRetired: boolean) => {
       const fullName = String(legacyStudent.nombre || '').trim();
       if (!fullName) return;
 
@@ -1041,10 +1041,16 @@ export const loadInitialAppData = (): InitialAppData => {
       const current = alumnosByKey.get(alumnoId);
       const legacyStudentId = String(legacyStudent.id ?? `${materia.id}-${hash(fullName)}`);
       const dni = formatDni(legacyStudent.dni);
+      const estado: Alumno['estado'] = isRetired || legacyStudent.retirado ? 'retirado' : 'activo';
 
       if (current) {
         if (!current.materias.includes(materia.id)) current.materias.push(materia.id);
-        current.legacyRefs = { ...current.legacyRefs, [materia.id]: legacyStudentId };
+        current.legacyRefs = { ...current.legacyRefs, [materia.id]: current.legacyRefs?.[materia.id] || legacyStudentId };
+        if (estado === 'activo') {
+          current.estado = 'activo';
+        } else if (!current.estado) {
+          current.estado = 'retirado';
+        }
       } else {
         alumnosByKey.set(alumnoId, {
           id: alumnoId,
@@ -1053,6 +1059,7 @@ export const loadInitialAppData = (): InitialAppData => {
           email,
           dni,
           curso: legacyStudent.curso || materia.codigo,
+          estado,
           materias: [materia.id],
           legacyRefs: { [materia.id]: legacyStudentId },
         });
@@ -1069,10 +1076,14 @@ export const loadInitialAppData = (): InitialAppData => {
       addLegacyRef(materia.id, `${names.apellido}, ${names.nombre}`, alumnoId);
       addLegacyRef(materia.id, dni, alumnoId);
       addLegacyRef(materia.id, email, alumnoId);
-    });
+    };
+
+    module?.alumnos?.forEach((legacyStudent) => addLegacyStudent(legacyStudent, !!legacyStudent.retirado));
+    module?.retirados?.forEach((legacyStudent) => addLegacyStudent(legacyStudent, true));
   });
 
   const asistenciasByKey = new Map<string, Asistencia>();
+  let orphanStudentCount = 0;
   const findAlumnoIdForLegacyKey = (materiaId: string, legacyKey: unknown) => {
     const rawKey = String(legacyKey ?? '').trim();
     if (!rawKey) return undefined;
@@ -1085,6 +1096,26 @@ export const loadInitialAppData = (): InitialAppData => {
       return legacyRefToAlumno.get(`${materiaId}:${suffix}`);
     }
     return undefined;
+  };
+
+  const ensureOrphanAlumno = (materia: Materia, legacyStudentId: string) => {
+    const alumnoId = `a-orphan-${materia.id}-${hash(legacyStudentId)}`;
+    if (!alumnosByKey.has(alumnoId)) {
+      alumnosByKey.set(alumnoId, {
+        id: alumnoId,
+        nombre: `ID ${legacyStudentId}`,
+        apellido: 'Alumno sin ficha',
+        email: '',
+        dni: '',
+        curso: materia.codigo,
+        estado: 'retirado',
+        materias: [materia.id],
+        legacyRefs: { [materia.id]: legacyStudentId },
+      });
+      orphanStudentCount++;
+    }
+    addLegacyRef(materia.id, legacyStudentId, alumnoId);
+    return alumnoId;
   };
 
   const getMotivo = (module: LegacyModule | undefined, legacyStudentId: string, rawFecha: string, fecha: string) => {
@@ -1100,15 +1131,17 @@ export const loadInitialAppData = (): InitialAppData => {
     const module = state[materia.id];
     const rawAsistencias = asPlainRecord(module?.asistencias);
     const addAsistencia = (legacyStudentId: string, rawFecha: string, rawEstado: unknown) => {
-      const alumnoId = findAlumnoIdForLegacyKey(materia.id, legacyStudentId);
       const estadoValue = legacyAttendanceValue(rawEstado);
-      if (!alumnoId || !estadoValue) {
-        if (estadoValue) unmatchedAttendanceCount++;
-        return;
-      }
+      if (!estadoValue) return;
 
       const fecha = normalizeDateKey(rawFecha);
       if (!isFullDateKey(fecha)) return;
+
+      const alumnoId = findAlumnoIdForLegacyKey(materia.id, legacyStudentId) || ensureOrphanAlumno(materia, legacyStudentId);
+      if (!alumnoId) {
+        unmatchedAttendanceCount++;
+        return;
+      }
 
       const key = `${alumnoId}:${materia.id}:${fecha}`;
       asistenciasByKey.set(key, {
@@ -1137,6 +1170,9 @@ export const loadInitialAppData = (): InitialAppData => {
   const asistencias = [...asistenciasByKey.values()];
   if (unmatchedAttendanceCount > 0) {
     console.warn(`[LOAD_INITIAL] ${unmatchedAttendanceCount} asistencias de Firebase no pudieron asociarse a alumnos visibles.`);
+  }
+  if (orphanStudentCount > 0) {
+    console.warn(`[LOAD_INITIAL] ${orphanStudentCount} alumnos sin ficha fueron reconstruidos desde asistencias de Firebase.`);
   }
 
   const alumnos = [...alumnosByKey.values()].sort((a, b) =>
@@ -1228,12 +1264,32 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
 
     Object.keys(alumno.legacyRefs || {}).forEach(materiaId => {
       const legacyId = alumno.legacyRefs?.[materiaId];
-      if (!legacyId || !state[materiaId]?.alumnos) return;
+      if (!legacyId || !state[materiaId]) return;
       
-      const legacyStudent = state[materiaId].alumnos?.find(a => String(a.id) === String(legacyId));
+      const module = state[materiaId];
+      const activeStudents = module.alumnos || [];
+      const retiredStudents = module.retirados || [];
+      const activeStudent = activeStudents.find(a => String(a.id) === String(legacyId));
+      const retiredStudent = retiredStudents.find(a => String(a.id) === String(legacyId));
+      const legacyStudent = activeStudent || retiredStudent;
+
       if (legacyStudent) {
         if (updates.estado !== undefined) {
-          legacyStudent.retirado = updates.estado === 'retirado';
+          const shouldRetire = updates.estado === 'retirado';
+          const updatedStudent = { ...legacyStudent, retirado: shouldRetire };
+
+          if (shouldRetire) {
+            module.alumnos = activeStudents.filter(a => String(a.id) !== String(legacyId));
+            module.retirados = retiredStudents.some(a => String(a.id) === String(legacyId))
+              ? retiredStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
+              : [...retiredStudents, updatedStudent];
+          } else {
+            module.retirados = retiredStudents.filter(a => String(a.id) !== String(legacyId));
+            module.alumnos = activeStudents.some(a => String(a.id) === String(legacyId))
+              ? activeStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
+              : [...activeStudents, updatedStudent];
+          }
+
           touched = true;
           touchedModules.add(materiaId);
         }
