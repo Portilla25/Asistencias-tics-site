@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "supabase:export": "node scripts/supabase/export-legacy.mjs",
+    "supabase:import": "node scripts/supabase/import-normalized.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
     "clsx": "2.1.1",
     "date-fns": "^4.3.0",
     "exceljs": "^4.4.0",

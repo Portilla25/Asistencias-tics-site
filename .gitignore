@@ -20,3 +20,9 @@ institute-attendance-management-system/redes_unique_students.json
 # Build output (ya se copia a la raíz)
 institute-attendance-management-system/node_modules/
 institute-attendance-management-system/dist/
+
+# Secretos y salidas locales de migracion
+.env.supabase.local
+*.supabase.local
+migration-output/
+institute-attendance-management-system/migration-output/
