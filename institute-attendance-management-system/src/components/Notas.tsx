@@ -11,22 +11,21 @@ import {
   Star,
 } from 'lucide-react';
 import { obtenerNotasMateria, guardarNotasBatch } from '../services/notas';
-import { CalificacionData, RegistroNotasMateria } from '../types';
+import { CalificacionData, NotaCampo, NotaSimple, RegistroNotasMateria } from '../types';
 import { getCursoGroups } from '../utils/cursoGroups';
+import {
+  calcularPromedioGeneral,
+  calcularPromedioSubnotas,
+  clampNumber,
+  crearSubnotasVacias,
+  MAX_PUNTOS_EXTRA,
+  NOTA_FIELDS,
+  normalizarCalificacion,
+  parseNotaValue,
+  parsePuntosExtraValue,
+} from '../utils/notasCalculations';
 
-const EMPTY_NOTAS: CalificacionData = {
-  nota1: null,
-  nota2: null,
-  nota3: null,
-  promedioFinal: null,
-  puntosExtra: 0,
-};
-
-const notaFields = ['nota1', 'nota2', 'nota3'] as const;
-type NotaField = typeof notaFields[number];
-
-const clampNumber = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
+const TEMAS_SUGERIDOS = ['Trabajo', 'Examen', 'Practica', 'Exposicion', 'Participacion', 'Proyecto'];
 
 const Notas: React.FC = () => {
   const { materias, alumnos, currentUser } = useApp();
@@ -57,51 +56,8 @@ const Notas: React.FC = () => {
     return '';
   }, [selectedModuloId, selectedGroup]);
 
-  const calcularPromedioBase = (n1: number | null, n2: number | null, n3: number | null): number | null => {
-    const validas = [n1, n2, n3].filter((n): n is number => n !== null);
-    if (validas.length === 0) return null;
-    return Math.round(validas.reduce((acc, curr) => acc + curr, 0) / validas.length);
-  };
-
-  const calcularPromedioFinal = (
-    n1: number | null,
-    n2: number | null,
-    n3: number | null,
-    puntosExtra = 0
-  ): number | null => {
-    const promedioBase = calcularPromedioBase(n1, n2, n3);
-    if (promedioBase === null) return null;
-    return clampNumber(promedioBase + puntosExtra, 0, 20);
-  };
-
-  const parseNota = (valorStr: string): number | null => {
-    if (valorStr === '') return null;
-    const value = Number(valorStr);
-    if (!Number.isFinite(value)) return null;
-    return clampNumber(value, 0, 20);
-  };
-
-  const parsePuntosExtra = (valorStr: string): number => {
-    const value = Number(valorStr);
-    if (!Number.isFinite(value)) return 0;
-    return clampNumber(Math.round(value), 0, 20);
-  };
-
   const normalizeAlumnoNotas = (notas?: CalificacionData): CalificacionData => {
-    const normalized = {
-      ...EMPTY_NOTAS,
-      ...notas,
-      puntosExtra: notas?.puntosExtra ?? 0,
-    };
-    return {
-      ...normalized,
-      promedioFinal: calcularPromedioFinal(
-        normalized.nota1,
-        normalized.nota2,
-        normalized.nota3,
-        normalized.puntosExtra
-      ),
-    };
+    return normalizarCalificacion(notas);
   };
 
   useEffect(() => {
@@ -164,33 +120,56 @@ const Notas: React.FC = () => {
   const updateAlumnoNotas = (alumnoId: string, patch: Partial<CalificacionData>) => {
     setNotasLocales(prev => {
       const current = normalizeAlumnoNotas(prev[alumnoId]);
-      const next = {
+      const next = normalizarCalificacion({
         ...current,
         ...patch,
-      };
+      });
 
-      const normalized = {
-        ...next,
-        promedioFinal: calcularPromedioFinal(
-          next.nota1,
-          next.nota2,
-          next.nota3,
-          next.puntosExtra ?? 0
-        ),
-      };
-
-      return { ...prev, [alumnoId]: normalized };
+      return { ...prev, [alumnoId]: next };
     });
   };
 
-  const handleNotaChange = (alumnoId: string, campo: NotaField, valorStr: string) => {
-    updateAlumnoNotas(alumnoId, { [campo]: parseNota(valorStr) });
+  const updateSubnota = (
+    alumnoId: string,
+    campo: NotaCampo,
+    index: number,
+    patch: Partial<NotaSimple>
+  ) => {
+    setNotasLocales(prev => {
+      const current = normalizeAlumnoNotas(prev[alumnoId]);
+      const notasSimples = {
+        ...crearSubnotasVacias(),
+        ...current.notasSimples,
+      };
+      const grupo = [...(notasSimples[campo] || crearSubnotasVacias()[campo])];
+      grupo[index] = {
+        ...grupo[index],
+        ...patch,
+      };
+      const next = normalizarCalificacion({
+        ...current,
+        notasSimples: {
+          ...notasSimples,
+          [campo]: grupo,
+        },
+      });
+
+      return { ...prev, [alumnoId]: next };
+    });
+  };
+
+  const handleTemaChange = (alumnoId: string, campo: NotaCampo, index: number, tema: string) => {
+    updateSubnota(alumnoId, campo, index, { tema: tema.slice(0, 60) });
+  };
+
+  const handleNotaSimpleChange = (alumnoId: string, campo: NotaCampo, index: number, valorStr: string) => {
+    updateSubnota(alumnoId, campo, index, { valor: parseNotaValue(valorStr) });
   };
 
   const handlePuntosExtraChange = (alumnoId: string, value: number | string) => {
     const puntosExtra = typeof value === 'number'
-      ? clampNumber(value, 0, 20)
-      : parsePuntosExtra(value);
+      ? clampNumber(value, 0, MAX_PUNTOS_EXTRA)
+      : parsePuntosExtraValue(value);
     updateAlumnoNotas(alumnoId, { puntosExtra });
   };
 
@@ -265,6 +244,12 @@ const Notas: React.FC = () => {
         </div>
       </div>
 
+      <datalist id="temas-nota-sugeridos">
+        {TEMAS_SUGERIDOS.map(tema => (
+          <option key={tema} value={tema} />
+        ))}
+      </datalist>
+
       {alertMsg && (
         <div className={`flex items-center gap-3 p-4 rounded-xl border ${
           alertMsg.type === 'success'
@@ -294,13 +279,15 @@ const Notas: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm text-left">
+            <table className="w-full min-w-[1500px] text-sm text-left">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b border-border">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Alumno</th>
-                  <th className="px-4 py-4 font-semibold text-center w-32">Nota 1</th>
-                  <th className="px-4 py-4 font-semibold text-center w-32">Nota 2</th>
-                  <th className="px-4 py-4 font-semibold text-center w-32">Nota 3</th>
+                  <th className="px-6 py-4 font-semibold w-[280px]">Alumno</th>
+                  {NOTA_FIELDS.map((campo, index) => (
+                    <th key={campo} className="px-4 py-4 font-semibold text-center w-[310px]">
+                      Nota {index + 1}
+                    </th>
+                  ))}
                   <th className="px-4 py-4 font-semibold text-center w-44">Puntos extra</th>
                   <th className="px-6 py-4 font-semibold text-center w-36">Promedio final</th>
                 </tr>
@@ -309,11 +296,30 @@ const Notas: React.FC = () => {
                 {alumnosDelModulo.map(alumno => {
                   const notas = normalizeAlumnoNotas(notasLocales[alumno.id]);
                   const puntosExtra = notas.puntosExtra ?? 0;
-                  const promedioBase = calcularPromedioBase(notas.nota1, notas.nota2, notas.nota3);
+                  const notasSimples = {
+                    ...crearSubnotasVacias(),
+                    ...notas.notasSimples,
+                  };
+                  const puntosAplicados = {
+                    nota1: 0,
+                    nota2: 0,
+                    nota3: 0,
+                    ...notas.puntosAplicados,
+                  };
+                  const promediosBase = {
+                    nota1: calcularPromedioSubnotas(notasSimples.nota1),
+                    nota2: calcularPromedioSubnotas(notasSimples.nota2),
+                    nota3: calcularPromedioSubnotas(notasSimples.nota3),
+                  };
+                  const promedioAntesExtra = calcularPromedioGeneral(promediosBase);
+                  const puntosAplicadosTotal = NOTA_FIELDS.reduce(
+                    (total, campo) => total + (puntosAplicados[campo] ?? 0),
+                    0
+                  );
 
                   return (
                     <tr key={alumno.id} className="hover:bg-muted/30 transition-colors group">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-top">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
                             <span className="text-xs font-bold text-primary">
@@ -327,22 +333,72 @@ const Notas: React.FC = () => {
                         </div>
                       </td>
 
-                      {notaFields.map((campo) => (
-                        <td key={campo} className="px-4 py-4">
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            value={notas[campo] === null ? '' : notas[campo]}
-                            onChange={(e) => handleNotaChange(alumno.id, campo, e.target.value)}
-                            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-center font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:opacity-50 group-hover:bg-card"
-                            placeholder="-"
-                            disabled={saving}
-                          />
-                        </td>
-                      ))}
+                      {NOTA_FIELDS.map((campo) => {
+                        const subnotas = notasSimples[campo];
+                        const promedioCampo = promediosBase[campo];
+                        const puntosCampo = puntosAplicados[campo] ?? 0;
+                        const notaFinalCampo = notas[campo];
 
-                      <td className="px-4 py-4">
+                        return (
+                          <td key={campo} className="px-4 py-4 align-top">
+                            <div className="space-y-2 rounded-xl border border-border bg-background/60 p-3 transition-colors group-hover:bg-card">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-semibold uppercase text-muted-foreground">
+                                  Promedio
+                                </span>
+                                <div className="flex items-center gap-1 font-mono text-sm font-bold text-foreground">
+                                  <span>{promedioCampo === null ? '--' : promedioCampo}</span>
+                                  {puntosCampo > 0 && (
+                                    <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[11px] text-amber-500">
+                                      +{puntosCampo}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {subnotas.map((subnota, index) => (
+                                <div key={`${campo}-${index}`} className="grid grid-cols-[minmax(0,1fr)_64px] gap-2">
+                                  <input
+                                    type="text"
+                                    list="temas-nota-sugeridos"
+                                    value={subnota.tema}
+                                    onChange={(e) => handleTemaChange(alumno.id, campo, index, e.target.value)}
+                                    className="min-w-0 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                    placeholder={`Tema ${index + 1}`}
+                                    disabled={saving}
+                                  />
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="20"
+                                    step="0.1"
+                                    value={subnota.valor === null ? '' : subnota.valor}
+                                    onChange={(e) => handleNotaSimpleChange(alumno.id, campo, index, e.target.value)}
+                                    className="rounded-lg border border-border bg-background px-2 py-1.5 text-center font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                                    placeholder="-"
+                                    disabled={saving}
+                                  />
+                                </div>
+                              ))}
+
+                              <div className="flex items-center justify-between border-t border-border pt-2 text-[11px]">
+                                <span className="font-medium text-muted-foreground">Final bloque</span>
+                                <span className={`font-mono font-bold ${
+                                  notaFinalCampo === null
+                                    ? 'text-muted-foreground'
+                                    : notaFinalCampo >= 13
+                                      ? 'text-emerald-500'
+                                      : 'text-red-500'
+                                }`}>
+                                  {notaFinalCampo === null ? '--' : notaFinalCampo.toString().padStart(2, '0')}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        );
+                      })}
+
+                      <td className="px-4 py-4 align-top">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             type="button"
@@ -357,7 +413,7 @@ const Notas: React.FC = () => {
                             <input
                               type="number"
                               min="0"
-                              max="20"
+                              max={MAX_PUNTOS_EXTRA}
                               value={puntosExtra}
                               onChange={(e) => handlePuntosExtraChange(alumno.id, e.target.value)}
                               className={`w-full px-2 py-2 bg-background border rounded-lg text-center font-mono text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all disabled:opacity-50 ${
@@ -372,21 +428,21 @@ const Notas: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handlePuntosExtraChange(alumno.id, puntosExtra + 1)}
-                            disabled={saving || puntosExtra >= 20}
+                            disabled={saving || puntosExtra >= MAX_PUNTOS_EXTRA}
                             className="w-8 h-8 rounded-lg border border-border bg-background text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500 disabled:opacity-40 disabled:hover:bg-background disabled:hover:text-muted-foreground transition-colors flex items-center justify-center"
                             title="Agregar punto extra"
                           >
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
-                        {promedioBase !== null && puntosExtra > 0 && (
+                        {promedioAntesExtra !== null && puntosExtra > 0 && (
                           <p className="mt-1 text-center text-[11px] text-muted-foreground">
-                            Base {promedioBase} + {puntosExtra}
+                            Base {promedioAntesExtra} | aplicados {puntosAplicadosTotal}
                           </p>
                         )}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-top">
                         <div className={`flex items-center justify-center px-3 py-2 rounded-lg font-mono text-base font-bold transition-all border ${
                           notas.promedioFinal === null
                             ? 'bg-muted border-border text-muted-foreground'

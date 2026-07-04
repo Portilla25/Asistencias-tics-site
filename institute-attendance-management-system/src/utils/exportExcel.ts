@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { Alumno, Asistencia, RegistroNotasMateria } from '../types';
 import { getTodayInPeru } from './dateUtils';
+import { normalizarCalificacion } from './notasCalculations';
 
 export const exportToGastronomiaExcel = async (
   alumnos: Alumno[],
@@ -65,7 +66,7 @@ export const exportToGastronomiaExcel = async (
       });
 
       // Grades
-      const studentNotas = notas[alumno.id];
+      const studentNotas = notas[alumno.id] ? normalizarCalificacion(notas[alumno.id]) : null;
       if (studentNotas) {
         // Based on column mappings (base 1):
         // Col V (22): EVALUACIONES

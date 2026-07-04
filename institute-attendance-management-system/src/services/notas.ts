@@ -1,6 +1,7 @@
 import { CalificacionData, RegistroNotasMateria } from '../types';
 import { enqueueDeferredSync } from './deferredSync';
 import { getFirebaseFirestore } from './sesiones';
+import { normalizarCalificacion } from '../utils/notasCalculations';
 
 const NOTAS_CACHE_PREFIX = 'asist_notas_cache_';
 const NOTAS_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -12,16 +13,10 @@ type NotasCache = {
 
 const cacheKey = (materiaId: string) => `${NOTAS_CACHE_PREFIX}${materiaId}`;
 
-const normalizeNotas = (data: RegistroNotasMateria): RegistroNotasMateria => {
+const normalizeNotas = (data: Record<string, Partial<CalificacionData> | undefined>): RegistroNotasMateria => {
   const normalized: RegistroNotasMateria = {};
   Object.entries(data).forEach(([alumnoId, value]) => {
-    normalized[alumnoId] = {
-      nota1: value?.nota1 ?? null,
-      nota2: value?.nota2 ?? null,
-      nota3: value?.nota3 ?? null,
-      promedioFinal: value?.promedioFinal ?? null,
-      puntosExtra: value?.puntosExtra ?? 0,
-    };
+    normalized[alumnoId] = normalizarCalificacion(value);
   });
   return normalized;
 };
@@ -72,13 +67,7 @@ export const obtenerNotasMateria = async (materiaId: string): Promise<RegistroNo
 
     snapshot.docs.forEach((doc: any) => {
       const data = doc.data() as CalificacionData;
-      notas[doc.id] = {
-        nota1: data.nota1 ?? null,
-        nota2: data.nota2 ?? null,
-        nota3: data.nota3 ?? null,
-        promedioFinal: data.promedioFinal ?? null,
-        puntosExtra: data.puntosExtra ?? 0,
-      };
+      notas[doc.id] = normalizarCalificacion(data);
     });
 
     writeNotasCache(materiaId, notas);
@@ -94,15 +83,9 @@ export const obtenerNotasMateria = async (materiaId: string): Promise<RegistroNo
  */
 export const guardarNotasBatch = async (materiaId: string, notas: RegistroNotasMateria): Promise<void> => {
   const cached = readNotasCache(materiaId, true) || {};
-  const merged = { ...cached };
+  const merged: Record<string, Partial<CalificacionData>> = { ...cached };
   Object.entries(notas).forEach(([alumnoId, datosCalificacion]) => {
-    const previous = merged[alumnoId] || {
-      nota1: null,
-      nota2: null,
-      nota3: null,
-      promedioFinal: null,
-      puntosExtra: 0,
-    };
+    const previous = merged[alumnoId] || normalizarCalificacion();
     merged[alumnoId] = {
       ...previous,
       ...datosCalificacion,

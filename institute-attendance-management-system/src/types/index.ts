@@ -70,12 +70,24 @@ export interface Periodo {
   activo: boolean;
 }
 
+export type NotaCampo = 'nota1' | 'nota2' | 'nota3';
+
+export interface NotaSimple {
+  valor: number | null;
+  tema: string;
+}
+
+export type NotasSimples = Record<NotaCampo, NotaSimple[]>;
+export type PuntosAplicados = Record<NotaCampo, number>;
+
 export interface CalificacionData {
   nota1: number | null;
   nota2: number | null;
   nota3: number | null;
   promedioFinal: number | null;
   puntosExtra?: number;
+  notasSimples?: Partial<NotasSimples>;
+  puntosAplicados?: Partial<PuntosAplicados>;
 }
 
 export type RegistroNotasMateria = Record<string, CalificacionData>;
