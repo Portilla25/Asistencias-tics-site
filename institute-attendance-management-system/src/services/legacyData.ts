@@ -18,6 +18,7 @@ import {
   usuarios as mockUsuarios,
 } from '../data/mockData';
 import { getTodayInPeru } from '../utils/dateUtils';
+import { enqueueDeferredSync } from './deferredSync';
 
 type LegacyStudent = {
   id?: string | number;
@@ -70,6 +71,35 @@ export const ADMIN_EMAILS = ['fer250423@gmail.com'];
 const DOCENTE_ID = 'u-docente-principal';
 const ALUMNO_DEMO_ID = 'u-alumno-demo';
 const STORAGE_STATE_KEY = 'asist_state';
+const INDEXED_DB_NAME = 'asistencias_local_db';
+const INDEXED_DB_STORE = 'kv';
+const INDEXED_DB_STATE_KEY = 'legacy_state';
+const FIRESTORE_CACHE_META_KEY = 'asist_firestore_cache_meta';
+const FIRESTORE_META_COLLECTION = 'system';
+const FIRESTORE_META_DOC_ID = 'legacy_state';
+const FIRESTORE_META_CHECK_INTERVAL_MS = 10 * 60 * 1000;
+const FIRESTORE_LEGACY_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const JUNE_2026_RECOVERY_FLAG_KEY = 'asist_june_2026_recovery_done_v1';
+const JUNE_2026_RECOVERY_REPORT_KEY = 'asist_june_2026_recovery_report_v1';
+const JUNE_2026_START = '2026-06-01';
+const JUNE_2026_END = '2026-06-30';
+
+type FirestoreCacheMeta = {
+  downloadedAt?: string;
+  downloadedAtMs?: number;
+  lastCheckedAtMs?: number;
+  remoteVersion?: string | null;
+};
+
+type RemoteStateMeta = {
+  exists: boolean;
+  version: string | null;
+  updatedAtMs: number | null;
+};
+
+type DownloadFromFirestoreOptions = {
+  force?: boolean;
+};
 
 // In-memory flags to avoid re-running migrations when localStorage is full
 let __inMemoryState: Record<string, LegacyModule> | null = null;
@@ -79,6 +109,7 @@ const __inMemoryFlags = new Set<string>();
 const saveStateLocally = (state: Record<string, LegacyModule>) => {
   if (typeof window !== 'undefined') {
     __inMemoryState = state;
+    saveStateToIndexedDb(state);
     try {
       window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -92,6 +123,77 @@ const getStateLocally = (): Record<string, LegacyModule> => {
     return __inMemoryState;
   }
   return safeParse<Record<string, LegacyModule>>(readStorage(STORAGE_STATE_KEY), {});
+};
+
+const openLocalDb = () =>
+  new Promise<IDBDatabase>((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      reject(new Error('IndexedDB no disponible.'));
+      return;
+    }
+
+    const request = window.indexedDB.open(INDEXED_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(INDEXED_DB_STORE)) {
+        db.createObjectStore(INDEXED_DB_STORE, { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('No se pudo abrir IndexedDB.'));
+  });
+
+const saveStateToIndexedDb = (state: Record<string, LegacyModule>) => {
+  if (typeof window === 'undefined' || !window.indexedDB) return;
+
+  openLocalDb()
+    .then((db) => {
+      const transaction = db.transaction(INDEXED_DB_STORE, 'readwrite');
+      transaction.objectStore(INDEXED_DB_STORE).put({
+        key: INDEXED_DB_STATE_KEY,
+        value: state,
+        updatedAtMs: Date.now(),
+      });
+      transaction.oncomplete = () => db.close();
+      transaction.onerror = () => {
+        console.warn('[LOCAL_DB] No se pudo guardar estado en IndexedDB.', transaction.error);
+        db.close();
+      };
+    })
+    .catch((error) => {
+      console.warn('[LOCAL_DB] No se pudo abrir IndexedDB para guardar estado.', error);
+    });
+};
+
+export const restoreLocalStateFromIndexedDb = async (): Promise<boolean> => {
+  if (Object.keys(getStateLocally()).length > 0) return false;
+  if (typeof window === 'undefined' || !window.indexedDB) return false;
+
+  try {
+    const db = await openLocalDb();
+    const restored = await new Promise<Record<string, LegacyModule> | null>((resolve, reject) => {
+      const transaction = db.transaction(INDEXED_DB_STORE, 'readonly');
+      const request = transaction.objectStore(INDEXED_DB_STORE).get(INDEXED_DB_STATE_KEY);
+      request.onsuccess = () => {
+        const value = request.result?.value;
+        resolve(value && typeof value === 'object' ? value as Record<string, LegacyModule> : null);
+      };
+      request.onerror = () => reject(request.error || new Error('No se pudo leer IndexedDB.'));
+    });
+    db.close();
+
+    if (!restored || Object.keys(restored).length === 0) return false;
+    __inMemoryState = restored;
+    try {
+      window.localStorage.setItem(STORAGE_STATE_KEY, JSON.stringify(restored));
+    } catch {
+      // It is still available from memory for this session.
+    }
+    return true;
+  } catch (error) {
+    console.warn('[LOCAL_DB] No se pudo restaurar estado desde IndexedDB.', error);
+    return false;
+  }
 };
 
 /** Check a migration flag - checks both memory and localStorage */
@@ -191,6 +293,21 @@ const safeParse = <T,>(value: string | null, fallback: T): T => {
     return JSON.parse(value) as T;
   } catch {
     return fallback;
+  }
+};
+
+const readFirestoreCacheMeta = (): FirestoreCacheMeta => {
+  if (typeof window === 'undefined') return {};
+  return safeParse<FirestoreCacheMeta>(window.localStorage.getItem(FIRESTORE_CACHE_META_KEY), {});
+};
+
+const saveFirestoreCacheMeta = (patch: Partial<FirestoreCacheMeta>) => {
+  if (typeof window === 'undefined') return;
+  const current = readFirestoreCacheMeta();
+  try {
+    window.localStorage.setItem(FIRESTORE_CACHE_META_KEY, JSON.stringify({ ...current, ...patch }));
+  } catch {
+    // If localStorage is full, the app can still use the in-memory state.
   }
 };
 
@@ -385,6 +502,134 @@ const getFirebaseFirestore = () => {
   return window.firebase.firestore(app);
 };
 
+const timestampToMillis = (value: unknown): number | null => {
+  if (!value) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (typeof value === 'object') {
+    const timestamp = value as { seconds?: number; nanoseconds?: number; toMillis?: () => number };
+    if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+    if (typeof timestamp.seconds === 'number') {
+      return (timestamp.seconds * 1000) + Math.floor((timestamp.nanoseconds || 0) / 1_000_000);
+    }
+  }
+  return null;
+};
+
+const getRemoteStateMeta = async (db: any): Promise<RemoteStateMeta> => {
+  const doc = await db.collection(FIRESTORE_META_COLLECTION).doc(FIRESTORE_META_DOC_ID).get();
+  if (!doc.exists) return { exists: false, version: null, updatedAtMs: null };
+
+  const data = doc.data() || {};
+  const updatedAtMs = timestampToMillis(data.updatedAt) ?? timestampToMillis(data.updatedAtMs);
+  const version = typeof data.version === 'string'
+    ? data.version
+    : updatedAtMs
+      ? String(updatedAtMs)
+      : null;
+
+  return { exists: true, version, updatedAtMs };
+};
+
+const makeFirestoreStateVersion = () =>
+  `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const touchFirestoreStateMeta = async (db: any, moduleIds: string[]) => {
+  const now = Date.now();
+  const version = makeFirestoreStateVersion();
+  try {
+    await db.collection(FIRESTORE_META_COLLECTION).doc(FIRESTORE_META_DOC_ID).set({
+      version,
+      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAtMs: now,
+      touchedModules: moduleIds.slice(0, 20),
+    }, { merge: true });
+
+    saveFirestoreCacheMeta({
+      downloadedAt: new Date(now).toISOString(),
+      downloadedAtMs: now,
+      lastCheckedAtMs: now,
+      remoteVersion: version,
+    });
+  } catch (error) {
+    console.warn('[FIREBASE_META] No se pudo actualizar metadata de sincronizacion.', error);
+  }
+};
+
+const markFirestoreCacheChecked = (remoteVersion?: string | null) => {
+  saveFirestoreCacheMeta({
+    lastCheckedAtMs: Date.now(),
+    ...(remoteVersion !== undefined ? { remoteVersion } : {}),
+  });
+};
+
+const fetchLegacyStateFromFirestore = async (db: any): Promise<Record<string, LegacyModule>> => {
+  const snapshot = await db.collection('modulos').get();
+  if (snapshot.empty) {
+    console.warn('Firestore: coleccion modulos esta vacia');
+    return {};
+  }
+
+  const state: Record<string, LegacyModule> = {};
+  const chunks: any[] = [];
+
+  snapshot.forEach((doc: any) => {
+    if (doc.id.includes('__chunk_')) {
+      chunks.push({ id: doc.id, data: doc.data() });
+    } else {
+      state[doc.id] = doc.data() as LegacyModule;
+    }
+  });
+
+  const unflattenObject = (entries: Array<{ path: string[]; value: unknown }>, target: Record<string, unknown> = {}) => {
+    for (const { path, value } of entries) {
+      if (!path || path.length === 0) continue;
+      let current = target;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        if (!current[key] || typeof current[key] !== 'object') current[key] = {};
+        current = current[key] as Record<string, unknown>;
+      }
+      current[path[path.length - 1]] = value;
+    }
+    return target;
+  };
+
+  for (const [moduleId, module] of Object.entries(state)) {
+    if (!(module as any)._chunked) continue;
+
+    const counts = (module as any)._chunkCounts || {};
+    for (const field of Object.keys(counts)) {
+      const count = counts[field];
+      let reassembled: any = ARRAY_CHUNK_FIELDS.has(field) ? [] : {};
+
+      for (let i = 0; i < count; i++) {
+        const chunkId = `${moduleId}__chunk_${field}_${i}`;
+        const chunkData = chunks.find((chunk) => chunk.id === chunkId)?.data;
+        if (!chunkData) continue;
+
+        if (Array.isArray(reassembled)) {
+          const chunkArray = chunkData[field];
+          if (Array.isArray(chunkArray)) {
+            chunkArray.forEach((item) => reassembled.push(item));
+          }
+        } else if (chunkData._flat && Array.isArray(chunkData.entries)) {
+          unflattenObject(chunkData.entries, reassembled);
+        } else {
+          Object.assign(reassembled, chunkData);
+        }
+      }
+
+      (module as any)[field] = reassembled;
+    }
+  }
+
+  return state;
+};
+
 const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModule) => {
   const db = getFirebaseFirestore();
   if (!db) return;
@@ -405,6 +650,7 @@ const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModul
       _chunked: false,
       updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
     });
+    await touchFirestoreStateMeta(db, [moduleId]);
     return;
   }
 
@@ -430,9 +676,10 @@ const syncLegacyModuleToFirestore = async (moduleId: string, module: LegacyModul
     batch.set(db.collection('modulos').doc(chunk.id), chunk.data);
   });
   await batch.commit();
+  await touchFirestoreStateMeta(db, [moduleId]);
 };
 
-export const downloadFromFirestore = async (): Promise<boolean> => {
+export const downloadFromFirestore = async (options: DownloadFromFirestoreOptions = {}): Promise<boolean> => {
   const db = getFirebaseFirestore();
   if (!db) {
     console.warn('Firebase: No se pudo inicializar Firestore');
@@ -440,6 +687,50 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
   }
 
   try {
+    const now = Date.now();
+    const cacheMeta = readFirestoreCacheMeta();
+    const localState = getStateLocally();
+    const hasLocalState = Object.keys(localState).length > 0;
+    let remoteMetaBeforeFullDownload: RemoteStateMeta | null = null;
+
+    if (!options.force && hasLocalState) {
+      if (cacheMeta.lastCheckedAtMs && now - cacheMeta.lastCheckedAtMs < FIRESTORE_META_CHECK_INTERVAL_MS) {
+        __firebaseDownloadedThisSession = true;
+        console.log('[FIREBASE_DOWNLOAD] Skip: cache local revisada recientemente.');
+        return false;
+      }
+
+      try {
+        const remoteMeta = await getRemoteStateMeta(db);
+        remoteMetaBeforeFullDownload = remoteMeta;
+        if (remoteMeta.exists) {
+          if (cacheMeta.remoteVersion && remoteMeta.version === cacheMeta.remoteVersion) {
+            markFirestoreCacheChecked(remoteMeta.version);
+            __firebaseDownloadedThisSession = true;
+            console.log('[FIREBASE_DOWNLOAD] Skip: cache local coincide con la version remota.');
+            return false;
+          }
+
+          if (!cacheMeta.remoteVersion) {
+            markFirestoreCacheChecked(remoteMeta.version);
+            __firebaseDownloadedThisSession = true;
+            console.log('[FIREBASE_DOWNLOAD] Skip: version remota adoptada para evitar descarga completa inicial.');
+            return false;
+          }
+        } else if (!cacheMeta.downloadedAtMs || now - cacheMeta.downloadedAtMs < FIRESTORE_LEGACY_CACHE_MAX_AGE_MS) {
+          markFirestoreCacheChecked(cacheMeta.remoteVersion);
+          __firebaseDownloadedThisSession = true;
+          console.log('[FIREBASE_DOWNLOAD] Skip: usando cache local porque aun no hay metadata remota.');
+          return false;
+        }
+      } catch (metaError) {
+        markFirestoreCacheChecked(cacheMeta.remoteVersion);
+        __firebaseDownloadedThisSession = true;
+        console.warn('[FIREBASE_DOWNLOAD] No se pudo revisar metadata remota; usando cache local.', metaError);
+        return false;
+      }
+    }
+
     const snapshot = await db.collection('modulos').get();
     if (snapshot.empty) {
       console.warn('Firestore: colección modulos está vacía');
@@ -517,6 +808,26 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
       }
       console.log(`[FIREBASE_DOWNLOAD] OK: ${Object.keys(state).length} modules, ${totalAsist} asistencias, latest date: ${latestDate}`);
       saveStateLocally(state);
+      saveFirestoreCacheMeta({
+        downloadedAt: new Date().toISOString(),
+        downloadedAtMs: Date.now(),
+        lastCheckedAtMs: Date.now(),
+      });
+      const cacheMetaPromise = remoteMetaBeforeFullDownload
+        ? Promise.resolve(remoteMetaBeforeFullDownload)
+        : getRemoteStateMeta(db);
+
+      cacheMetaPromise
+        .then((remoteMeta) => {
+          if (remoteMeta.exists) {
+            saveFirestoreCacheMeta({ remoteVersion: remoteMeta.version });
+            return undefined;
+          }
+          return touchFirestoreStateMeta(db, Object.keys(state));
+        })
+        .catch((metaError) => {
+          console.warn('[FIREBASE_DOWNLOAD] No se pudo actualizar metadata de cache.', metaError);
+        });
       __firebaseDownloadedThisSession = true;
       return true;
     }
@@ -526,11 +837,20 @@ export const downloadFromFirestore = async (): Promise<boolean> => {
   return false;
 };
 
-const syncTouchedModules = (moduleIds: Set<string>, state: Record<string, LegacyModule>) => {
+const queueLegacyModuleSync = (moduleId: string) => {
+  enqueueDeferredSync('legacyModule', { moduleId }, moduleId);
+};
+
+export const flushLegacyModuleSyncTask = async (moduleId: string) => {
+  const state = getStateLocally();
+  const module = state[moduleId];
+  if (!module) return;
+  await syncLegacyModuleToFirestore(moduleId, module);
+};
+
+const syncTouchedModules = (moduleIds: Set<string>, _state: Record<string, LegacyModule>) => {
   moduleIds.forEach((moduleId) => {
-    syncLegacyModuleToFirestore(moduleId, state[moduleId]).catch((error) => {
-      console.warn(`No se pudo sincronizar ${moduleId} con Firestore`, error);
-    });
+    queueLegacyModuleSync(moduleId);
   });
 };
 
@@ -581,6 +901,116 @@ const legacyAttendanceValue = (value: unknown): string => {
     return String(record.estado ?? record.val ?? record.value ?? record.status ?? record.asistencia ?? record.attendance ?? '');
   }
   return String(value ?? '');
+};
+
+const isJune2026Date = (value: unknown) => {
+  const normalized = normalizeDateKey(value);
+  return normalized >= JUNE_2026_START && normalized <= JUNE_2026_END;
+};
+
+export const recoverJuneAttendanceFromFirestore = async (): Promise<boolean> => {
+  if (typeof window === 'undefined') return false;
+  if (hasMigrationFlag(JUNE_2026_RECOVERY_FLAG_KEY)) return false;
+
+  const localState = getStateLocally();
+  if (Object.keys(localState).length === 0) return false;
+
+  const db = getFirebaseFirestore();
+  if (!db) return false;
+
+  try {
+    const remoteState = await fetchLegacyStateFromFirestore(db);
+    const nextState = cloneJson(localState);
+    const touchedModules = new Set<string>();
+    const recoveredDates = new Set<string>();
+    const modulesSeen = new Set<string>();
+    let recoveredAttendances = 0;
+    let copiedStudents = 0;
+
+    Object.entries(remoteState).forEach(([moduleId, remoteModule]) => {
+      const remoteAttendances = asPlainRecord(remoteModule.asistencias);
+      const remoteJuneEntries: Array<{ legacyStudentId: string; fecha: string; estado: string }> = [];
+
+      Object.entries(remoteAttendances).forEach(([legacyStudentId, rawByDate]) => {
+        Object.entries(asPlainRecord(rawByDate)).forEach(([rawFecha, rawEstado]) => {
+          const fecha = normalizeDateKey(rawFecha);
+          const estado = legacyAttendanceValue(rawEstado);
+          if (!isJune2026Date(fecha) || !estado) return;
+          remoteJuneEntries.push({ legacyStudentId, fecha, estado });
+        });
+      });
+
+      if (remoteJuneEntries.length === 0) return;
+      modulesSeen.add(moduleId);
+
+      const localModule = nextState[moduleId] || { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+      if ((!Array.isArray(localModule.alumnos) || localModule.alumnos.length === 0) && Array.isArray(remoteModule.alumnos)) {
+        localModule.alumnos = cloneJson(remoteModule.alumnos);
+        copiedStudents += localModule.alumnos.length;
+      }
+
+      if ((!Array.isArray(localModule.retirados) || localModule.retirados.length === 0) && Array.isArray(remoteModule.retirados)) {
+        localModule.retirados = cloneJson(remoteModule.retirados);
+        copiedStudents += localModule.retirados.length;
+      }
+
+      localModule.fechas = Array.from(new Set([
+        ...(localModule.fechas || []).map((fecha) => normalizeDateKey(fecha)),
+        ...remoteJuneEntries.map((entry) => entry.fecha),
+      ])).filter((fecha) => isFullDateKey(fecha)).sort();
+
+      localModule.asistencias = localModule.asistencias || {};
+      remoteJuneEntries.forEach(({ legacyStudentId, fecha, estado }) => {
+        localModule.asistencias![legacyStudentId] = localModule.asistencias![legacyStudentId] || {};
+        if (localModule.asistencias![legacyStudentId][fecha]) return;
+        localModule.asistencias![legacyStudentId][fecha] = estado;
+        recoveredAttendances++;
+        recoveredDates.add(fecha);
+        touchedModules.add(moduleId);
+      });
+
+      const remoteMotivos = asPlainRecord(remoteModule.motivos);
+      Object.entries(remoteMotivos).forEach(([legacyStudentId, rawByDate]) => {
+        Object.entries(asPlainRecord(rawByDate)).forEach(([rawFecha, rawMotivo]) => {
+          const fecha = normalizeDateKey(rawFecha);
+          if (!isJune2026Date(fecha) || !rawMotivo) return;
+          localModule.motivos = localModule.motivos || {};
+          localModule.motivos[legacyStudentId] = localModule.motivos[legacyStudentId] || {};
+          if (!localModule.motivos[legacyStudentId][fecha]) {
+            localModule.motivos[legacyStudentId][fecha] = String(rawMotivo);
+          }
+        });
+      });
+
+      nextState[moduleId] = localModule;
+    });
+
+    const report = {
+      recoveredAt: new Date().toISOString(),
+      month: '2026-06',
+      recoveredAttendances,
+      copiedStudents,
+      modulesWithJuneInFirestore: [...modulesSeen].sort(),
+      touchedModules: [...touchedModules].sort(),
+      recoveredDates: [...recoveredDates].sort(),
+    };
+
+    if (recoveredAttendances > 0 || copiedStudents > 0) {
+      saveStateLocally(nextState);
+    }
+
+    setMigrationFlag(JUNE_2026_RECOVERY_FLAG_KEY);
+    try {
+      window.localStorage.setItem(JUNE_2026_RECOVERY_REPORT_KEY, JSON.stringify(report));
+    } catch {
+      // The recovery itself has already been applied; the report is only diagnostic.
+    }
+    console.log('[JUNE_RECOVERY] Resultado:', report);
+    return recoveredAttendances > 0 || copiedStudents > 0;
+  } catch (error) {
+    console.warn('[JUNE_RECOVERY] No se pudo recuperar junio desde Firestore.', error);
+    return false;
+  }
 };
 
 const splitName = (fullName: string) => {
@@ -1243,8 +1673,8 @@ export const deleteLegacyAttendance = (alumnoId: string, materiaId: string, fech
       }
       
       saveStateLocally(state);
-      syncLegacyModuleToFirestore(materiaId, state[materiaId]);
-      console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada con éxito de la base de datos (LocalStorage y Firebase).`);
+      queueLegacyModuleSync(materiaId);
+      console.log(`Asistencia de alumno ${alumnoId} en la fecha ${fecha} limpiada localmente y encolada para Firebase.`);
     }
   } catch (error) {
     console.error("Error real al limpiar asistencia en base de datos:", error);
@@ -1261,45 +1691,68 @@ export const persistAlumno = (alumnoId: string, updates: Partial<Alumno>, curren
 
     const alumno = currentAlumnos.find(a => a.id === alumnoId);
     if (!alumno) return;
+    const nextAlumno: Alumno = {
+      ...alumno,
+      ...updates,
+      legacyRefs: { ...(alumno.legacyRefs || {}) },
+    };
+    const nextMateriaIds = Array.isArray(updates.materias) ? updates.materias : alumno.materias;
+    const moduleIds = new Set([
+      ...Object.keys(nextAlumno.legacyRefs || {}),
+      ...nextMateriaIds,
+    ]);
 
-    Object.keys(alumno.legacyRefs || {}).forEach(materiaId => {
-      const legacyId = alumno.legacyRefs?.[materiaId];
-      if (!legacyId || !state[materiaId]) return;
+    moduleIds.forEach(materiaId => {
+      const module = state[materiaId] || { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+      module.alumnos = module.alumnos || [];
+      module.retirados = module.retirados || [];
+
+      let legacyId = nextAlumno.legacyRefs?.[materiaId];
+      const shouldBelongToModule = nextMateriaIds.includes(materiaId);
+      if (!legacyId && shouldBelongToModule) {
+        legacyId = `${nextAlumno.id}-${hash(materiaId)}`;
+        nextAlumno.legacyRefs![materiaId] = legacyId;
+      }
+      if (!legacyId) return;
       
-      const module = state[materiaId];
       const activeStudents = module.alumnos || [];
       const retiredStudents = module.retirados || [];
       const activeStudent = activeStudents.find(a => String(a.id) === String(legacyId));
       const retiredStudent = retiredStudents.find(a => String(a.id) === String(legacyId));
       const legacyStudent = activeStudent || retiredStudent;
+      const shouldRetire = nextAlumno.estado === 'retirado' || !shouldBelongToModule;
+      const updatedStudent: LegacyStudent = {
+        ...(legacyStudent || {}),
+        id: legacyId,
+        nombre: `${nextAlumno.apellido} ${nextAlumno.nombre}`.trim(),
+        correo: nextAlumno.email,
+        email: nextAlumno.email,
+        dni: nextAlumno.dni,
+        curso: nextAlumno.curso,
+        retirado: shouldRetire,
+      };
 
-      if (legacyStudent) {
-        if (updates.estado !== undefined) {
-          const shouldRetire = updates.estado === 'retirado';
-          const updatedStudent = { ...legacyStudent, retirado: shouldRetire };
-
-          if (shouldRetire) {
-            module.alumnos = activeStudents.filter(a => String(a.id) !== String(legacyId));
-            module.retirados = retiredStudents.some(a => String(a.id) === String(legacyId))
-              ? retiredStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
-              : [...retiredStudents, updatedStudent];
-          } else {
-            module.retirados = retiredStudents.filter(a => String(a.id) !== String(legacyId));
-            module.alumnos = activeStudents.some(a => String(a.id) === String(legacyId))
-              ? activeStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
-              : [...activeStudents, updatedStudent];
-          }
-
-          touched = true;
-          touchedModules.add(materiaId);
-        }
+      if (shouldRetire) {
+        module.alumnos = activeStudents.filter(a => String(a.id) !== String(legacyId));
+        module.retirados = retiredStudents.some(a => String(a.id) === String(legacyId))
+          ? retiredStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
+          : [...retiredStudents, updatedStudent];
+      } else {
+        module.retirados = retiredStudents.filter(a => String(a.id) !== String(legacyId));
+        module.alumnos = activeStudents.some(a => String(a.id) === String(legacyId))
+          ? activeStudents.map(a => String(a.id) === String(legacyId) ? updatedStudent : a)
+          : [...activeStudents, updatedStudent];
       }
+
+      state[materiaId] = module;
+      touched = true;
+      touchedModules.add(materiaId);
     });
 
     if (touched) {
       saveStateLocally(state);
       syncTouchedModules(touchedModules, state);
-      console.log(`Alumno con ID ${alumnoId} actualizado/retirado con éxito de la base de datos (LocalStorage y Firebase).`);
+      console.log(`Alumno con ID ${alumnoId} actualizado localmente y encolado para Firebase.`);
     }
   } catch (error) {
     console.error("Error real al eliminar/actualizar en base de datos:", error);
@@ -1339,7 +1792,7 @@ export const persistNewAlumno = (alumno: Alumno) => {
     if (touched) {
       saveStateLocally(state);
       syncTouchedModules(touchedModules, state);
-      console.log(`Nuevo alumno guardado con éxito en la base de datos (LocalStorage y Firebase).`);
+      console.log(`Nuevo alumno guardado localmente y encolado para Firebase.`);
     }
   } catch (error) {
     console.error("Error al guardar nuevo alumno en base de datos:", error);
@@ -1380,16 +1833,10 @@ export const importLegacyBackup = async (jsonString: string): Promise<{ success:
     if (backup.horasLog) window.localStorage.setItem('horas_log', JSON.stringify(backup.horasLog));
     if (backup.claseBaseConfig) window.localStorage.setItem('clase_base_config', JSON.stringify(backup.claseBaseConfig));
 
-    // Sincronizar todos los módulos a Firebase para que no se pierdan de nuevo
-    const db = getFirebaseFirestore();
-    if (db) {
-      const moduleIds = Object.keys(backup.state);
-      for (const moduleId of moduleIds) {
-        await syncLegacyModuleToFirestore(moduleId, backup.state[moduleId]);
-      }
-    }
+    // Encolar todos los modulos para que se respalden en la siguiente sincronizacion.
+    Object.keys(backup.state).forEach((moduleId) => queueLegacyModuleSync(moduleId));
 
-    return { success: true, message: 'Datos importados y sincronizados con éxito. Recargando página...' };
+    return { success: true, message: 'Datos importados en local y encolados para Firebase. Recargando pagina...' };
   } catch (error) {
     return { success: false, message: `Error al leer el archivo: ${error instanceof Error ? error.message : 'JSON inválido'}` };
   }

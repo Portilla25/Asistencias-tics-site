@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Clock, Calendar, BarChart3, ChevronDown, ChevronRight, Users, ChevronUp, Loader2, BookOpen, Hash, Monitor } from 'lucide-react';
 import { Alumno, Asistencia, Materia } from '../types';
 import { getCareers, LegacyCareer } from '../services/legacyData';
-import { getSesiones, recalcularNumerosClaseBatch, SesionData, getFirebaseFirestore } from '../services/sesiones';
+import { getSesiones, recalcularNumerosClaseBatch, saveSesionesBatch, SesionData } from '../services/sesiones';
 import DateLabel from './DateLabel';
 
 /* ─── Schedule definitions for each module ─── */
@@ -181,26 +181,13 @@ const ModuleRowAccordion: React.FC<{
 
     setLoading(true);
 
-    const db = getFirebaseFirestore();
-    const fb = (window as any).firebase;
-    if (db && fb) {
-      const batch = db.batch();
-      for (const s of displaySesiones) {
-         const fbExists = sesiones.some(fs => fs.fecha === s.fecha);
-         if (!fbExists || s.fecha === sesion.fecha) {
-           const docRef = db.collection('modulos').doc(materia.id).collection('sesiones').doc(s.fecha);
-           batch.set(docRef, {
-             fecha: s.fecha,
-             numeroClase: s.fecha === sesion.fecha ? nuevoNumero : s.numeroClase,
-             tema: s.tema,
-             modalidad: s.modalidad,
-             horas: s.horas,
-             updatedAt: fb.firestore.FieldValue.serverTimestamp()
-           }, { merge: true });
-         }
-      }
-      await batch.commit();
-    }
+    await saveSesionesBatch(materia.id, displaySesiones.map((s) => ({
+      fecha: s.fecha,
+      numeroClase: s.fecha === sesion.fecha ? nuevoNumero : s.numeroClase,
+      tema: s.tema,
+      modalidad: s.modalidad,
+      horas: s.horas,
+    })));
 
     await recalcularNumerosClaseBatch(materia.id, sesion.fecha, nuevoNumero);
     await loadSesiones();
@@ -427,7 +414,7 @@ const ModuleRowAccordion: React.FC<{
                 </div>
               ) : (
                 <div className="text-center py-6 border border-white/5 border-dashed rounded-lg bg-white/[0.02]">
-                  <p className="text-sm text-gray-400">No hay detalles de sesión guardados en Firebase para este mes.</p>
+                  <p className="text-sm text-gray-400">No hay detalles de sesion guardados para este mes.</p>
                 </div>
               )}
             </div>

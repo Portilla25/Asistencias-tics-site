@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X } from 'lucide-react';
 import { Asistencia } from '../types';
-import { LegacyCareer, downloadFromFirestore, getCareers } from '../services/legacyData';
-import { getSesion, saveSesion, getSesiones } from '../services/sesiones';
+import { LegacyCareer, getCareers } from '../services/legacyData';
+import { saveSesion, getSesiones } from '../services/sesiones';
 import DateLabel from './DateLabel';
 import { getTodayInPeru } from '../utils/dateUtils';
 
@@ -45,6 +45,7 @@ const TomarAsistencia: React.FC = () => {
   const [isRuletaOpen, setIsRuletaOpen] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [ruletaGanador, setRuletaGanador] = useState('');
+  const [ruletaHistorial, setRuletaHistorial] = useState<string[]>([]);
 
   const misMaterias = currentUser?.rol === 'admin'
     ? materias
@@ -96,6 +97,12 @@ const TomarAsistencia: React.FC = () => {
       });
   }, [selectedMateria, alumnos]);
 
+  const alumnosRuleta = useMemo(() => {
+    const activos = alumnosMateria.filter(a => a.estado !== 'retirado');
+    const presentes = activos.filter(a => estados[a.id] === 'presente');
+    return presentes.length > 0 ? presentes : activos;
+  }, [alumnosMateria, estados]);
+
   const contextRef = React.useRef({ materia: selectedMateria, fecha });
 
   React.useEffect(() => {
@@ -128,8 +135,9 @@ const TomarAsistencia: React.FC = () => {
     
     if (contextChanged) {
       setSaved(false);
-      // Fetch session data
-      getSesion(selectedMateria, fecha).then(sesion => {
+      // Fetch session data from a cached per-module read.
+      getSesiones(selectedMateria).then(sesiones => {
+        const sesion = sesiones.find((item) => item.fecha === fecha);
         if (sesion) {
           setTema(sesion.tema || '');
           setNumeroClase(sesion.numeroClase || '');
@@ -137,15 +145,8 @@ const TomarAsistencia: React.FC = () => {
         } else {
           setTema('');
           setModalidad('Presencial');
-          // Auto-calculate next numeroClase if empty
-          getSesiones(selectedMateria).then(sesiones => {
-            if (sesiones.length > 0) {
-              const max = Math.max(...sesiones.map(s => s.numeroClase || 0));
-              setNumeroClase(max + 1);
-            } else {
-              setNumeroClase(1);
-            }
-          });
+          const max = sesiones.length > 0 ? Math.max(...sesiones.map(s => s.numeroClase || 0)) : 0;
+          setNumeroClase(max + 1);
         }
       });
     }
@@ -213,7 +214,7 @@ const TomarAsistencia: React.FC = () => {
   };
 
   const iniciarRuleta = () => {
-    if (alumnosMateria.length === 0) return;
+    if (alumnosRuleta.length === 0) return;
     setIsSpinning(true);
     setRuletaGanador('');
     
@@ -222,14 +223,16 @@ const TomarAsistencia: React.FC = () => {
     const intervalTime = 100;
     
     const intervalId = setInterval(() => {
-      const randomIdx = Math.floor(Math.random() * alumnosMateria.length);
-      const alumno = alumnosMateria[randomIdx];
-      setRuletaGanador(`${alumno.nombre} ${alumno.apellido}`);
+      const randomIdx = Math.floor(Math.random() * alumnosRuleta.length);
+      const alumno = alumnosRuleta[randomIdx];
+      const nombre = `${alumno.nombre} ${alumno.apellido}`;
+      setRuletaGanador(nombre);
       counter++;
       
       if (counter >= spins) {
         clearInterval(intervalId);
         setIsSpinning(false);
+        setRuletaHistorial(prev => [nombre, ...prev.filter(item => item !== nombre)].slice(0, 5));
       }
     }, intervalTime);
   };
@@ -640,7 +643,7 @@ const TomarAsistencia: React.FC = () => {
                     onClick={async () => {
                       const btn = document.getElementById('sync-btn');
                       if (btn) btn.innerHTML = '<span class="animate-spin mr-2">⏳</span> Sincronizando...';
-                      const ok = await downloadFromFirestore();
+                      const ok = false;
                       if (ok) {
                         window.location.reload();
                       } else {
@@ -649,10 +652,9 @@ const TomarAsistencia: React.FC = () => {
                       }
                     }}
                     id="sync-btn"
-                    className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                    className="hidden"
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    Forzar Sincronización
+                    Sincronizacion movida a Respaldo
                   </button>
                   <button
                     onClick={handleGuardar}
@@ -700,7 +702,9 @@ const TomarAsistencia: React.FC = () => {
                 <Dices className={`w-8 h-8 text-indigo-500 ${isSpinning ? 'animate-spin' : ''}`} />
               </div>
               <h3 className="text-2xl font-bold text-foreground">Ruleta de Participación</h3>
-              <p className="text-sm text-muted-foreground mt-2">Elige un alumno al azar para que participe.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Sortea entre {alumnosRuleta.length} alumno{alumnosRuleta.length === 1 ? '' : 's'} activo{alumnosRuleta.length === 1 ? '' : 's'}.
+              </p>
             </div>
 
             <div className="h-32 bg-background border border-border rounded-2xl flex items-center justify-center mb-8 px-4 shadow-inner relative overflow-hidden">
@@ -716,11 +720,23 @@ const TomarAsistencia: React.FC = () => {
 
             <button 
               onClick={iniciarRuleta}
-              disabled={isSpinning || alumnosMateria.length === 0}
+              disabled={isSpinning || alumnosRuleta.length === 0}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white rounded-xl font-bold text-lg transition-all shadow-[0_0_20px_rgba(99,102,241,0.4)] active:scale-95"
             >
               {isSpinning ? 'Girando la ruleta...' : 'Girar Ruleta'}
             </button>
+            {ruletaHistorial.length > 0 && (
+              <div className="mt-5 rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Ultimos sorteados</p>
+                <div className="flex flex-wrap gap-2">
+                  {ruletaHistorial.map((nombre) => (
+                    <span key={nombre} className="px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-600 text-xs font-semibold">
+                      {nombre}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

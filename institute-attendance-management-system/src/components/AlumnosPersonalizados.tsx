@@ -3,6 +3,15 @@ import { Users, Clock, Calendar, BarChart, ChevronDown, UserSquare2, Plus, X, Tr
 import mergedData from '../data/merged_personalizados.json';
 import DateLabel from './DateLabel';
 import { getTodayInPeru } from '../utils/dateUtils';
+import { enqueueDeferredSync } from '../services/deferredSync';
+
+const PERSONALIZADOS_CACHE_KEY = 'asist_personalizados_firestore_cache';
+const PERSONALIZADOS_CACHE_TTL_MS = 30 * 60 * 1000;
+
+type PersonalizadosCache = {
+  savedAtMs: number;
+  data: any[];
+};
 
 interface ClasePersonalizada {
   fecha: string;
@@ -89,23 +98,48 @@ const getFirestore = () => {
   } catch { return null; }
 };
 
+const readPersonalizadosCache = (): any[] | null => {
+  try {
+    const raw = localStorage.getItem(PERSONALIZADOS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersonalizadosCache;
+    if (!Array.isArray(parsed.data)) return null;
+    if (Date.now() - parsed.savedAtMs > PERSONALIZADOS_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const writePersonalizadosCache = (data: any[]) => {
+  try {
+    localStorage.setItem(PERSONALIZADOS_CACHE_KEY, JSON.stringify({
+      savedAtMs: Date.now(),
+      data,
+    }));
+  } catch {
+    // Cache failures should never block Firebase operations.
+  }
+};
+
 const saveToFirestore = (data: any[]) => {
-  const db = getFirestore();
-  if (!db) return;
-  db.collection('personalizados').doc('datos').set({
-    alumnos: data,
-    updatedAt: (window as any).firebase.firestore.FieldValue.serverTimestamp()
-  }).catch((e: any) => console.warn('[Personalizados] Error guardando en Firestore', e));
+  writePersonalizadosCache(data);
+  enqueueDeferredSync('personalizados', { data }, 'datos');
 };
 
 const loadFromFirestore = async (): Promise<any[] | null> => {
+  const cached = readPersonalizadosCache();
+  if (cached) return cached;
+
   const db = getFirestore();
   if (!db) return null;
   try {
     const doc = await db.collection('personalizados').doc('datos').get();
     if (doc.exists) {
       const data = doc.data();
-      return data?.alumnos || null;
+      const alumnos = data?.alumnos || null;
+      if (Array.isArray(alumnos)) writePersonalizadosCache(alumnos);
+      return alumnos;
     }
   } catch (e) { console.warn('[Personalizados] Error leyendo Firestore', e); }
   return null;

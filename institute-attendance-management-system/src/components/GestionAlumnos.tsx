@@ -226,7 +226,7 @@ const GestionAlumnos: React.FC = () => {
                         </button>
                         {deleteConfirm === alumno.id ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => handleDelete(alumno.id)} className="p-1.5 text-white bg-red-500 rounded-lg hover:bg-red-600" title="Confirmar eliminación permanente">
+                            <button onClick={() => handleDelete(alumno.id)} className="p-1.5 text-white bg-orange-500 rounded-lg hover:bg-orange-600" title="Confirmar retiro">
                               <Check className="w-4 h-4" />
                             </button>
                             <button onClick={() => setDeleteConfirm(null)} className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg" title="Cancelar">
@@ -244,7 +244,7 @@ const GestionAlumnos: React.FC = () => {
                                 <UserMinus className="w-4 h-4" />
                               </button>
                             )}
-                            <button type="button" onClick={(e) => { e.preventDefault(); setDeleteConfirm(alumno.id); }} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar permanentemente">
+                            <button type="button" onClick={(e) => { e.preventDefault(); setDeleteConfirm(alumno.id); }} className="p-1.5 text-muted-foreground hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Retirar sin borrar historial">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </>

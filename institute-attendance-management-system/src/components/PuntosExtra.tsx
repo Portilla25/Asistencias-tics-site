@@ -85,7 +85,7 @@ const PuntosExtra: React.FC = () => {
 
       await guardarNotasBatch(selectedMateriaId, batchData);
       
-      setAlertMsg({ text: 'Puntos guardados exitosamente en la nube.', type: 'success' });
+      setAlertMsg({ text: 'Puntos guardados localmente. Se subiran a Firebase en la sincronizacion diaria.', type: 'success' });
       setTimeout(() => setAlertMsg(null), 3000);
     } catch (error) {
       setAlertMsg({ text: 'Error al intentar guardar los puntos.', type: 'error' });

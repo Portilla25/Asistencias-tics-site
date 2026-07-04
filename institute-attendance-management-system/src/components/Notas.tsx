@@ -108,7 +108,7 @@ const Notas: React.FC = () => {
     setAlertMsg(null);
     try {
       await guardarNotasBatch(selectedMateriaId, notasLocales);
-      setAlertMsg({ text: 'Calificaciones guardadas exitosamente en la nube.', type: 'success' });
+      setAlertMsg({ text: 'Calificaciones guardadas localmente. Se subiran a Firebase en la sincronizacion diaria.', type: 'success' });
       // Limpiar mensaje después de 3 segundos
       setTimeout(() => setAlertMsg(null), 3000);
     } catch (error) {

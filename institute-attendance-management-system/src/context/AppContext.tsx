@@ -11,7 +11,11 @@ import {
   deleteLegacyAttendance,
   persistNewAlumno,
   downloadFromFirestore,
+  restoreLocalStateFromIndexedDb,
+  recoverJuneAttendanceFromFirestore,
 } from '../services/legacyData';
+import { initializeDeferredSync } from '../services/deferredSync';
+import { flushQueuedFirebaseWrites } from '../services/firebaseFlush';
 
 interface AppContextType {
   currentUser: User | null;
@@ -80,7 +84,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [usuarios, setUsuarios] = useState(initialData.usuarios);
   const [horarios] = useState(initialData.horarios);
   const [periodos] = useState(initialData.periodos);
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('asistencias');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dataSource, setDataSource] = useState(initialData.source);
   const [showWeekdayLabelsState, setShowWeekdayLabelsState] = useState(() => {
@@ -96,6 +100,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const syncStateRef = useRef({ initialTried: false, authenticatedTried: false, succeeded: false });
+
+  useEffect(() => {
+    return initializeDeferredSync(flushQueuedFirebaseWrites);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     const syncData = async () => {
@@ -105,6 +114,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       syncStateRef.current[attemptKey] = true;
 
       console.log('[AppContext] syncData starting...');
+      const restoredLocal = await restoreLocalStateFromIndexedDb();
+      if (restoredLocal && mounted && !syncStateRef.current.succeeded) {
+        const restoredData = loadInitialAppData();
+        setAlumnos(restoredData.alumnos);
+        setMaterias(restoredData.materias);
+        setAsistencias(restoredData.asistencias);
+        setNotificaciones(restoredData.notificaciones);
+        setUsuarios(restoredData.usuarios);
+        setDataSource(restoredData.source);
+      }
+
+      const recoveredJune = await recoverJuneAttendanceFromFirestore();
+      if (recoveredJune && mounted && !syncStateRef.current.succeeded) {
+        const recoveredData = loadInitialAppData();
+        setAlumnos(recoveredData.alumnos);
+        setMaterias(recoveredData.materias);
+        setAsistencias(recoveredData.asistencias);
+        setNotificaciones(recoveredData.notificaciones);
+        setUsuarios(recoveredData.usuarios);
+        setDataSource(recoveredData.source);
+      }
+
       const didDownload = await downloadFromFirestore();
       console.log('[AppContext] downloadFromFirestore returned:', didDownload, 'mounted:', mounted);
       if (didDownload && mounted) {
@@ -168,7 +199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return prev;
           }
           if (!prev || prev.email !== user.email) {
-            setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
+        setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'asistencias');
           }
           return user;
         });
@@ -181,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const user = usuarios.find(u => u.email === email && u.password === password);
     if (user) {
       setCurrentUser(user);
-      setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
+      setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'asistencias');
       return true;
     }
     return false;
@@ -190,7 +221,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loginAsRole = useCallback((role: Role) => {
     const user = usuarios.find(u => u.rol === role) || usuarios[0];
     setCurrentUser(user);
-    setActiveSection(role === 'alumno' ? 'mis-asistencias' : 'dashboard');
+    setActiveSection(role === 'alumno' ? 'mis-asistencias' : 'asistencias');
   }, [usuarios]);
 
   const loginWithGoogle = useCallback(async () => {
@@ -209,7 +240,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { ok: false, message: 'Este correo no tiene rol asignado en la nueva interfaz.' };
       }
       setCurrentUser(user);
-      setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'dashboard');
+      setActiveSection(user.rol === 'alumno' ? 'mis-asistencias' : 'asistencias');
       return { ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo iniciar sesión con Google.';
@@ -221,7 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const app = getFirebaseApp();
     if (app) window.firebase.auth(app).signOut().catch(() => undefined);
     setCurrentUser(null);
-    setActiveSection('dashboard');
+    setActiveSection('asistencias');
   }, []);
 
   const addAlumno = useCallback((alumno: Omit<Alumno, 'id'>) => {
@@ -236,9 +267,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [alumnos]);
 
   const deleteAlumno = useCallback((id: string) => {
-    setAlumnos(prev => prev.filter(a => a.id !== id));
-    setAsistencias(prev => prev.filter(a => a.alumnoId !== id));
-  }, []);
+    persistAlumno(id, { estado: 'retirado' }, alumnos);
+    setAlumnos(prev => prev.map(a => a.id === id ? { ...a, estado: 'retirado' } : a));
+  }, [alumnos]);
 
   const addMateria = useCallback((materia: Omit<Materia, 'id'> | Materia) => {
     setMaterias(prev => [...prev, { ...materia, id: 'id' in materia ? materia.id : `m${Date.now()}` }]);
