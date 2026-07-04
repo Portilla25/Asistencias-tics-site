@@ -53,6 +53,7 @@ const Notas: React.FC = () => {
   const selectedMateriaId = useMemo(() => {
     if (selectedModuloId) return selectedModuloId;
     if (selectedGroup && selectedGroup.materias.length === 1) return selectedGroup.materias[0].id;
+    if (selectedGroup && selectedGroup.materias.length > 1) return selectedGroup.materias[0].id;
     return '';
   }, [selectedModuloId, selectedGroup]);
 
@@ -111,6 +112,23 @@ const Notas: React.FC = () => {
       }
     }
   }, [cursoGroups, selectedCursoId]);
+
+  useEffect(() => {
+    if (!selectedGroup) {
+      if (selectedModuloId) setSelectedModuloId('');
+      return;
+    }
+
+    if (selectedGroup.materias.length <= 1) {
+      if (selectedModuloId) setSelectedModuloId('');
+      return;
+    }
+
+    const moduloStillAvailable = selectedGroup.materias.some(m => m.id === selectedModuloId);
+    if (!moduloStillAvailable) {
+      setSelectedModuloId(selectedGroup.materias[0].id);
+    }
+  }, [selectedGroup, selectedModuloId]);
 
   const alumnosDelModulo = useMemo(() => {
     if (!selectedMateriaId) return [];
