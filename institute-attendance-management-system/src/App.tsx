@@ -10,6 +10,7 @@ import Reportes from './components/Reportes';
 import Configuracion from './components/Configuracion';
 import Notas from './components/Notas';
 import PuntosExtra from './components/PuntosExtra';
+import AlumnosPersonalizados from './components/AlumnosPersonalizados';
 
 const AppContent: React.FC = () => {
   const { currentUser, activeSection } = useApp();
@@ -24,6 +25,7 @@ const AppContent: React.FC = () => {
       case 'reportes': return <Reportes />;
       case 'calificaciones': return <Notas />;
       case 'puntos-extra': return <PuntosExtra />;
+      case 'personalizados': return <AlumnosPersonalizados />;
       case 'configuracion': return <Configuracion />;
       default: return <TomarAsistencia />;
     }

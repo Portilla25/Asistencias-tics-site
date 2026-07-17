@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { id: 'calificaciones', label: 'Notas', icon: <BookOpen className="w-5 h-5" />, roles: ['admin', 'docente'] },
   { id: 'puntos-extra', label: 'Participacion', icon: <Star className="w-5 h-5" />, roles: ['admin', 'docente'] },
   { id: 'reportes', label: 'Reportes', icon: <BarChart3 className="w-5 h-5" />, roles: ['admin', 'docente'] },
+  { id: 'personalizados', label: 'Personalizados', icon: <Users className="w-5 h-5" />, roles: ['admin', 'docente'] },
   { id: 'configuracion', label: 'Respaldo', icon: <Settings className="w-5 h-5" />, roles: ['admin'] },
 ];
 
