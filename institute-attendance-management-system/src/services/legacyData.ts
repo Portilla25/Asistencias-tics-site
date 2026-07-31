@@ -20,6 +20,7 @@ import {
 import { getTodayInPeru } from '../utils/dateUtils';
 import { enqueueDeferredSync } from './deferredSync';
 import {
+  recoverConfirmedAfternoonAttendance,
   repairTechnologyTurnSeparation,
   TECHNOLOGY_MODULE_IDS,
 } from './turnSeparation';
@@ -88,6 +89,7 @@ const JUNE_2026_RECOVERY_REPORT_KEY = 'asist_june_2026_recovery_report_v1';
 const JUNE_2026_START = '2026-06-01';
 const JUNE_2026_END = '2026-06-30';
 const TURN_SEPARATION_BACKUP_KEY = 'asist_state_backup_turnos_separados_v1';
+const TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY = 'asist_turnos_asistencia_recuperada_v1';
 
 type FirestoreCacheMeta = {
   downloadedAt?: string;
@@ -884,13 +886,6 @@ const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
     }
   }
 
-  const storedBackup = safeParse<{ modules?: Record<string, LegacyModule> }>(
-    readStorage(TURN_SEPARATION_BACKUP_KEY),
-    {},
-  );
-  const report = repairTechnologyTurnSeparation(state, storedBackup.modules);
-  if (!report.changed) return report;
-
   if (backupJson && typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(TURN_SEPARATION_BACKUP_KEY, backupJson);
@@ -899,10 +894,37 @@ const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
     }
   }
 
+  const storedBackup = safeParse<{ modules?: Record<string, LegacyModule> }>(
+    readStorage(TURN_SEPARATION_BACKUP_KEY),
+    {},
+  );
+  const report = repairTechnologyTurnSeparation(state, storedBackup.modules);
+  const shouldRecoverAttendance =
+    !!storedBackup.modules &&
+    !hasMigrationFlag(TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY);
+  const recoveryReport = shouldRecoverAttendance
+    ? recoverConfirmedAfternoonAttendance(state, storedBackup.modules)
+    : { changed: false, touchedModuleIds: [] as string[], restoredRecords: 0 };
+  const combinedReport = {
+    ...report,
+    changed: report.changed || recoveryReport.changed,
+    touchedModuleIds: Array.from(new Set([
+      ...report.touchedModuleIds,
+      ...recoveryReport.touchedModuleIds,
+    ])).sort(),
+    recoveredAfternoonRecords: recoveryReport.restoredRecords,
+  };
+
+  if (shouldRecoverAttendance) {
+    setMigrationFlag(TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY);
+  }
+
+  if (!combinedReport.changed) return combinedReport;
+
   saveStateLocally(state);
-  syncTouchedModules(new Set(report.touchedModuleIds), state);
-  console.log('[TURNOS] Turnos separados correctamente.', report);
-  return report;
+  syncTouchedModules(new Set(combinedReport.touchedModuleIds), state);
+  console.log('[TURNOS] Turnos separados y asistencias protegidas correctamente.', combinedReport);
+  return combinedReport;
 };
 
 const normalize = (value: string) =>

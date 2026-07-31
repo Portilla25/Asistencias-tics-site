@@ -28,6 +28,12 @@ export type TurnSeparationReport = {
   restoredRecords: number;
 };
 
+export type AfternoonAttendanceRecoveryReport = {
+  changed: boolean;
+  touchedModuleIds: string[];
+  restoredRecords: number;
+};
+
 export const MORNING_TECH_MODULE_IDS = [
   'redes_M_1',
   'redes_M_2',
@@ -215,6 +221,7 @@ const mergeStudentRecords = (
   targetModule: TurnModule,
   sourceModule: TurnModule,
   recordKeys: Set<string>,
+  destinationKey?: string,
 ) => {
   let restored = 0;
 
@@ -231,13 +238,14 @@ const mergeStudentRecords = (
 
     Object.entries(sourceRecord).forEach(([outerKey, outerValue]) => {
       if (recordKeyMatches(recordKeys, outerKey)) {
-        if (!(outerKey in targetRecord)) {
-          targetRecord[outerKey] = cloneValue(outerValue);
+        const targetOuterKey = destinationKey || outerKey;
+        if (!(targetOuterKey in targetRecord)) {
+          targetRecord[targetOuterKey] = cloneValue(outerValue);
           restored += 1;
           return;
         }
 
-        const targetOuterValue = targetRecord[outerKey];
+        const targetOuterValue = targetRecord[targetOuterKey];
         if (
           outerValue &&
           typeof outerValue === 'object' &&
@@ -262,13 +270,14 @@ const mergeStudentRecords = (
       const sourceInner = outerValue as Record<string, unknown>;
       Object.entries(sourceInner).forEach(([innerKey, innerValue]) => {
         if (!recordKeyMatches(recordKeys, innerKey)) return;
+        const targetInnerKey = destinationKey || innerKey;
         const targetOuterValue = targetRecord[outerKey];
         const targetInner =
           targetOuterValue && typeof targetOuterValue === 'object' && !Array.isArray(targetOuterValue)
             ? targetOuterValue as Record<string, unknown>
             : {};
-        if (!(innerKey in targetInner)) {
-          targetInner[innerKey] = cloneValue(innerValue);
+        if (!(targetInnerKey in targetInner)) {
+          targetInner[targetInnerKey] = cloneValue(innerValue);
           restored += 1;
         }
         targetRecord[outerKey] = targetInner;
@@ -279,6 +288,55 @@ const mergeStudentRecords = (
   });
 
   return restored;
+};
+
+export const recoverConfirmedAfternoonAttendance = (
+  state: Record<string, TurnModule>,
+  recoveryState?: Record<string, TurnModule>,
+): AfternoonAttendanceRecoveryReport => {
+  const touchedModuleIds = new Set<string>();
+  let restoredRecords = 0;
+
+  if (!recoveryState) {
+    return { changed: false, touchedModuleIds: [], restoredRecords: 0 };
+  }
+
+  AFTERNOON_TECH_MODULE_IDS.forEach((moduleId) => {
+    const targetModule = state[moduleId];
+    const sourceModule = recoveryState[moduleId];
+    if (!targetModule || !sourceModule) return;
+
+    const sourceStudents = moduleStudents(sourceModule);
+    moduleStudents(targetModule)
+      .filter(isConfirmedAfternoonStudent)
+      .forEach((targetStudent) => {
+        const targetName = normalizePersonName(targetStudent.nombre);
+        const sourceStudent = sourceStudents.find(
+          (student) => normalizePersonName(student.nombre) === targetName,
+        );
+        if (!sourceStudent) return;
+
+        const recordKeys = new Set<string>();
+        addStudentRecordKeys(recordKeys, sourceStudent);
+        const destinationKey = String(targetStudent.id ?? '').trim() || undefined;
+        const restoredHere = mergeStudentRecords(
+          targetModule,
+          sourceModule,
+          recordKeys,
+          destinationKey,
+        );
+        if (restoredHere > 0) {
+          restoredRecords += restoredHere;
+          touchedModuleIds.add(moduleId);
+        }
+      });
+  });
+
+  return {
+    changed: touchedModuleIds.size > 0,
+    touchedModuleIds: [...touchedModuleIds].sort(),
+    restoredRecords,
+  };
 };
 
 type LocatedStudent = {
@@ -376,8 +434,6 @@ export const repairTechnologyTurnSeparation = (
   const touchedModuleIds = new Set<string>();
   const morningIdentityKeys = new Set<string>();
   const afternoonIdentityKeys = new Set<string>();
-  const morningRecordKeys = new Set<string>();
-  const afternoonRecordKeys = new Set<string>();
   let removedFromMorning = 0;
   let removedFromAfternoon = 0;
   let retiredInAfternoon = 0;
@@ -391,7 +447,6 @@ export const repairTechnologyTurnSeparation = (
 
   morningSourceStudents.forEach((student) => {
     addStudentIdentity(morningIdentityKeys, student);
-    addStudentRecordKeys(morningRecordKeys, student);
   });
 
   const afternoonSourceStudents = AFTERNOON_TECH_MODULE_IDS
@@ -403,7 +458,6 @@ export const repairTechnologyTurnSeparation = (
 
   afternoonSourceStudents.forEach((student) => {
     addStudentIdentity(afternoonIdentityKeys, student);
-    addStudentRecordKeys(afternoonRecordKeys, student);
   });
 
   MORNING_TECH_MODULE_IDS.forEach((moduleId) => {
@@ -433,11 +487,17 @@ export const repairTechnologyTurnSeparation = (
       module.alumnos = nextActive;
       module.retirados = nextRetired;
       removedFromMorning += removedStudents.length;
-      removedStudents.forEach((student) => addStudentRecordKeys(afternoonRecordKeys, student));
       touchedModuleIds.add(moduleId);
     }
 
-    const removedHere = removeStudentRecords(module, afternoonRecordKeys);
+    const removedRecordKeys = new Set<string>();
+    removedStudents.forEach((student) => addStudentRecordKeys(removedRecordKeys, student));
+    [...nextActive, ...nextRetired].forEach((student) => {
+      const protectedKeys = new Set<string>();
+      addStudentRecordKeys(protectedKeys, student);
+      protectedKeys.forEach((key) => removedRecordKeys.delete(key));
+    });
+    const removedHere = removeStudentRecords(module, removedRecordKeys);
     if (removedHere > 0) {
       removedRecords += removedHere;
       touchedModuleIds.add(moduleId);
@@ -487,11 +547,17 @@ export const repairTechnologyTurnSeparation = (
       module.alumnos = nextActive;
       module.retirados = nextRetired;
       removedFromAfternoon += removedStudents.length;
-      removedStudents.forEach((student) => addStudentRecordKeys(morningRecordKeys, student));
       touchedModuleIds.add(moduleId);
     }
 
-    const removedHere = removeStudentRecords(module, morningRecordKeys);
+    const removedRecordKeys = new Set<string>();
+    removedStudents.forEach((student) => addStudentRecordKeys(removedRecordKeys, student));
+    [...nextActive, ...nextRetired].forEach((student) => {
+      const protectedKeys = new Set<string>();
+      addStudentRecordKeys(protectedKeys, student);
+      protectedKeys.forEach((key) => removedRecordKeys.delete(key));
+    });
+    const removedHere = removeStudentRecords(module, removedRecordKeys);
     if (removedHere > 0) {
       removedRecords += removedHere;
       touchedModuleIds.add(moduleId);
