@@ -19,6 +19,10 @@ import {
 } from '../data/mockData';
 import { getTodayInPeru } from '../utils/dateUtils';
 import { enqueueDeferredSync } from './deferredSync';
+import {
+  repairTechnologyTurnSeparation,
+  TECHNOLOGY_MODULE_IDS,
+} from './turnSeparation';
 
 type LegacyStudent = {
   id?: string | number;
@@ -83,6 +87,7 @@ const JUNE_2026_RECOVERY_FLAG_KEY = 'asist_june_2026_recovery_done_v1';
 const JUNE_2026_RECOVERY_REPORT_KEY = 'asist_june_2026_recovery_report_v1';
 const JUNE_2026_START = '2026-06-01';
 const JUNE_2026_END = '2026-06-30';
+const TURN_SEPARATION_BACKUP_KEY = 'asist_state_backup_turnos_separados_v1';
 
 type FirestoreCacheMeta = {
   downloadedAt?: string;
@@ -793,6 +798,8 @@ export const downloadFromFirestore = async (options: DownloadFromFirestoreOption
     }
 
     if (Object.keys(state).length > 0) {
+      applyTechnologyTurnSeparation(state);
+
       // Count total asistencias across all modules for debugging
       let totalAsist = 0;
       let latestDate = '';
@@ -854,7 +861,45 @@ const syncTouchedModules = (moduleIds: Set<string>, _state: Record<string, Legac
   });
 };
 
+const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
+  let backupJson: string | null = null;
+  const shouldCreateBackup =
+    typeof window !== 'undefined' &&
+    !readStorage(TURN_SEPARATION_BACKUP_KEY);
 
+  if (shouldCreateBackup) {
+    try {
+      const modules = Object.fromEntries(
+        TECHNOLOGY_MODULE_IDS
+          .filter((moduleId) => state[moduleId])
+          .map((moduleId) => [moduleId, state[moduleId]]),
+      );
+      backupJson = JSON.stringify({
+        createdAt: new Date().toISOString(),
+        reason: 'Antes de separar los turnos mañana y tarde',
+        modules,
+      });
+    } catch {
+      backupJson = null;
+    }
+  }
+
+  const report = repairTechnologyTurnSeparation(state);
+  if (!report.changed) return report;
+
+  if (backupJson && typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(TURN_SEPARATION_BACKUP_KEY, backupJson);
+    } catch {
+      console.warn('[TURNOS] No se pudo guardar el respaldo previo por falta de espacio.');
+    }
+  }
+
+  saveStateLocally(state);
+  syncTouchedModules(new Set(report.touchedModuleIds), state);
+  console.log('[TURNOS] Turnos separados correctamente.', report);
+  return report;
+};
 
 const normalize = (value: string) =>
   value
@@ -1196,123 +1241,6 @@ const buildNotifications = (alumnos: Alumno[], asistencias: Asistencia[]): Notif
   return notifications;
 };
 
-/* ─── One-time migration v2: ensure ALL Redes students in ALL 4 Tarde modules ─── */
-const MIGRATION_FLAG_TURNO = 'redes_turno_migration_v2';
-
-const runMigrations = () => {
-  if (typeof window === 'undefined') return;
-  if (__firebaseDownloadedThisSession) return; // Firebase data is authoritative, skip
-  if (hasMigrationFlag(MIGRATION_FLAG_TURNO)) return;
-
-  const raw = window.localStorage.getItem(STORAGE_STATE_KEY);
-  if (!raw) return;
-
-  try {
-    const state = JSON.parse(raw) as Record<string, LegacyModule>;
-    const allModuleIds = ['redes_M_1','redes_M_2','redes_M_3','redes_M_4','redes_T_1','redes_T_2','redes_T_3','redes_T_4'];
-    const afternoonIds = ['redes_T_1','redes_T_2','redes_T_3','redes_T_4'];
-
-    // Step 1: Collect ALL unique students by name from all redes modules
-    const byName = new Map<string, LegacyStudent>();
-    allModuleIds.forEach(mId => {
-      const mod = state[mId];
-      if (!mod?.alumnos) return;
-      mod.alumnos.forEach(student => {
-        if (student.retirado) return;
-        const name = String(student.nombre || '').trim();
-        if (!name) return;
-        // Keep the version with more data (longer JSON = more fields filled)
-        const existing = byName.get(name);
-        if (!existing || JSON.stringify(student).length > JSON.stringify(existing).length) {
-          byName.set(name, { ...student });
-        }
-      });
-    });
-
-    const allStudents = [...byName.values()];
-    console.log(`[REDES_MIGRACION_V2] ${allStudents.length} alumnos únicos encontrados`);
-
-    // Step 2: Ensure ALL students exist in ALL 4 afternoon modules
-    let totalAdded = 0;
-    afternoonIds.forEach(tId => {
-      if (!state[tId]) {
-        state[tId] = { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
-      }
-      const mod = state[tId];
-      const existingNames = new Set((mod.alumnos || []).map(a => String(a.nombre || '').trim()));
-
-      allStudents.forEach(student => {
-        const name = String(student.nombre || '').trim();
-        if (!existingNames.has(name)) {
-          // Generate a new unique id for this student in this module
-          const newId = Date.now() + Math.floor(Math.random() * 10000);
-          mod.alumnos = mod.alumnos || [];
-          mod.alumnos.push({ ...student, id: newId, retirado: false });
-          totalAdded++;
-        }
-      });
-
-      // Sort students alphabetically
-      if (mod.alumnos) {
-        mod.alumnos.sort((a, b) =>
-          String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es')
-        );
-      }
-
-      console.log(`[REDES_MIGRACION_V2] ${tId}: ${mod.alumnos?.length || 0} alumnos`);
-    });
-
-    // Step 3: Merge attendance from morning to all afternoon modules
-    const morningIds = ['redes_M_1','redes_M_2','redes_M_3','redes_M_4'];
-    morningIds.forEach((mId, idx) => {
-      const morning = state[mId];
-      const tId = afternoonIds[idx];
-      const afternoon = state[tId];
-      if (!morning || !afternoon) return;
-
-      // Copy attendance records that don't exist yet
-      Object.entries(morning.asistencias || {}).forEach(([studentId, byDate]) => {
-        afternoon.asistencias = afternoon.asistencias || {};
-        if (!afternoon.asistencias[studentId]) {
-          afternoon.asistencias[studentId] = { ...byDate };
-        }
-      });
-
-      // Merge motivos
-      Object.entries(morning.motivos || {}).forEach(([studentId, byDate]) => {
-        afternoon.motivos = afternoon.motivos || {};
-        if (!afternoon.motivos[studentId]) {
-          afternoon.motivos[studentId] = { ...byDate };
-        }
-      });
-
-      // Merge dates
-      const allDates = new Set([...(afternoon.fechas || []), ...(morning.fechas || [])]);
-      afternoon.fechas = [...allDates].sort();
-
-      // Clear morning students
-      morning.alumnos = [];
-    });
-
-    // Clean old backups to free localStorage space
-    ['asist_state_backup_redes_v1', 'asist_state_backup_turno_v1', 'redes_migracion_v1', 'redes_turno_migration_v1', 'reporteComparativoRedes'].forEach(k => {
-      try { window.localStorage.removeItem(k); } catch { /* ignore */ }
-    });
-
-    // Backup (skip if quota exceeded) and save
-    try {
-      window.localStorage.setItem('asist_state_backup_turno_v2', raw);
-    } catch {
-      console.warn('[REDES_MIGRACION_V2] No se pudo guardar backup en localStorage (cuota excedida). Usa el backup descargado.');
-    }
-    saveStateLocally(state);
-    setMigrationFlag(MIGRATION_FLAG_TURNO);
-    console.log(`[REDES_MIGRACION_V2] Completada. ${totalAdded} alumnos añadidos.`);
-  } catch (e) {
-    console.error('[REDES_MIGRACION_V2] Error:', e);
-  }
-};
-
 /* ─── One-time migration v3: move tics_sabados students to redes_M ─── */
 const MIGRATION_FLAG_TICS_SAB = 'tics_sabados_to_redes_M_v1';
 
@@ -1397,13 +1325,13 @@ const runMigrationsV3 = () => {
 
 export const loadInitialAppData = (): InitialAppData => {
   // Run one-time migrations first
-  runMigrations();
   runMigrationsV3();
 
 
 
   // Use legacy state
   const state = getStateLocally();
+  applyTechnologyTurnSeparation(state);
 
   // Cleanup legacy duplicates that were deleted from Firebase
   ['M-1', 'M-2', 'M-3', 'M-4', 'T-1', 'T-2', 'T-3', 'T-4'].forEach(id => {
