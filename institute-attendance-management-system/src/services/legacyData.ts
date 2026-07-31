@@ -89,7 +89,7 @@ const JUNE_2026_RECOVERY_REPORT_KEY = 'asist_june_2026_recovery_report_v1';
 const JUNE_2026_START = '2026-06-01';
 const JUNE_2026_END = '2026-06-30';
 const TURN_SEPARATION_BACKUP_KEY = 'asist_state_backup_turnos_separados_v1';
-const TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY = 'asist_turnos_asistencia_recuperada_v1';
+const TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY = 'asist_turnos_asistencia_recuperada_v2';
 
 type FirestoreCacheMeta = {
   downloadedAt?: string;
@@ -800,7 +800,7 @@ export const downloadFromFirestore = async (options: DownloadFromFirestoreOption
     }
 
     if (Object.keys(state).length > 0) {
-      applyTechnologyTurnSeparation(state);
+      applyTechnologyTurnSeparation(state, { downloadedFromFirestore: true });
 
       // Count total asistencias across all modules for debugging
       let totalAsist = 0;
@@ -863,7 +863,10 @@ const syncTouchedModules = (moduleIds: Set<string>, _state: Record<string, Legac
   });
 };
 
-const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
+const applyTechnologyTurnSeparation = (
+  state: Record<string, LegacyModule>,
+  options: { downloadedFromFirestore?: boolean } = {},
+) => {
   let backupJson: string | null = null;
   const shouldCreateBackup =
     typeof window !== 'undefined' &&
@@ -915,7 +918,7 @@ const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
     recoveredAfternoonRecords: recoveryReport.restoredRecords,
   };
 
-  if (shouldRecoverAttendance) {
+  if (shouldRecoverAttendance && options.downloadedFromFirestore) {
     setMigrationFlag(TURN_SEPARATION_ATTENDANCE_RECOVERY_FLAG_KEY);
   }
 
