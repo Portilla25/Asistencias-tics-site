@@ -211,15 +211,9 @@ export const repairTechnologyTurnSeparation = (
   let retiredInAfternoon = 0;
   let removedRecords = 0;
 
-  const morningOneStudents = moduleStudents(state.redes_M_1)
-    .filter((student) => !isConfirmedAfternoonStudent(student));
-  const explicitlyMorningStudents = MORNING_TECH_MODULE_IDS
+  const morningSourceStudents = MORNING_TECH_MODULE_IDS
     .flatMap((moduleId) => moduleStudents(state[moduleId]))
-    .filter((student) =>
-      !isConfirmedAfternoonStudent(student) &&
-      normalizeText(student.curso).includes('manana'),
-    );
-  const morningSourceStudents = [...morningOneStudents, ...explicitlyMorningStudents];
+    .filter((student) => !isConfirmedAfternoonStudent(student));
 
   morningSourceStudents.forEach((student) => {
     addStudentIdentity(morningIdentityKeys, student);
