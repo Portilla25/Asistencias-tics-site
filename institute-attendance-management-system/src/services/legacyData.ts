@@ -884,7 +884,11 @@ const applyTechnologyTurnSeparation = (state: Record<string, LegacyModule>) => {
     }
   }
 
-  const report = repairTechnologyTurnSeparation(state);
+  const storedBackup = safeParse<{ modules?: Record<string, LegacyModule> }>(
+    readStorage(TURN_SEPARATION_BACKUP_KEY),
+    {},
+  );
+  const report = repairTechnologyTurnSeparation(state, storedBackup.modules);
   if (!report.changed) return report;
 
   if (backupJson && typeof window !== 'undefined') {

@@ -24,6 +24,8 @@ export type TurnSeparationReport = {
   removedFromAfternoon: number;
   retiredInAfternoon: number;
   removedRecords: number;
+  restoredToMorning: number;
+  restoredRecords: number;
 };
 
 export const MORNING_TECH_MODULE_IDS = [
@@ -71,6 +73,14 @@ const CONFIRMED_AFTERNOON_STUDENTS = [
 
 const CONFIRMED_RETIRED_AFTERNOON_STUDENTS = [
   'Alejandría Rojas Nixon Yamir',
+] as const;
+
+const CONFIRMED_MORNING_ASSIGNMENTS = [
+  {
+    name: 'Vásquez Mendoza Jorge Nilson',
+    moduleId: 'redes_M_2',
+    course: 'Mañana M2',
+  },
 ] as const;
 
 const normalizeText = (value: unknown) =>
@@ -198,8 +208,170 @@ const containsEquivalentStudent = (students: TurnStudent[], candidate: TurnStude
   );
 };
 
+const cloneValue = <T,>(value: T): T =>
+  value === undefined ? value : JSON.parse(JSON.stringify(value)) as T;
+
+const mergeStudentRecords = (
+  targetModule: TurnModule,
+  sourceModule: TurnModule,
+  recordKeys: Set<string>,
+) => {
+  let restored = 0;
+
+  (['asistencias', 'motivos', 'notas', 'participacion'] as const).forEach((field) => {
+    const sourceValue = sourceModule[field];
+    if (!sourceValue || typeof sourceValue !== 'object' || Array.isArray(sourceValue)) return;
+
+    const sourceRecord = sourceValue as Record<string, unknown>;
+    const currentTarget = targetModule[field];
+    const targetRecord =
+      currentTarget && typeof currentTarget === 'object' && !Array.isArray(currentTarget)
+        ? currentTarget as Record<string, unknown>
+        : {};
+
+    Object.entries(sourceRecord).forEach(([outerKey, outerValue]) => {
+      if (recordKeyMatches(recordKeys, outerKey)) {
+        if (!(outerKey in targetRecord)) {
+          targetRecord[outerKey] = cloneValue(outerValue);
+          restored += 1;
+          return;
+        }
+
+        const targetOuterValue = targetRecord[outerKey];
+        if (
+          outerValue &&
+          typeof outerValue === 'object' &&
+          !Array.isArray(outerValue) &&
+          targetOuterValue &&
+          typeof targetOuterValue === 'object' &&
+          !Array.isArray(targetOuterValue)
+        ) {
+          const sourceInner = outerValue as Record<string, unknown>;
+          const targetInner = targetOuterValue as Record<string, unknown>;
+          Object.entries(sourceInner).forEach(([innerKey, innerValue]) => {
+            if (!(innerKey in targetInner)) {
+              targetInner[innerKey] = cloneValue(innerValue);
+              restored += 1;
+            }
+          });
+        }
+        return;
+      }
+
+      if (!outerValue || typeof outerValue !== 'object' || Array.isArray(outerValue)) return;
+      const sourceInner = outerValue as Record<string, unknown>;
+      Object.entries(sourceInner).forEach(([innerKey, innerValue]) => {
+        if (!recordKeyMatches(recordKeys, innerKey)) return;
+        const targetOuterValue = targetRecord[outerKey];
+        const targetInner =
+          targetOuterValue && typeof targetOuterValue === 'object' && !Array.isArray(targetOuterValue)
+            ? targetOuterValue as Record<string, unknown>
+            : {};
+        if (!(innerKey in targetInner)) {
+          targetInner[innerKey] = cloneValue(innerValue);
+          restored += 1;
+        }
+        targetRecord[outerKey] = targetInner;
+      });
+    });
+
+    targetModule[field] = targetRecord;
+  });
+
+  return restored;
+};
+
+type LocatedStudent = {
+  student: TurnStudent;
+  retired: boolean;
+  module: TurnModule;
+};
+
+const findStudentByName = (
+  state: Record<string, TurnModule> | undefined,
+  name: string,
+  preferredModuleId: string,
+): LocatedStudent | null => {
+  if (!state) return null;
+  const targetName = normalizePersonName(name);
+  const moduleIds = [
+    preferredModuleId,
+    ...TECHNOLOGY_MODULE_IDS.filter((moduleId) => moduleId !== preferredModuleId),
+  ];
+
+  for (const moduleId of moduleIds) {
+    const module = state[moduleId];
+    if (!module) continue;
+
+    const active = (module.alumnos || [])
+      .find((student) => normalizePersonName(student.nombre) === targetName);
+    if (active) return { student: active, retired: false, module };
+
+    const retired = (module.retirados || [])
+      .find((student) => normalizePersonName(student.nombre) === targetName);
+    if (retired) return { student: retired, retired: true, module };
+  }
+
+  return null;
+};
+
+const restoreConfirmedMorningAssignments = (
+  state: Record<string, TurnModule>,
+  recoveryState?: Record<string, TurnModule>,
+) => {
+  const touchedModuleIds = new Set<string>();
+  let restoredStudents = 0;
+  let restoredRecords = 0;
+
+  CONFIRMED_MORNING_ASSIGNMENTS.forEach((assignment) => {
+    const located =
+      findStudentByName(recoveryState, assignment.name, assignment.moduleId) ||
+      findStudentByName(state, assignment.name, assignment.moduleId);
+    if (!located) return;
+
+    const targetModule = state[assignment.moduleId] || {
+      alumnos: [],
+      retirados: [],
+      asistencias: {},
+      motivos: {},
+    };
+    state[assignment.moduleId] = targetModule;
+
+    const targetStudents = moduleStudents(targetModule);
+    if (!containsEquivalentStudent(targetStudents, located.student)) {
+      const restoredStudent = {
+        ...cloneValue(located.student),
+        curso: assignment.course,
+        retirado: located.retired,
+      };
+      if (located.retired) {
+        targetModule.retirados = [...(targetModule.retirados || []), restoredStudent];
+      } else {
+        targetModule.alumnos = [...(targetModule.alumnos || []), restoredStudent];
+      }
+      restoredStudents += 1;
+      touchedModuleIds.add(assignment.moduleId);
+    }
+
+    const recordKeys = new Set<string>();
+    addStudentRecordKeys(recordKeys, located.student);
+    const restoredHere = mergeStudentRecords(targetModule, located.module, recordKeys);
+    if (restoredHere > 0) {
+      restoredRecords += restoredHere;
+      touchedModuleIds.add(assignment.moduleId);
+    }
+  });
+
+  return {
+    touchedModuleIds,
+    restoredStudents,
+    restoredRecords,
+  };
+};
+
 export const repairTechnologyTurnSeparation = (
   state: Record<string, TurnModule>,
+  recoveryState?: Record<string, TurnModule>,
 ): TurnSeparationReport => {
   const touchedModuleIds = new Set<string>();
   const morningIdentityKeys = new Set<string>();
@@ -210,6 +382,8 @@ export const repairTechnologyTurnSeparation = (
   let removedFromAfternoon = 0;
   let retiredInAfternoon = 0;
   let removedRecords = 0;
+  const restoration = restoreConfirmedMorningAssignments(state, recoveryState);
+  restoration.touchedModuleIds.forEach((moduleId) => touchedModuleIds.add(moduleId));
 
   const morningSourceStudents = MORNING_TECH_MODULE_IDS
     .flatMap((moduleId) => moduleStudents(state[moduleId]))
@@ -331,5 +505,7 @@ export const repairTechnologyTurnSeparation = (
     removedFromAfternoon,
     retiredInAfternoon,
     removedRecords,
+    restoredToMorning: restoration.restoredStudents,
+    restoredRecords: restoration.restoredRecords,
   };
 };
