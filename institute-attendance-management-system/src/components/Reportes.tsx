@@ -6,14 +6,27 @@ import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileS
 import { exportToGastronomiaExcel, exportToCleanAttendanceExcel } from '../utils/exportExcel';
 import { obtenerNotasMateria } from '../services/notas';
 import { formatDateInPeru, getTodayInPeru } from '../utils/dateUtils';
+import HorasDictadasReporte from './HorasDictadasReporte';
+
+type ReportTab = 'general' | 'alumnos' | 'materias' | 'horas';
+
+const REPORT_TABS: Array<{ id: ReportTab; label: string }> = [
+  { id: 'general', label: 'General' },
+  { id: 'alumnos', label: 'Por alumno' },
+  { id: 'materias', label: 'Por materia' },
+  { id: 'horas', label: 'Horas dictadas' },
+];
 
 const Reportes: React.FC = () => {
   const { alumnos, materias, asistencias, currentUser } = useApp();
   const [filterCurso, setFilterCurso] = useState('');
   const [filterModulo, setFilterModulo] = useState('');
-  const [activeTab, setActiveTab] = useState<'general' | 'alumnos' | 'materias'>('general');
+  const [activeTab, setActiveTab] = useState<ReportTab>('general');
 
-  const misMaterias = currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id);
+  const misMaterias = useMemo(
+    () => currentUser?.rol === 'admin' ? materias : materias.filter(m => m.docenteId === currentUser?.id),
+    [currentUser, materias]
+  );
 
   // Group materias into courses
   const cursoGroups = useMemo(() => getCursoGroups(misMaterias), [misMaterias]);
@@ -183,6 +196,21 @@ const Reportes: React.FC = () => {
 
   return (
     <div className="p-6 space-y-5">
+      {/* Main report sections */}
+      <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-muted p-1">
+        {REPORT_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-all ${activeTab === tab.id ? 'bg-card text-indigo-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab !== 'horas' && (
+        <>
       {/* Filters */}
       <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
         <div className="flex flex-wrap gap-3 items-center">
@@ -246,16 +274,8 @@ const Reportes: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit">
-        {(['general', 'alumnos', 'materias'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${activeTab === tab ? 'bg-card shadow-sm text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab === 'general' ? 'General' : tab === 'alumnos' ? 'Por Alumno' : 'Por Materia'}
-          </button>
-        ))}
-      </div>
+        </>
+      )}
 
       {activeTab === 'general' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -410,6 +430,10 @@ const Reportes: React.FC = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {activeTab === 'horas' && (
+        <HorasDictadasReporte materias={misMaterias} asistencias={asistencias} />
       )}
     </div>
   );

@@ -5,48 +5,7 @@ import { Alumno, Asistencia, Materia } from '../types';
 import { getCareers, LegacyCareer } from '../services/legacyData';
 import { getSesiones, recalcularNumerosClaseBatch, saveSesionesBatch, SesionData } from '../services/sesiones';
 import DateLabel from './DateLabel';
-
-/* ─── Schedule definitions for each module ─── */
-const MODULE_SCHEDULES: Record<string, { turno: string; hora: string; dia: string }> = {
-  // Redes Mañana
-  redes_M_1: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_M_2: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_M_3: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_M_4: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  // Redes Tarde
-  redes_T_1: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_T_2: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_T_3: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_T_4: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  // Gastronomía Lunes
-  info_gastro_L_1: { turno: 'Mañana', hora: '10:30 – 12:20', dia: 'Lunes' },
-  // TICs Sábados
-  tics_S_1: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  tics_S_2: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  tics_S_3: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  tics_S_4: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  // Redes Sábados Mañana
-  redes_S_M1: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_S_M2: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_S_M3: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  redes_S_M4: { turno: 'Mañana', hora: '09:00 – 13:00', dia: 'Sábado' },
-  // Redes Sábados Tarde
-  redes_S_T1: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_S_T2: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_S_T3: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-  redes_S_T4: { turno: 'Tarde', hora: '14:00 – 18:00', dia: 'Sábado' },
-};
-
-/* Hours per module (1h per module, except Gastronomía = 2h) */
-const HOURS_PER_MODULE: Record<string, number> = {
-  info_gastro_L_1: 2,
-  redes_M_1: 4, redes_M_2: 4, redes_M_3: 4, redes_M_4: 4,
-  redes_T_1: 4, redes_T_2: 4, redes_T_3: 4, redes_T_4: 4,
-  tics_S_1: 4, tics_S_2: 4, tics_S_3: 4, tics_S_4: 4,
-  redes_S_M1: 4, redes_S_M2: 4, redes_S_M3: 4, redes_S_M4: 4,
-  redes_S_T1: 4, redes_S_T2: 4, redes_S_T3: 4, redes_S_T4: 4,
-};
-const getHoursForModule = (id: string) => HOURS_PER_MODULE[id] || 1;
+import { getHoursForModule, MODULE_SCHEDULES } from '../utils/moduleSchedules';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
