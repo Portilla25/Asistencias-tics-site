@@ -41,14 +41,14 @@ interface MonthlyAttendanceExportOptions {
 
 const STATUS_MARKS: Record<Asistencia['estado'], string> = {
   presente: 'P',
-  ausente: 'A',
+  ausente: 'F',
   justificado: 'J',
   tardanza: 'T',
 };
 
 const STATUS_STYLES: Record<string, { fill: string; font: string }> = {
   P: { fill: 'FFDCFCE7', font: 'FF166534' },
-  A: { fill: 'FFFEE2E2', font: 'FFB91C1C' },
+  F: { fill: 'FFFEE2E2', font: 'FFB91C1C' },
   J: { fill: 'FFE0E7FF', font: 'FF4338CA' },
   T: { fill: 'FFFEF3C7', font: 'FFB45309' },
   '—': { fill: 'FFF1F5F9', font: 'FF64748B' },
@@ -118,7 +118,7 @@ export const exportMonthlyAttendanceExcel = async ({
       },
     });
 
-    const summaryHeaders = ['Presentes', 'Ausentes', 'Justificadas', 'Tardanzas'];
+    const summaryHeaders = ['Presentes', 'Faltas', 'Justificadas', 'Tardanzas'];
     const totalColumns = 3 + sessions.length + summaryHeaders.length;
     const lastColumn = Math.max(totalColumns, 7);
 
@@ -139,7 +139,7 @@ export const exportMonthlyAttendanceExcel = async ({
     worksheet.getCell(3, 1).font = { size: 11, color: { argb: 'FF475569' } };
 
     worksheet.mergeCells(4, 1, 4, lastColumn);
-    worksheet.getCell(4, 1).value = 'Leyenda: P = Presente | A = Ausente | J = Falta justificada | T = Tardanza | — = Sin registro';
+    worksheet.getCell(4, 1).value = 'Leyenda: P = Presente | F = Falta | J = Falta justificada | T = Tardanza | — = Sin registro';
     worksheet.getCell(4, 1).font = { italic: true, size: 10, color: { argb: 'FF475569' } };
 
     const dateCounts = sessions.reduce<Record<string, number>>((counts, session) => {
@@ -176,7 +176,7 @@ export const exportMonthlyAttendanceExcel = async ({
       row.getCell(2).value = student.dni || '';
       row.getCell(3).value = `${student.apellido}, ${student.nombre}`;
 
-      const totals = { P: 0, A: 0, J: 0, T: 0 };
+      const totals = { P: 0, F: 0, J: 0, T: 0 };
       sessions.forEach((session, sessionIndex) => {
         const attendance = attendanceByStudentAndSession.get(
           `${student.id}|${session.materiaId}|${session.fecha}`
@@ -192,7 +192,7 @@ export const exportMonthlyAttendanceExcel = async ({
 
       const summaryStart = 4 + sessions.length;
       row.getCell(summaryStart).value = totals.P;
-      row.getCell(summaryStart + 1).value = totals.A;
+      row.getCell(summaryStart + 1).value = totals.F;
       row.getCell(summaryStart + 2).value = totals.J;
       row.getCell(summaryStart + 3).value = totals.T;
 
@@ -282,7 +282,7 @@ export const exportToGastronomiaExcel = async (
         let mark = '';
         if (asis) {
           if (asis.estado === 'presente') mark = 'P'; // P for Presente
-          else if (asis.estado === 'ausente') mark = 'A'; // A for Ausente
+          else if (asis.estado === 'ausente') mark = 'F'; // F for Falta
           else if (asis.estado === 'tardanza') mark = 'T'; // T for Tardanza
           else if (asis.estado === 'justificado') mark = 'J'; // J for Justificado
         }
@@ -406,7 +406,7 @@ export const exportToCleanAttendanceExcel = async (
           
           let mark = '';
           if (asis.estado === 'presente') mark = 'P';
-          else if (asis.estado === 'ausente') mark = 'A';
+          else if (asis.estado === 'ausente') mark = 'F';
           else if (asis.estado === 'tardanza') mark = 'T';
           else if (asis.estado === 'justificado') mark = 'J';
           
@@ -429,7 +429,7 @@ export const exportToCleanAttendanceExcel = async (
           cell.alignment = { horizontal: 'center' };
           const val = cell.value;
           if (val === 'P') cell.font = { color: { argb: 'FF16A34A' }, bold: true };
-          else if (val === 'A') cell.font = { color: { argb: 'FFDC2626' }, bold: true };
+          else if (val === 'F') cell.font = { color: { argb: 'FFDC2626' }, bold: true };
           else if (val === 'T') cell.font = { color: { argb: 'FFD97706' }, bold: true };
           else if (val === 'J') cell.font = { color: { argb: 'FF4F46E5' }, bold: true };
         }

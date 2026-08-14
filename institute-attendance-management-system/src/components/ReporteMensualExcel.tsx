@@ -189,7 +189,7 @@ const ReporteMensualExcel: React.FC<ReporteMensualExcelProps> = ({ alumnos, mate
 
       <div className="rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
         <strong className="text-foreground">Solo se descargará {MONTHS[month - 1].toLowerCase()} de {year}.</strong>{' '}
-        P = Presente · A = Ausente · J = Falta justificada · T = Tardanza · — = Sin registro
+        P = Presente · F = Falta · J = Falta justificada · T = Tardanza · — = Sin registro
       </div>
 
       {message && (
