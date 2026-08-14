@@ -3,17 +3,19 @@ import { useApp } from '../context/AppContext';
 import { getCursoGroups } from '../utils/cursoGroups';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Download, Filter, TrendingUp, TrendingDown, Award, AlertTriangle, FileSpreadsheet } from 'lucide-react';
-import { exportToGastronomiaExcel, exportToCleanAttendanceExcel } from '../utils/exportExcel';
+import { exportToGastronomiaExcel } from '../utils/exportExcel';
 import { obtenerNotasMateria } from '../services/notas';
 import { formatDateInPeru, getTodayInPeru } from '../utils/dateUtils';
 import HorasDictadasReporte from './HorasDictadasReporte';
+import ReporteMensualExcel from './ReporteMensualExcel';
 
-type ReportTab = 'general' | 'alumnos' | 'materias' | 'horas';
+type ReportTab = 'general' | 'alumnos' | 'materias' | 'excel' | 'horas';
 
 const REPORT_TABS: Array<{ id: ReportTab; label: string }> = [
   { id: 'general', label: 'General' },
   { id: 'alumnos', label: 'Por alumno' },
   { id: 'materias', label: 'Por materia' },
+  { id: 'excel', label: 'Excel mensual' },
   { id: 'horas', label: 'Horas dictadas' },
 ];
 
@@ -132,7 +134,6 @@ const Reportes: React.FC = () => {
   };
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
-  const [isExportingClean, setIsExportingClean] = useState(false);
 
   const handleExportExcel = async () => {
     const targetMateriaId = filterModulo || (selectedGroup?.materias.length === 1 ? selectedGroup.materias[0].id : '');
@@ -168,32 +169,6 @@ const Reportes: React.FC = () => {
     }
   };
 
-  const handleExportCleanExcel = async () => {
-    const targetMateriaId = filterModulo || (selectedGroup?.materias.length === 1 ? selectedGroup.materias[0].id : '');
-    if (!targetMateriaId) {
-      alert("Selecciona un curso y módulo específico para generar el reporte de asistencias en Excel.");
-      return;
-    }
-    
-    setIsExportingClean(true);
-    try {
-      const materiaInfo = misMaterias.find(m => m.id === targetMateriaId);
-      const materiaName = materiaInfo ? materiaInfo.nombre : 'Reporte';
-      
-      const success = await exportToCleanAttendanceExcel(
-        alumnosReport,
-        filteredAsistencias,
-        materiaName
-      );
-      
-      if (!success) {
-        alert("Hubo un error al generar el archivo Excel de asistencias.");
-      }
-    } finally {
-      setIsExportingClean(false);
-    }
-  };
-
   return (
     <div className="p-6 space-y-5">
       {/* Main report sections */}
@@ -209,7 +184,7 @@ const Reportes: React.FC = () => {
         ))}
       </div>
 
-      {activeTab !== 'horas' && (
+      {activeTab !== 'horas' && activeTab !== 'excel' && (
         <>
       {/* Filters */}
       <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
@@ -235,15 +210,14 @@ const Reportes: React.FC = () => {
           </button>
           <button onClick={handleExport} className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Download className="w-4 h-4" />
-            Exportar CSV
+            CSV completo
           </button>
-          <button 
-            onClick={handleExportCleanExcel} 
-            disabled={isExportingClean}
-            className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors ${isExportingClean ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+          <button
+            onClick={() => setActiveTab('excel')}
+            className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            {isExportingClean ? 'Generando...' : 'Exportar Asistencias (Excel)'}
+            Excel mensual
           </button>
           <button 
             onClick={handleExportExcel} 
@@ -251,7 +225,7 @@ const Reportes: React.FC = () => {
             className={`flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors ${isExportingExcel ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
           >
             <FileSpreadsheet className="w-4 h-4" />
-            {isExportingExcel ? 'Generando...' : 'Exportar Oficial (Excel)'}
+            {isExportingExcel ? 'Generando...' : 'Formato oficial completo'}
           </button>
         </div>
       </div>
@@ -434,6 +408,10 @@ const Reportes: React.FC = () => {
 
       {activeTab === 'horas' && (
         <HorasDictadasReporte materias={misMaterias} asistencias={asistencias} />
+      )}
+
+      {activeTab === 'excel' && (
+        <ReporteMensualExcel alumnos={alumnos} materias={misMaterias} asistencias={asistencias} />
       )}
     </div>
   );
