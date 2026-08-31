@@ -81,12 +81,26 @@ const CONFIRMED_RETIRED_AFTERNOON_STUDENTS = [
   'Alejandría Rojas Nixon Yamir',
 ] as const;
 
+const CONFIRMED_AFTERNOON_RECORD_ALIASES = [
+  '1781366097894161',
+] as const;
+
 const CONFIRMED_MORNING_ASSIGNMENTS = [
   {
     name: 'Vásquez Mendoza Jorge Nilson',
     moduleId: 'redes_M_2',
     course: 'Mañana M2',
   },
+] as const;
+
+const MORNING_COHORT_REFERENCE_MODULE_IDS = [
+  'redes_M_3',
+  'redes_M_4',
+] as const;
+
+const MORNING_COHORT_RECOVERY_TARGETS = [
+  { moduleId: 'redes_M_1', course: 'Mañana M1' },
+  { moduleId: 'redes_M_2', course: 'Mañana M2' },
 ] as const;
 
 const normalizeText = (value: unknown) =>
@@ -213,6 +227,19 @@ const containsEquivalentStudent = (students: TurnStudent[], candidate: TurnStude
     studentIdentityKeys(student).some((key) => candidateKeys.has(key)),
   );
 };
+
+const findEquivalentStudent = (students: TurnStudent[], candidate: TurnStudent) => {
+  const candidateKeys = new Set(studentIdentityKeys(candidate));
+  if (candidateKeys.size === 0) {
+    return students.find((student) => String(student.id ?? '') === String(candidate.id ?? ''));
+  }
+  return students.find((student) =>
+    studentIdentityKeys(student).some((key) => candidateKeys.has(key)),
+  );
+};
+
+const richerStudent = (first: TurnStudent, second: TurnStudent) =>
+  JSON.stringify(second).length > JSON.stringify(first).length ? second : first;
 
 const cloneValue = <T,>(value: T): T =>
   value === undefined ? value : JSON.parse(JSON.stringify(value)) as T;
@@ -345,6 +372,68 @@ type LocatedStudent = {
   module: TurnModule;
 };
 
+const restoreMorningCohort = (
+  state: Record<string, TurnModule>,
+  recoveryState?: Record<string, TurnModule>,
+) => {
+  const [firstReferenceId, secondReferenceId] = MORNING_COHORT_REFERENCE_MODULE_IDS;
+  const firstReference = state[firstReferenceId];
+  const secondReference = state[secondReferenceId];
+  const touchedModuleIds = new Set<string>();
+  let restoredStudents = 0;
+
+  if (!firstReference || !secondReference) {
+    return { touchedModuleIds, restoredStudents };
+  }
+
+  const agreedStudents: Array<{ student: TurnStudent; retired: boolean }> = [];
+  const addAgreedStudents = (
+    firstStudents: TurnStudent[],
+    secondStudents: TurnStudent[],
+    retired: boolean,
+  ) => {
+    firstStudents.forEach((firstStudent) => {
+      const secondStudent = findEquivalentStudent(secondStudents, firstStudent);
+      if (!secondStudent) return;
+      const candidate = richerStudent(firstStudent, secondStudent);
+      if (agreedStudents.some((entry) => containsEquivalentStudent([entry.student], candidate))) return;
+      agreedStudents.push({ student: candidate, retired });
+    });
+  };
+
+  addAgreedStudents(firstReference.alumnos || [], secondReference.alumnos || [], false);
+  addAgreedStudents(firstReference.retirados || [], secondReference.retirados || [], true);
+
+  MORNING_COHORT_RECOVERY_TARGETS.forEach(({ moduleId, course }) => {
+    const targetModule = state[moduleId];
+    if (!targetModule) return;
+
+    agreedStudents.forEach(({ student, retired }) => {
+      if (containsEquivalentStudent(moduleStudents(targetModule), student)) return;
+      const recoveryStudent = findEquivalentStudent(
+        moduleStudents(recoveryState?.[moduleId]),
+        student,
+      );
+      const profile = recoveryStudent ? richerStudent(student, recoveryStudent) : student;
+      const restoredStudent = {
+        ...cloneValue(profile),
+        ...(recoveryStudent?.id !== undefined ? { id: recoveryStudent.id } : {}),
+        curso: course,
+        retirado: retired,
+      };
+      if (retired) {
+        targetModule.retirados = [...(targetModule.retirados || []), restoredStudent];
+      } else {
+        targetModule.alumnos = [...(targetModule.alumnos || []), restoredStudent];
+      }
+      restoredStudents += 1;
+      touchedModuleIds.add(moduleId);
+    });
+  });
+
+  return { touchedModuleIds, restoredStudents };
+};
+
 const findStudentByName = (
   state: Record<string, TurnModule> | undefined,
   name: string,
@@ -382,9 +471,9 @@ const restoreConfirmedMorningAssignments = (
   let restoredRecords = 0;
 
   CONFIRMED_MORNING_ASSIGNMENTS.forEach((assignment) => {
-    const located =
-      findStudentByName(recoveryState, assignment.name, assignment.moduleId) ||
-      findStudentByName(state, assignment.name, assignment.moduleId);
+    const currentLocated = findStudentByName(state, assignment.name, assignment.moduleId);
+    const recoveryLocated = findStudentByName(recoveryState, assignment.name, assignment.moduleId);
+    const located = currentLocated || recoveryLocated;
     if (!located) return;
 
     const targetModule = state[assignment.moduleId] || {
@@ -395,8 +484,8 @@ const restoreConfirmedMorningAssignments = (
     };
     state[assignment.moduleId] = targetModule;
 
-    const targetStudents = moduleStudents(targetModule);
-    if (!containsEquivalentStudent(targetStudents, located.student)) {
+    let targetStudent = findEquivalentStudent(moduleStudents(targetModule), located.student);
+    if (!targetStudent) {
       const restoredStudent = {
         ...cloneValue(located.student),
         curso: assignment.course,
@@ -409,15 +498,67 @@ const restoreConfirmedMorningAssignments = (
       }
       restoredStudents += 1;
       touchedModuleIds.add(assignment.moduleId);
+      targetStudent = restoredStudent;
+    } else if (targetStudent.curso !== assignment.course) {
+      targetStudent.curso = assignment.course;
+      touchedModuleIds.add(assignment.moduleId);
     }
 
     const recordKeys = new Set<string>();
     addStudentRecordKeys(recordKeys, located.student);
-    const restoredHere = mergeStudentRecords(targetModule, located.module, recordKeys);
+    if (recoveryLocated) addStudentRecordKeys(recordKeys, recoveryLocated.student);
+    const destinationKey = String(targetStudent.id ?? '').trim() || undefined;
+    let restoredHere = mergeStudentRecords(targetModule, located.module, recordKeys, destinationKey);
+    if (recoveryLocated && recoveryLocated.module !== located.module) {
+      restoredHere += mergeStudentRecords(
+        targetModule,
+        recoveryLocated.module,
+        recordKeys,
+        destinationKey,
+      );
+    }
     if (restoredHere > 0) {
       restoredRecords += restoredHere;
       touchedModuleIds.add(assignment.moduleId);
     }
+
+    if (destinationKey) {
+      const obsoleteRecordKeys = new Set(recordKeys);
+      const protectedTargetKeys = new Set<string>();
+      addStudentRecordKeys(protectedTargetKeys, targetStudent);
+      protectedTargetKeys.forEach((key) => obsoleteRecordKeys.delete(key));
+      const removedAliases = removeStudentRecords(targetModule, obsoleteRecordKeys);
+      if (removedAliases > 0) {
+        restoredRecords += removedAliases;
+        touchedModuleIds.add(assignment.moduleId);
+      }
+    }
+
+    MORNING_TECH_MODULE_IDS
+      .filter((moduleId) => moduleId !== assignment.moduleId)
+      .forEach((moduleId) => {
+        const module = state[moduleId];
+        if (!module) return;
+        const active = module.alumnos || [];
+        const retired = module.retirados || [];
+        const removedStudents = [...active, ...retired]
+          .filter((student) => normalizePersonName(student.nombre) === normalizePersonName(assignment.name));
+        if (removedStudents.length === 0) return;
+
+        const sourceKeys = new Set<string>();
+        removedStudents.forEach((student) => addStudentRecordKeys(sourceKeys, student));
+        const movedRecords = mergeStudentRecords(targetModule, module, sourceKeys, destinationKey);
+        module.alumnos = active.filter(
+          (student) => normalizePersonName(student.nombre) !== normalizePersonName(assignment.name),
+        );
+        module.retirados = retired.filter(
+          (student) => normalizePersonName(student.nombre) !== normalizePersonName(assignment.name),
+        );
+        removeStudentRecords(module, sourceKeys);
+        restoredRecords += movedRecords;
+        touchedModuleIds.add(moduleId);
+        touchedModuleIds.add(assignment.moduleId);
+      });
   });
 
   return {
@@ -438,6 +579,8 @@ export const repairTechnologyTurnSeparation = (
   let removedFromAfternoon = 0;
   let retiredInAfternoon = 0;
   let removedRecords = 0;
+  const cohortRestoration = restoreMorningCohort(state, recoveryState);
+  cohortRestoration.touchedModuleIds.forEach((moduleId) => touchedModuleIds.add(moduleId));
   const restoration = restoreConfirmedMorningAssignments(state, recoveryState);
   restoration.touchedModuleIds.forEach((moduleId) => touchedModuleIds.add(moduleId));
 
@@ -459,6 +602,12 @@ export const repairTechnologyTurnSeparation = (
   afternoonSourceStudents.forEach((student) => {
     addStudentIdentity(afternoonIdentityKeys, student);
   });
+
+  const confirmedAfternoonRecordKeys = new Set<string>();
+  CONFIRMED_AFTERNOON_RECORD_ALIASES.forEach((key) => addRecordKey(confirmedAfternoonRecordKeys, key));
+  afternoonSourceStudents
+    .filter(isConfirmedAfternoonStudent)
+    .forEach((student) => addStudentRecordKeys(confirmedAfternoonRecordKeys, student));
 
   MORNING_TECH_MODULE_IDS.forEach((moduleId) => {
     const module = state[moduleId];
@@ -490,7 +639,7 @@ export const repairTechnologyTurnSeparation = (
       touchedModuleIds.add(moduleId);
     }
 
-    const removedRecordKeys = new Set<string>();
+    const removedRecordKeys = new Set<string>(confirmedAfternoonRecordKeys);
     removedStudents.forEach((student) => addStudentRecordKeys(removedRecordKeys, student));
     [...nextActive, ...nextRetired].forEach((student) => {
       const protectedKeys = new Set<string>();
@@ -571,7 +720,7 @@ export const repairTechnologyTurnSeparation = (
     removedFromAfternoon,
     retiredInAfternoon,
     removedRecords,
-    restoredToMorning: restoration.restoredStudents,
+    restoredToMorning: cohortRestoration.restoredStudents + restoration.restoredStudents,
     restoredRecords: restoration.restoredRecords,
   };
 };
