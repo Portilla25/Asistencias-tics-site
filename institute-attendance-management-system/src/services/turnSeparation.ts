@@ -90,6 +90,7 @@ const CONFIRMED_MORNING_ASSIGNMENTS = [
     name: 'Vásquez Mendoza Jorge Nilson',
     moduleId: 'redes_M_2',
     course: 'Mañana M2',
+    recordAliases: ['1774125752225'],
   },
 ] as const;
 
@@ -507,6 +508,7 @@ const restoreConfirmedMorningAssignments = (
     const recordKeys = new Set<string>();
     addStudentRecordKeys(recordKeys, located.student);
     if (recoveryLocated) addStudentRecordKeys(recordKeys, recoveryLocated.student);
+    assignment.recordAliases.forEach((key) => addRecordKey(recordKeys, key));
     const destinationKey = String(targetStudent.id ?? '').trim() || undefined;
     let restoredHere = mergeStudentRecords(targetModule, located.module, recordKeys, destinationKey);
     if (recoveryLocated && recoveryLocated.module !== located.module) {
