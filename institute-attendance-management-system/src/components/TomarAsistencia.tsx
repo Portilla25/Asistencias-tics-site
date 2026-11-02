@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FileText, Save, ChevronDown, ChevronRight, Calendar, Users, UserMinus, UserPlus, Eraser, Hash, BookOpen, Monitor, Dices, Plus, X } from 'lucide-react';
 import { Asistencia } from '../types';
-import { LegacyCareer, getCareers } from '../services/legacyData';
+import { createCareerWithInitialModule, LegacyCareer, getCareers } from '../services/legacyData';
 import { saveSesion, getSesiones } from '../services/sesiones';
 import DateLabel from './DateLabel';
 import { getTodayInPeru } from '../utils/dateUtils';
@@ -23,13 +23,20 @@ const CAREER_ICONS: Record<string, string> = {
   redes_sabados: '📡',
 };
 
+const COURSE_COLORS = ['#0d9488', '#f59e0b', '#e11d48', '#2563eb', '#7c3aed', '#16a34a'];
+
 const TomarAsistencia: React.FC = () => {
-  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno, limpiarAsistencia } = useApp();
+  const { currentUser, materias, alumnos, asistencias, registrarAsistenciaLote, updateAlumno, limpiarAsistencia, addMateria, setActiveSection } = useApp();
 
   const today = getTodayInPeru();
   const [fecha, setFecha] = useState(today);
   const [selectedMateria, setSelectedMateria] = useState('');
   const [expandedCareers, setExpandedCareers] = useState<Set<string>>(new Set(['info_gastro']));
+  const [isCourseFormOpen, setIsCourseFormOpen] = useState(false);
+  const [courseName, setCourseName] = useState('');
+  const [initialModuleName, setInitialModuleName] = useState('Módulo 1');
+  const [courseColor, setCourseColor] = useState(COURSE_COLORS[0]);
+  const [courseError, setCourseError] = useState('');
   const [estados, setEstados] = useState<Record<string, Estado>>({});
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
   
@@ -77,6 +84,24 @@ const TomarAsistencia: React.FC = () => {
       }
       return next;
     });
+  };
+
+  const handleCreateCourse = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCourseError('');
+
+    try {
+      const { career, materia } = createCareerWithInitialModule(courseName, initialModuleName, courseColor);
+      addMateria(materia);
+      setExpandedCareers((prev) => new Set(prev).add(career.id));
+      setSelectedMateria(materia.id);
+      setCourseName('');
+      setInitialModuleName('Módulo 1');
+      setCourseColor(COURSE_COLORS[0]);
+      setIsCourseFormOpen(false);
+    } catch (error) {
+      setCourseError(error instanceof Error ? error.message : 'No se pudo crear el curso. Inténtalo de nuevo.');
+    }
   };
 
   const selectCareerAndMateria = (careerId: string, materiaId: string) => {
@@ -251,7 +276,7 @@ const TomarAsistencia: React.FC = () => {
       {/* ====== LEFT SIDEBAR: Premium Course Selector ====== */}
       <div className="w-[300px] flex-shrink-0 bg-card/80 backdrop-blur-xl border-r border-border flex flex-col overflow-y-auto shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)] z-10">
         <div className="p-6 border-b border-border bg-card/50 sticky top-0 z-20 backdrop-blur-md">
-          <div className="flex items-center gap-3 mb-1">
+          <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 text-primary rounded-lg">
               <FileText className="w-5 h-5" />
             </div>
@@ -260,6 +285,16 @@ const TomarAsistencia: React.FC = () => {
               <p className="text-[13px] text-muted-foreground font-medium">Gestión de asistencia</p>
             </div>
           </div>
+          {currentUser?.rol === 'admin' && (
+            <button
+              type="button"
+              onClick={() => { setCourseError(''); setIsCourseFormOpen(true); }}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-primary/10 hover:bg-primary/15 text-primary border border-primary/20 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Añadir curso
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-4">
@@ -543,6 +578,22 @@ const TomarAsistencia: React.FC = () => {
               )}
 
               <div className="divide-y divide-border">
+                {alumnosMateria.length === 0 && (
+                  <div className="px-5 py-12 text-center">
+                    <UserPlus className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-60" />
+                    <p className="font-semibold text-foreground">Este módulo todavía no tiene alumnos</p>
+                    <p className="text-sm text-muted-foreground mt-1">Añade alumnos y asígnales este módulo para empezar a registrar asistencia.</p>
+                    {currentUser?.rol === 'admin' && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveSection('alumnos')}
+                        className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold transition-colors"
+                      >
+                        Ir a Alumnos
+                      </button>
+                    )}
+                  </div>
+                )}
                 {alumnosMateria.map((alumno, idx) => {
                   const estado = estados[alumno.id];
                   return (
@@ -678,6 +729,114 @@ const TomarAsistencia: React.FC = () => {
           </div>
         )}
       </div>
+
+      {isCourseFormOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setIsCourseFormOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-course-title"
+            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+              <div>
+                <h3 id="add-course-title" className="font-bold text-foreground text-lg">Añadir curso</h3>
+                <p className="text-xs text-muted-foreground mt-1">Se creará con un módulo inicial.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCourseFormOpen(false)}
+                aria-label="Cerrar"
+                className="p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCourse} className="p-6 space-y-5">
+              <div>
+                <label htmlFor="new-course-name" className="block text-sm font-semibold text-foreground mb-1.5">
+                  Nombre del curso *
+                </label>
+                <input
+                  id="new-course-name"
+                  autoFocus
+                  required
+                  maxLength={80}
+                  value={courseName}
+                  onChange={(event) => setCourseName(event.target.value)}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="Ej. Desarrollo de software"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="new-course-module" className="block text-sm font-semibold text-foreground mb-1.5">
+                  Primer módulo *
+                </label>
+                <input
+                  id="new-course-module"
+                  required
+                  maxLength={60}
+                  value={initialModuleName}
+                  onChange={(event) => setInitialModuleName(event.target.value)}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                  placeholder="Ej. Módulo 1"
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Los alumnos se asignan a un módulo para registrar asistencia y notas.
+                </p>
+              </div>
+
+              <div>
+                <p className="block text-sm font-semibold text-foreground mb-2">Color del curso</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {COURSE_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setCourseColor(color)}
+                      aria-label={'Seleccionar color ' + color}
+                      aria-pressed={courseColor === color}
+                      className={courseColor === color
+                        ? 'w-8 h-8 rounded-full transition-all hover:scale-110 shadow-sm ring-2 ring-offset-2 ring-primary scale-110 ring-offset-card'
+                        : 'w-8 h-8 rounded-full transition-all hover:scale-110 shadow-sm'}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {courseError && (
+                <p role="alert" className="text-sm font-medium text-red-600 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  {courseError}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setIsCourseFormOpen(false)}
+                  className="flex-1 px-4 py-2.5 border border-border text-muted-foreground font-semibold rounded-xl text-sm hover:bg-muted transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!courseName.trim() || !initialModuleName.trim()}
+                  className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground rounded-xl text-sm font-semibold shadow-md transition-colors"
+                >
+                  Crear curso
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL RULETA DE PARTICIPACIÓN */}
       {isRuletaOpen && (

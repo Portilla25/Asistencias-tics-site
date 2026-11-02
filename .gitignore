@@ -17,7 +17,7 @@ institute-attendance-management-system/refactor_theme.cjs
 institute-attendance-management-system/redes_students.json
 institute-attendance-management-system/redes_unique_students.json
 
-# Build output (ya se copia a la raíz)
+# Build output (se publica desde dist en GitHub Actions)
 institute-attendance-management-system/node_modules/
 institute-attendance-management-system/dist/
 

@@ -324,6 +324,7 @@ export const getCareers = (): LegacyCareer[] => {
   
   // Migration to strictly enforce user's requested names without losing their IDs
   stored = stored.map(c => {
+    const isCustomCareer = c.id.startsWith('custom_');
     const normalizedName = c.nombre.toLowerCase();
     const isAfternoonCareer =
       c.id === 'redes_sabados' ||
@@ -332,17 +333,17 @@ export const getCareers = (): LegacyCareer[] => {
       c.nombre === 'Tecnologías Turno mañana sábados' ||
       c.nombre.includes('Tecnologías de la Información y Redes');
 
-    if (c.id === 'info_gastro' || c.nombre === 'Tecnologías de la Información' || c.nombre.includes('Gastronomía')) {
+    if (!isCustomCareer && (c.id === 'info_gastro' || c.nombre === 'Tecnologías de la Información' || c.nombre.includes('Gastronomía'))) {
       if (c.nombre !== 'Tecnologías de la información - gastronomía') {
         c.nombre = 'Tecnologías de la información - gastronomía';
         needsSave = true;
       }
-    } else if (isAfternoonCareer) {
+    } else if (!isCustomCareer && isAfternoonCareer) {
       if (c.nombre !== 'Tecnologías de la información turno tarde') {
         c.nombre = 'Tecnologías de la información turno tarde';
         needsSave = true;
       }
-    } else if (c.id === 'redes' || c.nombre.includes('Redes & TICs') || normalizedName.includes('tic y redes') || normalizedName.includes('turno mañana') || c.nombre.includes('sábados')) {
+    } else if (!isCustomCareer && (c.id === 'redes' || c.nombre.includes('Redes & TICs') || normalizedName.includes('tic y redes') || normalizedName.includes('turno mañana') || c.nombre.includes('sábados'))) {
       if (c.nombre !== 'Tecnologías de la información turno mañana') {
         c.nombre = 'Tecnologías de la información turno mañana';
         needsSave = true;
@@ -441,6 +442,69 @@ export const createModuloForCareer = (careerId: string): Omit<Materia, 'id'> & {
     docenteId: DOCENTE_ID,
     descripcion: `Módulo ${moduleNumber} creado manualmente.`,
     color: career.color || '#6366f1',
+  };
+};
+
+export const createCareerWithInitialModule = (
+  courseName: string,
+  moduleName: string,
+  color: string,
+): { career: LegacyCareer; materia: Materia } => {
+  const cleanCourseName = courseName.trim();
+  const cleanModuleName = moduleName.trim();
+  if (!cleanCourseName) throw new Error('Escribe el nombre del curso.');
+  if (!cleanModuleName) throw new Error('Escribe el nombre del primer módulo.');
+  if (typeof window === 'undefined') throw new Error('Solo puedes crear cursos desde el navegador.');
+
+  const careers = getCareers();
+  const normalizeCourseName = (value: string) =>
+    value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
+  if (careers.some((career) => normalizeCourseName(career.nombre) === normalizeCourseName(cleanCourseName))) {
+    throw new Error('Ya existe un curso con ese nombre.');
+  }
+
+  const slug = cleanCourseName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'curso';
+  const baseId = 'custom_' + slug + '_' + Date.now().toString(36);
+  const state = getStateLocally();
+  let careerId = baseId;
+  let moduleId = careerId + '_module_1';
+  let suffix = 2;
+  const hasModuleId = (id: string) =>
+    careers.some((career) => career.secciones?.some((section) => section.id === id)) ||
+    Object.prototype.hasOwnProperty.call(state, id);
+  while (careers.some((career) => career.id === careerId) || hasModuleId(moduleId)) {
+    careerId = baseId + '_' + suffix++;
+    moduleId = careerId + '_module_1';
+  }
+
+  const courseColor = /^#[\da-f]{6}$/i.test(color) ? color : '#6366f1';
+  const career: LegacyCareer = {
+    id: careerId,
+    nombre: cleanCourseName,
+    icono: '📚',
+    color: courseColor,
+    secciones: [{ id: moduleId, label: cleanModuleName, badge: cleanModuleName }],
+  };
+
+  saveCareers([...careers, career]);
+  state[moduleId] = state[moduleId] || { alumnos: [], fechas: [], asistencias: {}, motivos: {} };
+  saveStateLocally(state);
+
+  return {
+    career,
+    materia: {
+      id: moduleId,
+      nombre: career.nombre + ' · ' + cleanModuleName,
+      codigo: cleanModuleName,
+      docenteId: DOCENTE_ID,
+      descripcion: 'Módulo inicial para el curso ' + career.nombre + '.',
+      color: courseColor,
+    },
   };
 };
 
